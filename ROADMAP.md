@@ -13,8 +13,8 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
 - [x] **Step 3. Scripted policies + replay-based ground truth** (`scripted.py`, `replay.py`)
   Scripted agents that complete the events; open-loop replay with any subset removed; v(S) for all 2^n subsets.
   Done when the replay ground truth equals the planted structure on scripted data.
-- [ ] **Step 4. Metrics** (`src/whoearned/metrics.py`)
-  L1 credit error, Spearman, leakage Λ, missed credit M, coalition Jaccard, dividend error.
+- [x] **Step 4. Metrics** (`src/whoearned/metrics.py`)
+  L1 credit error, Spearman, leakage Λ, missed credit M, coalition recall/precision (Jaccard) with exact chance level, normalised dividend error, return–faithfulness (pooled and per method), realised bystanders. `evaluate_credit(...)` scores one episode, in total or per event.
 - [ ] **Step 5. EPyMARL integration**
   Register the environment with EPyMARL; implement the read-outs (difference of Q_tot, COMA advantages, MAPPO gradient-noise diagnostic).
 - [ ] **Step 6. Mode P experiments**
