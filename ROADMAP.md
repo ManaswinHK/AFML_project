@@ -10,7 +10,7 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
 - [x] **Step 2. Planted Coalition Gridworld** (design: `docs/environment_design.md`) (`src/whoearned/envs/`)
   Events with enablers/finishers, payout delay d, bystanders, overlap, partial synergy; true agent removal; fixed-size observations with presence flags; deterministic replay.
   Done when scripted episodes give the planted rewards, and removing any coalition member zeroes the event.
-- [ ] **Step 3. Scripted policies + replay-based ground truth**
+- [x] **Step 3. Scripted policies + replay-based ground truth** (`scripted.py`, `replay.py`)
   Scripted agents that complete the events; open-loop replay with any subset removed; v(S) for all 2^n subsets.
   Done when the replay ground truth equals the planted structure on scripted data.
 - [ ] **Step 4. Metrics** (`src/whoearned/metrics.py`)
@@ -30,6 +30,18 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
 
 - [ ] H5 low-order coalition estimator, tested on coalitions larger than its order k.
 - [ ] Interactive credit visualisation.
+
+## Findings log
+
+- **Step 3 (200 seeds per cell).** The full team always succeeds. How often the replay ground truth equals the planted dividends:
+
+  | Layout | wander, ε=0 | wander, ε=0.1 | roam, ε=0 | roam, ε=0.1 |
+  |---|---|---|---|---|
+  | running_example | 200 | 188 | 179 | 166 |
+  | overlap_example | 200 | 162 | 200 | 164 |
+
+  Deviations come from physical interference: a noisy or roaming agent ends up next to someone, so removing a bystander changes the outcome. Grading always uses the **realised** ground truth. Mode P must report the deviation rate (`GroundTruth.matches(planted_dividends(cfg))`).
+- **Cost.** About 60 ms per episode for the exact ground truth with n = 5 (32 replays). n = 8 means 256 replays, roughly 0.5 s per episode. Fine for Mode P, and it parallelises across episodes if needed.
 
 ## Conventions
 
