@@ -4,4 +4,6 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 results/
-external/
+# external/epymarl is a git submodule (pinned commit); nothing else in external/ is tracked
+external/*
+!external/epymarl
