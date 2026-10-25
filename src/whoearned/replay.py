@@ -34,6 +34,7 @@ class Episode:
     rewards: np.ndarray        # (T,)
     event_log: list[EventRecord]
     present: int
+    behaviour_probs: np.ndarray | None = None  # (T, n, A) if the team exposes `last_probs`
 
     @property
     def total(self) -> float:
@@ -60,11 +61,26 @@ def _run(env: PlantedCoalitionGridworld, choose: Callable[[int], list[int]], pre
 
 
 def rollout(config: GridConfig, team: Team, present: int | None = None) -> Episode:
-    """Closed-loop episode: ``team`` chooses actions from the live environment."""
+    """Closed-loop episode: ``team`` chooses actions from the live environment.
+
+    If the team sets ``last_probs`` on each ``act`` call (the scripted team does),
+    the behaviour-policy probabilities are recorded in ``Episode.behaviour_probs``.
+    """
     env = PlantedCoalitionGridworld(config)
     env.reset(present)
     team.reset(env)
-    return _run(env, lambda t: team.act(env), env.present_mask)
+    probs = []
+
+    def choose(t):
+        actions = team.act(env)
+        if hasattr(team, "last_probs"):
+            probs.append(np.array(team.last_probs))
+        return actions
+
+    ep = _run(env, choose, env.present_mask)
+    if len(probs) == config.horizon:
+        ep.behaviour_probs = np.stack(probs)
+    return ep
 
 
 def replay(

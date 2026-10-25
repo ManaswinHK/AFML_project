@@ -11,12 +11,19 @@ is nothing to bootstrap from after T.
 
 from __future__ import annotations
 
-from whoearned.envs import N_ACTIONS, PlantedCoalitionGridworld, overlap_example, running_example
+from whoearned.envs import (
+    N_ACTIONS,
+    PlantedCoalitionGridworld,
+    coalition_layout,
+    overlap_example,
+    running_example,
+)
 from whoearned.envs.gridworld import GridConfig
 
 LAYOUTS = {
     "running_example": running_example,
     "overlap_example": overlap_example,
+    "coalition_layout": coalition_layout,
 }
 
 

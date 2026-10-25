@@ -24,6 +24,11 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
   - Dependencies added to the venv: `sacred`, `gymnasium`, `pyyaml` (EPyMARL's pinned `PyYAML==5.3.1` does not build on Python 3.12). `smaclite` is stubbed because EPyMARL imports it but we never use it.
 - [ ] **Step 6. Mode P experiments**
   Train critics/mixers on scripted data across the configuration sweep. Pilot (2 seeds) → fix thresholds → main runs (5 seeds). H0, H1, H2, H3.
+  - [x] Runner (`experiments.py`, `mode_p.py`, `scripts/run_mode_p.py`, `scripts/summarise_mode_p.py`); protocol in `docs/mode_p_protocol.md`.
+  - [x] Pilot run 1, which found two method problems: `docs/pilot_findings.md`.
+  - [ ] Fix 1: payout countdown in the global (critic) state, so the state is Markov under delay.
+  - [ ] Fix 2: per-step counterfactual ground truth and two-level grading.
+  - [ ] Pilot run 2 → fix thresholds → main runs.
 
 ## Tier 2: should-have
 

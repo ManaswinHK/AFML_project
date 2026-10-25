@@ -50,12 +50,22 @@ def q_difference_credit(harness: Harness, batch: EpisodeBatch, null_action: int 
     return credit.cpu().numpy()
 
 
+def _policy(harness: Harness, batch: EpisodeBatch, pi: np.ndarray | None) -> th.Tensor:
+    """Action probabilities (B, T, n, A): the given behaviour policy, else the learner's actor."""
+    if pi is None:
+        return _mac_out(harness.learner.mac, batch)
+    return th.as_tensor(pi, dtype=th.float32, device=batch.device)
+
+
 @th.no_grad()
-def coma_credit(harness: Harness, batch: EpisodeBatch) -> np.ndarray:
-    """COMA's counterfactual advantage Q(s, a) - sum_a' pi_i(a'|tau_i) Q(s, (a', a_-i)), per agent."""
+def coma_credit(harness: Harness, batch: EpisodeBatch, pi: np.ndarray | None = None) -> np.ndarray:
+    """COMA's counterfactual advantage Q(s, a) - sum_a' pi_i(a'|tau_i) Q(s, (a', a_-i)), per agent.
+
+    ``pi`` (B, T, n, A) overrides the actor; in Mode P it is the scripted behaviour policy.
+    """
     learner = harness.learner
     q_vals = learner.critic(batch)[:, :-1]                     # (B, T, n, A)
-    pi = _mac_out(learner.mac, batch)                          # (B, T, n, A)
+    pi = _policy(harness, batch, pi)
     actions = batch["actions"][:, :-1]
     q_taken = th.gather(q_vals, dim=3, index=actions).squeeze(3)
     baseline = (pi * q_vals).sum(-1)
@@ -66,11 +76,16 @@ def coma_credit(harness: Harness, batch: EpisodeBatch) -> np.ndarray:
 def shared_advantage(harness: Harness, batch: EpisodeBatch) -> np.ndarray:
     """MAPPO's advantage: n-step return minus the centralised V(s), as in PPOLearner.
 
-    Uses raw (unstandardised) rewards; shares are scale-free anyway.
+    Rewards are standardised with the learner's running statistics (without
+    updating them) when ``standardise_rewards`` is on, because V was trained on
+    that scale.
     """
     learner = harness.learner
     args = harness.args
-    rewards = batch["reward"][:, :-1].expand(-1, -1, args.n_agents)
+    rewards = batch["reward"][:, :-1]
+    if args.standardise_rewards:
+        rewards = (rewards - learner.rew_ms.mean) / th.sqrt(learner.rew_ms.var)
+    rewards = rewards.expand(-1, -1, args.n_agents)
     terminated = batch["terminated"][:, :-1].float()
     mask = batch["filled"][:, :-1].float()
     mask[:, 1:] = mask[:, 1:] * (1 - terminated[:, :-1])
@@ -81,16 +96,18 @@ def shared_advantage(harness: Harness, batch: EpisodeBatch) -> np.ndarray:
 
 
 @th.no_grad()
-def policy_gradient_snr(harness: Harness, batch: EpisodeBatch, advantages: np.ndarray) -> dict[str, np.ndarray]:
+def policy_gradient_snr(
+    harness: Harness, batch: EpisodeBatch, advantages: np.ndarray, pi: np.ndarray | None = None
+) -> dict[str, np.ndarray]:
     """Per-agent signal and noise of the policy gradient w.r.t. the action logits.
 
     For softmax policies d log pi(a)/d logits = onehot(a) - pi, so each episode's
     gradient for agent i is g_i = sum_t A_t,i (onehot(a_t,i) - pi_t,i). Across the
     B episodes we report the squared norm of the mean (signal), the total variance
     (noise), and signal / noise. A bystander under a shared advantage should have
-    signal ~ 0 but non-zero noise.
+    signal ~ 0 but non-zero noise. ``pi`` overrides the actor, as in :func:`coma_credit`.
     """
-    pi = _mac_out(harness.learner.mac, batch).cpu().numpy()   # (B, T, n, A)
+    pi = _policy(harness, batch, pi).cpu().numpy()            # (B, T, n, A)
     actions = batch["actions"][:, :-1, :, 0].cpu().numpy()     # (B, T, n)
     onehot = np.eye(pi.shape[-1])[actions]                     # (B, T, n, A)
     g = (advantages[..., None] * (onehot - pi)).sum(axis=1)   # (B, n, A)

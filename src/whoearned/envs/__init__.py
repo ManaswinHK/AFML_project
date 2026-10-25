@@ -10,10 +10,10 @@ from whoearned.envs.gridworld import (
     GridConfig,
     PlantedCoalitionGridworld,
 )
-from whoearned.envs.layouts import overlap_example, running_example
+from whoearned.envs.layouts import coalition_layout, overlap_example, running_example
 
 __all__ = [
     "DOWN", "INTERACT", "LEFT", "N_ACTIONS", "NOOP", "RIGHT", "UP",
     "EventSpec", "GridConfig", "PlantedCoalitionGridworld",
-    "overlap_example", "running_example",
+    "coalition_layout", "overlap_example", "running_example",
 ]

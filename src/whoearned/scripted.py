@@ -82,7 +82,10 @@ class ScriptedTeam:
         self.rngs = [np.random.default_rng([self.seed, i]) for i in range(self.config.n_agents)]
 
     def act(self, env: PlantedCoalitionGridworld) -> list[int]:
+        """Actions for all agents. Also sets ``last_probs`` (n, N_ACTIONS): the exact
+        probability the team assigned to each action this step (the behaviour policy)."""
         actions = []
+        probs = np.zeros((self.config.n_agents, N_ACTIONS))
         for i, rng in enumerate(self.rngs):
             # Fixed draws every step, present or not, so streams stay aligned under removal.
             u_noise = rng.random()
@@ -90,14 +93,20 @@ class ScriptedTeam:
             u_wander = int(rng.integers(5))
             if not env.present[i]:
                 actions.append(NOOP)
+                probs[i, NOOP] = 1.0
                 continue
             if i in self.bystanders:
+                for u in range(5):  # u_wander is uniform over 0..4
+                    probs[i, self._bystander_action(env, i, u)] += 0.2
                 actions.append(self._bystander_action(env, i, u_wander))
                 continue
             action = self._intended(env, i)
+            probs[i] = self.epsilon / N_ACTIONS
+            probs[i, action] += 1.0 - self.epsilon
             if u_noise < self.epsilon:
                 action = u_action
             actions.append(action)
+        self.last_probs = probs
         return actions
 
     def _bystander_action(self, env, i, u_wander: int) -> int:
