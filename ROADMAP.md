@@ -26,9 +26,10 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
   Train critics/mixers on scripted data across the configuration sweep. Pilot (2 seeds) → fix thresholds → main runs (5 seeds). H0, H1, H2, H3.
   - [x] Runner (`experiments.py`, `mode_p.py`, `scripts/run_mode_p.py`, `scripts/summarise_mode_p.py`); protocol in `docs/mode_p_protocol.md`.
   - [x] Pilot run 1, which found two method problems: `docs/pilot_findings.md`.
-  - [ ] Fix 1: payout countdown in the global (critic) state, so the state is Markov under delay.
-  - [ ] Fix 2: per-step counterfactual ground truth and two-level grading.
-  - [ ] Pilot run 2 → fix thresholds → main runs.
+  - [x] Fix 1: payout countdown in the global (critic) state, so the state is Markov under delay.
+  - [x] Fix 2: per-step counterfactual ground truth (discounted, γ = 0.99) and two-level grading (fidelity + semantic gap).
+  - [x] Pilot run 2: fixes confirmed (except VDN, by construction); thresholds proposed in `docs/pilot_findings.md`.
+  - [ ] Add the enabler-slack knob and horizon 80 for d=50 → main grid (120 cells, 5 seeds).
 
 ## Tier 2: should-have
 

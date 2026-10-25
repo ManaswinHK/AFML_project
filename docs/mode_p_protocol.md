@@ -43,6 +43,29 @@ MAPPO also reports the policy-gradient signal-to-noise ratio per agent: g_i = Σ
 
 Shapley-target scores are stored too (`summary_shapley`). In the single-event coalition layouts, both targets give the same shares (⅓ each for A, B, C).
 
+## Two-level grading (added after pilot 1)
+
+Each test episode also gets a **per-step counterfactual ground truth** (`replay.step_counterfactuals`). For every step t, agent i and alternative action a, the scripted team is re-run with only that one action changed (closed loop, same random streams), and the **discounted return from t** is recorded (γ = 0.99, the critics' discount). From it:
+
+- **noop effect** = G_t − G_t(i does noop at t). VDN and QMIX (Q_tot difference) estimate this; MAPPO is scored against it as a reference.
+- **baseline effect** = G_t − Σ_a π_b(a) G_t(i does a at t). COMA's counterfactual advantage estimates this.
+
+Three comparisons per method and cell:
+
+| Level | Compares | Answers |
+|---|---|---|
+| **1. Fidelity** | Read-out vs its per-step truth: Pearson over all (episode, step, agent), and L1 of episode-summed shares | Is the critic accurate about what it is meant to estimate? |
+| **2. Semantic gap** (method-independent) | Per-step truth, summed over the episode, vs leave-one-out removal credit | Even with a perfect critic, how far is this notion of credit from "who earned the reward"? |
+| **End to end** | Read-out vs leave-one-out | The combined effect, as in v2 |
+
+**Why discounting matters.** The scripted team recovers from one-step deviations, so a single action rarely changes the *undiscounted* return. Under γ, it costs the delay it causes. An enabler with slack (it acts before the finishers are ready) therefore has a per-step effect of exactly 0, even for a perfect critic. A late enabler on the critical path does not (`tests/test_step_truth.py`).
+
+Cost: about 7 s per test episode with 5 agents, 13 s with 7. Counterfactual runs stop early when they re-merge with the factual trajectory; this is checked against brute-force rollouts.
+
+## Critic state (changed after pilot 1)
+
+The global state now includes each event's payout-pending flag and countdown, so it is Markov under delay. Agent observations are unchanged.
+
 ## Metrics per test episode
 
 L1 credit error, Spearman, leakage Λ (planted bystanders), missed enabler credit M. Episodes where the credit sums to ~0 are counted as invalid, not dropped. Per data cell we store per-episode rows and their means. The summary reports mean ± sd over seeds.

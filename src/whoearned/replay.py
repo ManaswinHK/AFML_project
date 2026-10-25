@@ -190,6 +190,127 @@ def _collect(config: GridConfig, episode_for: Callable[[int], Episode]) -> Groun
     return GroundTruth.from_event_values(v_events, clipped)
 
 
+class _Intervention:
+    """Wraps a team: agent ``agent`` takes ``action`` at step ``t0``; everything else is the team's."""
+
+    def __init__(self, team: Team, t0: int, agent: int, action: int):
+        self.team, self.t0, self.agent, self.action = team, t0, agent, action
+
+    def reset(self, env):
+        self.team.reset(env)
+
+    def act(self, env):
+        actions = list(self.team.act(env))
+        if env.t == self.t0:
+            actions[self.agent] = self.action
+        return actions
+
+
+def _snapshot(env: PlantedCoalitionGridworld):
+    """Everything that determines the rest of an episode under a stateless, step-aligned team."""
+    return (
+        env.t,
+        tuple(env.positions),
+        tuple(tuple(p.values()) for p in env.pulled),
+        tuple(env.done_events),
+        tuple(sorted(env._pending.items())),
+    )
+
+
+@dataclass
+class StepTruth:
+    """Per-step counterfactual ground truth for one episode.
+
+    ``returns[t, i, a]`` is the **discounted return from step t**,
+    sum_{k >= t} gamma^(k-t) r_k, if agent i takes action a at step t and the team
+    then continues with its own policy (closed loop, common random numbers). This
+    is the quantity critics estimate. Entries for the action actually taken equal
+    ``factual_to_go[t]``.
+
+    Discounting matters: with a team that recovers from one-step deviations, the
+    *undiscounted* return is often unchanged by any single action, so the whole
+    per-step effect is the cost of delay under gamma.
+    """
+
+    returns: np.ndarray            # (T, n, A)
+    factual_to_go: np.ndarray      # (T,) factual discounted return from t
+    actions: np.ndarray            # (T, n) actions actually taken
+    behaviour_probs: np.ndarray    # (T, n, A)
+    gamma: float
+
+    @property
+    def factual(self) -> float:
+        """Undiscounted factual return (for reference)."""
+        return float(self._undiscounted)
+
+    def noop_effect(self) -> np.ndarray:
+        """G_t - G_t(i does noop at t): what the Q_tot-difference read-out (VDN/QMIX) estimates."""
+        return self.factual_to_go[:, None] - self.returns[:, :, NOOP]
+
+    def baseline_effect(self) -> np.ndarray:
+        """G_t - sum_a pi(a) G_t(i does a at t): what COMA's counterfactual advantage estimates."""
+        return self.factual_to_go[:, None] - (self.behaviour_probs * self.returns).sum(-1)
+
+
+def step_counterfactuals(config: GridConfig, make_team: Callable[[], Team], gamma: float = 0.99) -> StepTruth:
+    """Per-step counterfactual discounted returns for every agent, step and alternative action.
+
+    The factual episode is rolled out once. For each (t, i, a) with a different from
+    the action taken, the team is re-run with that single intervention. A
+    counterfactual run stops early once its full state re-merges with the factual
+    trajectory at the same step: from there on the outcome is identical, because the
+    scripted team is stateless apart from its step-aligned random streams.
+    """
+    factual_env = PlantedCoalitionGridworld(config)
+    factual_env.reset()
+    team = make_team()
+    team.reset(factual_env)
+    T, n = config.horizon, config.n_agents
+    actions = np.zeros((T, n), dtype=np.int64)
+    probs = np.zeros((T, n, N_ACTIONS))
+    snapshots = [_snapshot(factual_env)]
+    rewards = np.zeros(T)
+    for t in range(T):
+        actions[t] = team.act(factual_env)
+        probs[t] = team.last_probs
+        _, rewards[t], _, _ = factual_env.step(actions[t])
+        snapshots.append(_snapshot(factual_env))
+    to_go = np.zeros(T + 1)  # to_go[t] = sum_{k >= t} gamma^(k-t) r_k; to_go[T] = 0
+    for t in range(T - 1, -1, -1):
+        to_go[t] = rewards[t] + gamma * to_go[t + 1]
+
+    returns = np.repeat(to_go[:T, None, None], n, axis=1).repeat(N_ACTIONS, axis=2)
+    for t in range(T):
+        for i in range(n):
+            if not factual_env.present[i]:
+                continue
+            for a in range(N_ACTIONS):
+                if a != actions[t, i]:
+                    returns[t, i, a] = _intervened_to_go(config, make_team, t, i, a, snapshots, to_go, gamma)
+    truth = StepTruth(returns, to_go[:T], actions, probs, gamma)
+    truth._undiscounted = rewards.sum()
+    return truth
+
+
+def _intervened_to_go(config, make_team, t0, agent, action, snapshots, to_go, gamma) -> float:
+    """Discounted return from t0 when ``agent`` takes ``action`` at ``t0``."""
+    env = PlantedCoalitionGridworld(config)
+    env.reset()
+    team = _Intervention(make_team(), t0, agent, action)
+    team.reset(env)
+    g, discount = 0.0, 1.0
+    for t in range(config.horizon):
+        _, r, _, _ = env.step(team.act(env))
+        if t < t0:
+            continue
+        g += discount * r
+        discount *= gamma
+        if _snapshot(env) == snapshots[t + 1]:
+            # Re-merged with the factual trajectory: the rest is the factual rest.
+            return g + discount * to_go[t + 1]
+    return g
+
+
 def ground_truth_open_loop(
     config: GridConfig, actions: np.ndarray, null: str = "remove", null_seed: int = 0
 ) -> GroundTruth:

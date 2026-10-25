@@ -113,4 +113,8 @@ def test_run_data_cell_writes_complete_record(tmp_path):
     for a in rec["algs"].values():
         assert a["summary"]["n_total"] == 3
         assert len(a["episodes"]) == 3
+        assert "step_pearson" in a["summary_fidelity"]
     assert "snr" in rec["algs"]["mappo"]
+    assert set(rec["semantic_gap"]) == {"noop", "baseline"}
+    # With no slack-free enabler, a perfect noop critic never credits A: missed = 1.
+    assert rec["semantic_gap"]["noop"]["mean_shares"][0] == pytest.approx(0.0)

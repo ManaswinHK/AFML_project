@@ -39,6 +39,10 @@ def per_seed_rows(records):
                    "valid": f'{s["n_valid"]}/{s["n_total"]}', "seconds": round(a["seconds"], 1),
                    "final_loss": a["loss_trace"][-1][1]}
             row.update({m: s[m] for m in METRICS})
+            if "summary_fidelity" in a:
+                fid = a["summary_fidelity"]
+                row["fid_l1"], row["fid_step_pearson"] = fid["l1"], fid["step_pearson"]
+                row["fid_valid"] = f'{fid["n_valid"]}/{fid["n_total"]}'
             if "snr" in a:
                 n = 3 + c["n_bystanders"]
                 snr = np.array(a["snr"]["snr"], dtype=float)
@@ -64,12 +68,41 @@ def summarise_dir(out_dir):
     for r in rows:
         groups[(r["alg"], r["delay"], r["bystanders"])].append(r)
 
+    order = ["vdn", "qmix", "coma", "mappo"]
     lines = [f"# Mode P summary: `{os.path.basename(out_dir)}`", "",
-             f"{len(records)} data cells. Metrics use each read-out's matched target (leave-one-out); "
-             "mean ± sd over seeds of the per-seed means over test episodes.", "",
-             "| alg | delay | bystanders | seeds | L1 | Spearman | leakage | missed | valid eps |",
-             "|---|---|---|---|---|---|---|---|---|"]
-    for (alg, d, b), rs in sorted(groups.items(), key=lambda kv: (["vdn", "qmix", "coma", "mappo"].index(kv[0][0]), kv[0][1], kv[0][2])):
+             f"{len(records)} data cells; mean ± sd over seeds of per-seed means over test episodes.", ""]
+
+    if any("fid_l1" in r for r in rows):
+        lines += ["## Level 1: fidelity (read-out vs the per-step counterfactual it estimates)", "",
+                  "VDN/QMIX/MAPPO vs the noop effect; COMA vs the behaviour-baseline effect. "
+                  "`step r` = Pearson over all (episode, step, agent); `L1` = episode-summed shares.", "",
+                  "| alg | delay | bystanders | step r | L1 | valid eps |", "|---|---|---|---|---|---|"]
+        for (alg, d, b), rs in sorted(groups.items(), key=lambda kv: (order.index(kv[0][0]), kv[0][1], kv[0][2])):
+            lines.append(f"| {alg} | {d} | {b} | {_fmt([r.get('fid_step_pearson') for r in rs])} | "
+                         f"{_fmt([r.get('fid_l1') for r in rs])} | {', '.join(r.get('fid_valid', '') for r in rs)} |")
+        lines += [""]
+
+    gap_recs = [rec for rec in records if "semantic_gap" in rec]
+    if gap_recs:
+        lines += ["## Level 2: semantic gap (a *perfect* per-step critic vs leave-one-out removal credit)", "",
+                  "Method-independent: the per-step truth itself, summed over the episode, scored against leave-one-out.", "",
+                  "| per-step notion | delay | bystanders | L1 | leakage | missed | mean shares (A, B, C, bystanders...) |",
+                  "|---|---|---|---|---|---|---|"]
+        g = defaultdict(list)
+        for rec in gap_recs:
+            for kind, v in rec["semantic_gap"].items():
+                g[(kind, rec["cell"]["delay"], rec["cell"]["n_bystanders"])].append(v)
+        for (kind, d, b), vs in sorted(g.items()):
+            shares = [v["mean_shares"] for v in vs if v["mean_shares"] is not None]
+            sh = ", ".join(f"{x:.2f}" for x in np.mean(shares, axis=0)) if shares else "n/a"
+            lines.append(f"| {kind} | {d} | {b} | {_fmt([v['l1'] for v in vs])} | "
+                         f"{_fmt([v['leakage'] for v in vs]) if b else 'n/a'} | {_fmt([v['missed'] for v in vs])} | {sh} |")
+        lines += [""]
+
+    lines += ["## End to end: read-out vs leave-one-out removal credit", "",
+              "| alg | delay | bystanders | seeds | L1 | Spearman | leakage | missed | valid eps |",
+              "|---|---|---|---|---|---|---|---|---|"]
+    for (alg, d, b), rs in sorted(groups.items(), key=lambda kv: (order.index(kv[0][0]), kv[0][1], kv[0][2])):
         cells = [_fmt([r[m] for r in rs]) for m in METRICS]
         if b == 0:
             cells[2] = "n/a (none)"

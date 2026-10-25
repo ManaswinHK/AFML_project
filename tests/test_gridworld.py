@@ -229,7 +229,27 @@ def test_obs_and_state_sizes_are_fixed(mask):
     env = PlantedCoalitionGridworld(overlap_example())
     obs = env.reset(mask)
     assert all(o.shape == (4 * 5 + 7 * 2 + 4,) for o in obs)
-    assert env.get_state().shape == (3 * 5 + 2 * (2 + 5) + 1,)
+    assert env.get_state().shape == (3 * 5 + 2 * (4 + 5) + 1,)
+
+
+def test_state_carries_payout_countdown_but_observations_do_not():
+    cfg = running_example(delay=15)
+    env = PlantedCoalitionGridworld(cfg)
+    scripts = running_scripts(cfg.horizon)
+    env.reset()
+    pending, countdown = 3 * 5 + 2, 3 * 5 + 3
+    seen = []
+    for t in range(cfg.horizon):
+        state = env.get_state()
+        seen.append((t, state[pending], state[countdown] * cfg.horizon))
+        obs_before = np.concatenate(env.get_obs())
+        env.step([s[t] for s in scripts])
+    # Event completes at t=8 and pays at t=23: from state time 9 to 23 the countdown runs 14..0.
+    assert seen[8][1] == 0.0
+    assert seen[9][1] == 1.0 and seen[9][2] == pytest.approx(14)
+    assert seen[23][1] == 1.0 and seen[23][2] == pytest.approx(0)
+    assert seen[24][1] == 0.0
+    assert obs_before.shape == (5 * (4 * 5 + 7 + 4),)  # observation size unchanged
 
 
 def test_replay_is_deterministic():

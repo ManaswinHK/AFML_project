@@ -229,17 +229,31 @@ def evaluate_credit(
         enablers = list(ev.enablers)
         default_bystanders = [i for i in range(config.n_agents) if i not in ev.coalition]
     bystanders = default_bystanders if bystanders is None else list(bystanders)
+    return evaluate_against(credit, g, enablers, bystanders)
 
-    c_shares, g_shares = normalise_shares(credit), normalise_shares(g)
+
+def evaluate_against(
+    credit: np.ndarray, target: np.ndarray, enablers: Iterable[int], bystanders: Iterable[int]
+) -> CreditReport:
+    """Individual-level metrics of ``credit`` against any target vector (both normalised to shares)."""
+    c_shares, g_shares = normalise_shares(credit), normalise_shares(target)
     if c_shares is None or g_shares is None:
         return CreditReport(valid=False)
     return CreditReport(
         valid=True,
         l1=credit_error(c_shares, g_shares),
         spearman=spearman(c_shares, g_shares),
-        leakage=leakage(c_shares, bystanders),
-        missed=missed_credit(c_shares, g_shares, enablers),
+        leakage=leakage(c_shares, list(bystanders)),
+        missed=missed_credit(c_shares, g_shares, list(enablers)),
     )
+
+
+def pearson(x: np.ndarray, y: np.ndarray) -> float | None:
+    """Pearson correlation of flattened arrays; None if either is constant."""
+    x, y = np.ravel(x).astype(np.float64), np.ravel(y).astype(np.float64)
+    if x.std() == 0 or y.std() == 0:
+        return None
+    return float(np.corrcoef(x, y)[0, 1])
 
 
 def realised_bystanders(truth: GroundTruth, tol: float = 1e-9) -> list[int]:

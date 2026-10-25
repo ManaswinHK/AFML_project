@@ -99,7 +99,7 @@ class PlantedCoalitionGridworld:
         self.n_agents = config.n_agents
         self.n_events = len(config.events)
         self.obs_size = 4 * self.n_agents + 7 * self.n_events + 4
-        self.state_size = 3 * self.n_agents + self.n_events * (2 + self.n_agents) + 1
+        self.state_size = 3 * self.n_agents + self.n_events * (4 + self.n_agents) + 1
         self._present_mask = 0
         self.reset()
 
@@ -252,11 +252,17 @@ class PlantedCoalitionGridworld:
                 state[2 * n + i] = 1.0
         o = 3 * n
         for k, ev in enumerate(self.config.events):
+            # Payout countdown: makes the state Markov under delay (reward is a function
+            # of the state). Only the global state carries it; agent observations do not.
+            pay_t = self.event_log[k].payout_time
+            pending = pay_t is not None and pay_t >= self.t
             state[o] = float(self.gate_open(k))
             state[o + 1] = float(self.done_events[k])
+            state[o + 2] = float(pending)
+            state[o + 3] = (pay_t - self.t) / self.config.horizon if pending else 0.0
             for e in ev.enablers:
-                state[o + 2 + e] = float(self.pulled[k][e])
-            o += 2 + n
+                state[o + 4 + e] = float(self.pulled[k][e])
+            o += 4 + n
         state[o] = self.t / self.config.horizon
         return state
 

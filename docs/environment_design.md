@@ -57,7 +57,9 @@ Total `4n + 7K + 4`.
 
 ## Global state (for centralised critics)
 
-All positions (normalised) and presence flags, plus per event: gate open, done, and which enablers have pulled. Then t / T. Total `3n + K(2 + n) + 1`.
+All positions (normalised) and presence flags, plus per event: gate open, done, **payout pending**, **steps until payout / T**, and which enablers have pulled. Then t / T. Total `3n + K(4 + n) + 1`.
+
+The payout countdown was added after pilot 1 (`docs/pilot_findings.md`, Problem 1). Without it, the payout step under delay cannot be predicted from the state, so the state is not Markov and feedforward critics hit an irreducible error floor. Agent observations still do **not** show the countdown: agents remain partially observant, and the temporal-credit problem (linking an early action to a late reward) is unchanged.
 
 ## Scripted team (Step 3, `whoearned/scripted.py`)
 
