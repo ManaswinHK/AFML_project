@@ -16,19 +16,29 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from whoearned.experiments import DataCell, TrainSpec, run_data_cell  # noqa: E402
+from whoearned.experiments import CRITICAL_ENABLER_START, DataCell, TrainSpec, run_data_cell  # noqa: E402
 
 GRIDS = {
     # Problem statement v2, Section 4: pilot with 2 seeds and d in {0, 25}.
-    "pilot": dict(delays=(0, 25), bystanders=(0, 2, 4), seeds=(0, 1)),
-    "smoke": dict(delays=(0,), bystanders=(2,), seeds=(0,)),
+    "pilot": dict(delays=(0, 25), bystanders=(0, 2, 4), enabler_starts=(0,), seeds=(0, 1)),
+    "smoke": dict(delays=(0,), bystanders=(2,), enabler_starts=(0,), seeds=(0,)),
+    # Main grid (docs/pilot_findings.md): 4 delays x 3 bystander counts x {slack, critical} x 5 seeds.
+    "main": dict(delays=(0, 10, 25, 50), bystanders=(0, 2, 4),
+                 enabler_starts=(0, CRITICAL_ENABLER_START), seeds=(0, 1, 2, 3, 4)),
 }
+
+
+def horizon_for(delay: int, enabler_start: int) -> int:
+    """Horizon 80 for d = 50, 60 otherwise (as adopted). Same horizon for slack and critical
+    cells at a given delay, so the slack comparison is not confounded by episode length;
+    clipped payouts are counted per cell."""
+    return 80 if delay >= 50 else 60
 
 
 def cells(grid: str):
     g = GRIDS[grid]
-    for d, b, s in itertools.product(g["delays"], g["bystanders"], g["seeds"]):
-        yield DataCell(delay=d, n_bystanders=b, seed=s)
+    for d, b, es, s in itertools.product(g["delays"], g["bystanders"], g["enabler_starts"], g["seeds"]):
+        yield DataCell(delay=d, n_bystanders=b, seed=s, enabler_start=es, horizon=horizon_for(d, es))
 
 
 def _run(cell, train, out_dir):

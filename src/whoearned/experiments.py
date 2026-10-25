@@ -23,6 +23,10 @@ from whoearned.mode_p import ALGS, episode_credit, read_credit, train_step
 from whoearned.replay import ground_truth_open_loop, planted_dividends, rollout, step_counterfactuals
 from whoearned.scripted import ScriptedTeam
 
+# Enabler start that puts A on the critical path in about half of the noisy (eps = 0.2)
+# episodes, versus 3% with start 0. Measured before the main runs (docs/pilot_findings.md).
+CRITICAL_ENABLER_START = 12
+
 # Read-out -> matched removal target (problem statement v2, Section 2.4).
 MATCHED_TARGET = {"vdn": "loo", "qmix": "loo", "coma": "loo", "mappo": "loo"}
 # Read-out -> the per-step counterfactual it estimates (two-level grading, docs/pilot_findings.md).
@@ -39,11 +43,15 @@ class DataCell:
     n_test: int = 30
     epsilon: float = 0.2
     finish_not_before: int = 0
+    # 0: the enabler has slack (pulls before finishers are ready). CRITICAL_ENABLER_START:
+    # the enabler starts late, so the finishers wait at the gate (A on the critical path).
+    enabler_start: int = 0
     gamma: float = 0.99  # EPyMARL's default; the per-step truth must use the critics' discount
 
     @property
     def key(self) -> str:
-        return f"d{self.delay}_b{self.n_bystanders}_s{self.seed}"
+        crit = f"_es{self.enabler_start}" if self.enabler_start else ""
+        return f"d{self.delay}_b{self.n_bystanders}{crit}_s{self.seed}"
 
     def config(self):
         return coalition_layout(self.n_bystanders, delay=self.delay, horizon=self.horizon)
@@ -51,7 +59,8 @@ class DataCell:
     def team(self, split: str, index: int) -> ScriptedTeam:
         base = self.seed * 100_000 + (0 if split == "train" else 50_000)
         return ScriptedTeam(self.config(), seed=base + index, epsilon=self.epsilon,
-                            finish_not_before=self.finish_not_before)
+                            finish_not_before=self.finish_not_before,
+                            enabler_start=self.enabler_start)
 
     def episodes(self, split: str):
         cfg = self.config()
@@ -182,6 +191,7 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
             "test_return_mean": float(np.mean(truth.returns)),
             "test_matches_plan": float(np.mean(truth.matches_plan)),
             "test_clipped": float(np.mean(truth.clipped)),
+            "test_enabler_critical": float(np.mean([_enabler_critical(e) for e in test_eps])),
             "truth_seconds": time.time() - t0,
         },
         "h0": _h0(truth),
@@ -226,6 +236,12 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
         json.dump(record, f)
     os.replace(path + ".tmp", path)
     return path
+
+
+def _enabler_critical(ep) -> bool:
+    """The event completed in the first step its gate allowed: the enabler was the bottleneck."""
+    rec = ep.event_log[0]
+    return rec.completion_time is not None and rec.completion_time == rec.gate_open_time + 1
 
 
 def _h0(truth: TestTruth) -> dict:

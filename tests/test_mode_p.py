@@ -100,6 +100,26 @@ def test_train_step_updates_critic_and_read_credit_works(alg):
         assert out["snr"]["snr"].shape == (5,)
 
 
+def test_critical_enabler_start_changes_key_and_team():
+    from whoearned.experiments import CRITICAL_ENABLER_START, DataCell
+
+    slack = DataCell(delay=0, n_bystanders=2, seed=0)
+    crit = DataCell(delay=0, n_bystanders=2, seed=0, enabler_start=CRITICAL_ENABLER_START)
+    assert slack.key == "d0_b2_s0" and crit.key == f"d0_b2_es{CRITICAL_ENABLER_START}_s0"
+    assert crit.team("test", 0).enabler_start == CRITICAL_ENABLER_START
+
+
+def test_main_grid_shape_and_horizons():
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts"))
+    from run_mode_p import cells
+
+    main = list(cells("main"))
+    assert len(main) == 120 and len({c.key for c in main}) == 120
+    assert {c.horizon for c in main if c.delay == 50} == {80}
+    assert {c.horizon for c in main if c.delay < 50} == {60}
+
+
 @needs_epymarl
 def test_run_data_cell_writes_complete_record(tmp_path):
     from whoearned.experiments import DataCell, TrainSpec, run_data_cell
