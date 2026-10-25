@@ -1,0 +1,16 @@
+env: "planted"
+
+env_args:
+  map_name: "running_example"   # layout name (see whoearned.epymarl_env.LAYOUTS)
+  layout_kwargs:
+    delay: 15
+    horizon: 60
+  present: null
+
+test_greedy: True
+test_nepisode: 20
+test_interval: 10000
+log_interval: 10000
+runner_log_interval: 10000
+learner_log_interval: 10000
+t_max: 1000000

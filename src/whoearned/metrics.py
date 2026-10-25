@@ -69,7 +69,8 @@ def missed_credit(
 ) -> float | None:
     """M = max(0, 1 - sum_E c / sum_E g): fraction of the enablers' deserved share that is missing.
 
-    None if the enablers deserve nothing under the target.
+    M > 1 means the enablers received *negative* credit (worse than forgotten);
+    it is deliberately not capped. None if the enablers deserve nothing under the target.
     """
     enablers = list(enablers)
     deserved = float(sum(target_shares[i] for i in enablers))
