@@ -29,7 +29,8 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
   - [x] Fix 1: payout countdown in the global (critic) state, so the state is Markov under delay.
   - [x] Fix 2: per-step counterfactual ground truth (discounted, γ = 0.99) and two-level grading (fidelity + semantic gap).
   - [x] Pilot run 2: fixes confirmed (except VDN, by construction); thresholds proposed in `docs/pilot_findings.md`.
-  - [ ] Add the enabler-slack knob and horizon 80 for d=50 → main grid (120 cells, 5 seeds).
+  - [x] Add the enabler-slack knob and horizon 80 for d=50 → main grid (120 cells, 5 seeds). Results: `docs/main_results.md`.
+  - [ ] Post-hoc: H1b restricted to genuinely critical episodes (rerun the ground-truth stage only).
 
 ## Tier 2: should-have
 
@@ -64,6 +65,19 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
 
   The pipeline gives non-trivial, delay-dependent credit. Before Step 6, decide: VDN/QMIX learn Q* (greedy max) from the scripted data rather than the value of the scripted policy. Since the scripted policy is near-optimal these are close on its own path, but this should be stated in the method.
 
+- **Step 6 main grid** (120 cells, 5 seeds, about 20 CPU-hours on the Ryzen 5 7600; full write-up in `docs/main_results.md`).
+
+  Pre-registered verdicts:
+  - H0 ✗, narrowly: only 4 b = 4 data configurations fail.
+  - H1a ✗: VDN's critic does not converge under delay; QMIX has the right sign, Holm p = 0.074.
+  - H1b ✗: the slack half holds in 24/24 cells (missed ≈ 0.97–0.99, independent of delay); the critical half fails, since only 54% of episodes are critical.
+  - H2: COMA ✓ 8/8; VDN and QMIX 1/8 each.
+  - H2′: reversed (COMA leaks most).
+  - H5 ✓: 30 of 32 best cells have step r < 0.3.
+
+  **MAPPO artifact:** its shared advantage gives every agent ±1/n, so Λ = b/n by construction. Its H2 8/8 and its missed values are not evidence; only its SNR is informative.
+
+  **Post-hoc:** ΔΛ > 0 in all 16 VDN/QMIX conditions (sign test p = 1.5e-5, conditions not independent).
 ## Conventions
 
 - Agents are indexed 0..n-1. A coalition is a bitmask `int` (bit i set ⇔ agent i present). So with agents A..E = 0..4, {A,B,C} = 0b00111 = 7.
