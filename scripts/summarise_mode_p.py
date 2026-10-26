@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 from whoearned.experiments import MATCHED_TARGET  # noqa: E402
 
 METRICS = ("l1", "spearman", "leakage", "missed")
-COALITION = ("dividend_error", "dividend_error_order2", "recall", "precision")
+COALITION = ("dividend_error", "dividend_error_order2", "recall", "precision", "interaction_mass", "true_interaction_mass")
 ORDER = ["vdn", "qmix", "coma", "mappo", "na2q", "stas"]
 
 
@@ -59,7 +59,7 @@ def per_seed_rows(records):
                 row["snr_coalition"] = float(np.nanmean(snr[:3]))
                 row["snr_bystanders"] = float(np.nanmean(snr[3:n])) if n > 3 else None
             if "summary_coalition" in a:
-                row.update({f"coal_{k}": a["summary_coalition"][k] for k in COALITION})
+                row.update({f"coal_{k}": a["summary_coalition"].get(k) for k in COALITION})
             rows.append(row)
     return rows
 
@@ -132,9 +132,10 @@ def summarise_dir(out_dir):
         lines += ["", "## Coalition level: mixer-game dividends vs true Harsanyi dividends (H3)", "",
                   "Dividend error is normalised (0 = exact, 2 = disjoint), over all orders and over orders ≤ 2. "
                   "Recall and precision are Jaccard matches between coalitions holding > 10% of |dividends| "
-                  "and the true non-zero coalitions.", "",
-                  "| alg | enabler | delay | bystanders | dividend error | order ≤ 2 | recall | precision |",
-                  "|---|---|---|---|---|---|---|---|"]
+                  "and the true non-zero coalitions. Interaction mass = share of |dividends| on coalitions of 2+ agents "
+                  "(estimated vs true).", "",
+                  "| alg | enabler | delay | bystanders | dividend error | order ≤ 2 | recall | precision | interaction mass | true |",
+                  "|---|---|---|---|---|---|---|---|---|---|"]
         cg = defaultdict(list)
         for r in coal_rows:
             cg[(r["alg"], r["delay"], r["bystanders"], r["enabler_start"])].append(r)

@@ -111,6 +111,23 @@ The planted coalition {A, B, C} is order 3. NA²Q (pairs at most) and VDN (singl
 - NA²Q's dividend error is the maximum (2.0) by construction. This layout's only true dividend is {A, B, C} (order 3), and NA²Q has none above order 2. That is why the H3 grid uses the overlap and partial-synergy layouts, which have lower-order dividends.
 - STAS takes about 3 minutes for 1,500 updates on a GTX 1650, against 31 on CPU.
 
+## H3 smoke cells (d = 0, seed 0; all six methods; about 24 minutes per cell with 2 workers)
+
+- **Pipeline.** Both layouts run end to end (`results/mode_p/h3_smoke/`).
+- **Dividend error saturates at 2.0 for VDN, QMIX and NA²Q, over all orders and at order ≤ 2. This is not a scoring bug.**
+  - Inspecting the raw dividends shows the learned mixer games are almost purely **additive**: nearly all |dividend| mass sits on single agents.
+  - The true dividends are all coalitions:
+    - overlap: {A, B, C} = 6 and {B, D} = 4;
+    - partial: {A, B} = {A, C} = 10 and {A, B, C} = −10.
+  - Disjoint support gives the maximum error.
+- **Why.** The mixer game swaps actions *within one step*, but these coalitions act *across* steps: A pulls the lever, then B and C finish later. A per-step game cannot express synergy between actions at different times. This is the coalition-level form of the semantic gap found for H1b.
+- **Added metric.** Saturated dividend error cannot rank methods, so `coalition_scores` now also reports *interaction mass*: the share of |dividends| on coalitions of 2+ agents. The true value is 1.0 on both layouts. Raw per-episode dividends are stored too.
+- **Data caveats (H0).**
+  - The partial-synergy layout matches its planted structure in only 43% of test episodes (overlap: 67%).
+  - The partial cell's mean test return is 8.3, not 10.
+  - Grading uses the realised dividends, as everywhere else.
+- **STAS** again leaks heavily (0.48–0.54), and its Spearman rank correlation is negative (−0.72).
+
 ## Tests
 
 `tests/test_ported.py` (11 tests):

@@ -157,11 +157,18 @@ def coalition_scores(dividends: np.ndarray, gt) -> dict:
     est = {frozenset(agents_of(s)): float(dividends[s]) for s in range(1, len(dividends))}
     tru = true_dividends(gt)
     rec = coalition_recovery(identified_coalitions(est, IDENTIFY_THRESHOLD), list(tru))
+    total = sum(abs(v) for v in est.values())
     return {
         "dividend_error": dividend_error(est, tru),
         "dividend_error_order2": dividend_error(est, tru, max_order=2),
         "recall": rec.recall,
         "precision": rec.precision,
+        # Fraction of |dividend| mass on coalitions of 2+ agents. It discriminates even when the
+        # dividend error saturates at 2 (e.g. a near-additive mixer against purely coalitional truth).
+        "interaction_mass": sum(abs(v) for g, v in est.items() if len(g) >= 2) / total if total else None,
+        "true_interaction_mass": sum(abs(v) for g, v in tru.items() if len(g) >= 2) / sum(abs(v) for v in tru.values())
+        if tru else None,
+        "dividends": [float(x) for x in dividends],
     }
 
 
@@ -274,7 +281,8 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
             fidelity["step_pearson"] = pearson(out["per_step"], np.stack(truth.step[STEP_TARGET[alg]]))
             rec["summary_fidelity"] = fidelity
         if "dividends" in out:
-            rec["summary_coalition"] = {k: _mean(r["coalition"][k] for r in rows) for k in rows[0]["coalition"]}
+            rec["summary_coalition"] = {k: _mean(r["coalition"][k] for r in rows)
+                                        for k in rows[0]["coalition"] if k != "dividends"}
         if "snr" in out:
             rec["snr"] = {k: v.tolist() for k, v in out["snr"].items()}
         record["algs"][alg] = rec

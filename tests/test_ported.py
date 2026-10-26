@@ -165,3 +165,18 @@ def test_coalition_algs_return_dividends(alg):
     assert out["per_step"].shape == (len(eps), 30, 3)
     assert out["dividends"].shape == (len(eps), 8)
     np.testing.assert_allclose(out["dividends"][:, 0], 0.0, atol=1e-6)
+
+
+def test_coalition_scores_on_an_additive_estimate_of_a_coalitional_truth():
+    from types import SimpleNamespace
+
+    from whoearned.experiments import coalition_scores
+
+    truth = np.zeros(8)
+    truth[mask_of([0, 1, 2])] = 10.0
+    est = np.zeros(8)
+    est[mask_of([0])], est[mask_of([1])], est[mask_of([0, 1])] = 3.0, 1.0, 1.0
+    out = coalition_scores(est, SimpleNamespace(dividends=truth))
+    assert out["dividend_error"] == pytest.approx(2.0)  # disjoint support saturates the error
+    assert out["interaction_mass"] == pytest.approx(0.2)
+    assert out["true_interaction_mass"] == pytest.approx(1.0)
