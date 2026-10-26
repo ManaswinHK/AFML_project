@@ -34,7 +34,11 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
 
 ## Tier 2: should-have
 
-- [ ] **Step 7.** Port STAS and NA²Q.
+- [ ] **Step 7.** Port STAS and NA²Q (design and deviations: `docs/step7_ports.md`).
+  - [x] NA²Q (`na2q.py`): agents + VAE + order-≤2 monotone mixer. Mode P uses a SARSA target, because the official max target diverges on fixed data.
+  - [x] STAS (`stas.py`): STAS_ML return decomposition.
+  - [x] Mixer-game Harsanyi dividends for VDN, QMIX and NA²Q (coalition level, H3); `run_mode_p.py --algs`.
+  - [ ] H3 grid: overlap and partial-synergy layouts × delay; run all six methods.
 - [ ] **Step 8.** Mode T (full training) on pilot-selected configurations; H4.
 - [ ] **Step 9.** Sensitivity analyses: no-op vs. removal, open- vs. closed-loop, Shapley vs. leave-one-out.
 
@@ -80,6 +84,10 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
   **Post-hoc:**
   - ΔΛ > 0 in all 16 VDN/QMIX conditions (sign test p = 1.5e-5, conditions not independent).
   - H1b split by realised criticality: noop missed is 0.11–0.12 in critical episodes vs 1.0 with slack, so the mechanism holds and the weak manipulation explains the failure. The baseline notion is still 0.52–0.56 when critical.
+- **Step 7 ports** (`docs/step7_ports.md`):
+  - NA²Q's official max target diverges on fixed data (Q_tot ≈ 115–140 vs a true ≈ 8). A SARSA target fixes it, so it is used in Mode P.
+  - STAS spreads credit almost uniformly across agents. This persists at 6× the budget and on a synthetic single-agent task, so it is the method's identifiability limit, not undertraining.
+  - Smoke cell: NA²Q L1 0.51, leakage 0.04; STAS L1 0.74, leakage 0.42.
 ## Conventions
 
 - Agents are indexed 0..n-1. A coalition is a bitmask `int` (bit i set ⇔ agent i present). So with agents A..E = 0..4, {A,B,C} = 0b00111 = 7.

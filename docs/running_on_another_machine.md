@@ -84,6 +84,20 @@ All tests must pass (about 3–4 minutes). Then a one-cell smoke run, about 5 mi
 
 This writes `results/mode_p/main/hypotheses.md`: the pre-registered tests, as amended in `docs/preregistration_amendment.md`.
 
+## 7b. H3 grid (Step 7: all six methods)
+
+The H3 grid has 30 cells: the overlap and partial-synergy layouts × d ∈ {0, 25, 50} × 5 seeds, scored with VDN, QMIX, COMA, MAPPO, NA²Q and STAS. STAS runs on the GPU (the RTX 4060 is used here); everything else runs on CPU. All workers share the one GPU, so use fewer workers than for the main grid. Smoke-test two cells first:
+
+```bash
+.venv/Scripts/python scripts/run_mode_p.py --grid h3_smoke --workers 2 --algs vdn,qmix,coma,mappo,na2q,stas
+```
+
+```bash
+.venv/Scripts/python scripts/run_mode_p.py --grid h3 --workers 6 --algs vdn,qmix,coma,mappo,na2q,stas
+```
+
+Results go to `results/mode_p/h3/`.
+
 ## 8. Bring results back (optional)
 
 To analyse on the original PC, copy the folder `results/mode_p/main/` to the same path there. It is git-ignored, so copy it directly rather than through git.

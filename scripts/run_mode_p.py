@@ -25,6 +25,10 @@ GRIDS = {
     # Main grid (docs/pilot_findings.md): 4 delays x 3 bystander counts x {slack, critical} x 5 seeds.
     "main": dict(delays=(0, 10, 25, 50), bystanders=(0, 2, 4),
                  enabler_starts=(0, CRITICAL_ENABLER_START), seeds=(0, 1, 2, 3, 4)),
+    # H3 (Step 7): overlap and partial synergy x delay. The overlap layout always has one bystander (E).
+    "h3": dict(layouts=("overlap", "partial"), delays=(0, 25, 50), bystanders=(2,),
+               enabler_starts=(0,), seeds=(0, 1, 2, 3, 4)),
+    "h3_smoke": dict(layouts=("overlap", "partial"), delays=(0,), bystanders=(2,), enabler_starts=(0,), seeds=(0,)),
 }
 
 
@@ -37,8 +41,10 @@ def horizon_for(delay: int, enabler_start: int) -> int:
 
 def cells(grid: str):
     g = GRIDS[grid]
-    for d, b, es, s in itertools.product(g["delays"], g["bystanders"], g["enabler_starts"], g["seeds"]):
-        yield DataCell(delay=d, n_bystanders=b, seed=s, enabler_start=es, horizon=horizon_for(d, es))
+    for lay, d, b, es, s in itertools.product(g.get("layouts", ("coalition",)), g["delays"], g["bystanders"],
+                                              g["enabler_starts"], g["seeds"]):
+        b = 1 if lay == "overlap" else b  # overlap_example has exactly one bystander (E)
+        yield DataCell(delay=d, n_bystanders=b, seed=s, enabler_start=es, horizon=horizon_for(d, es), layout=lay)
 
 
 def _run(cell, train, out_dir):
@@ -50,12 +56,14 @@ def main():
     p.add_argument("--grid", default="pilot", choices=sorted(GRIDS))
     p.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 2))
     p.add_argument("--updates", type=int, default=TrainSpec.updates)
+    p.add_argument("--algs", default=",".join(TrainSpec.algs),
+                   help="comma-separated; e.g. na2q,stas for the Step 7 ports")
     p.add_argument("--out", default=None)
     p.add_argument("--summarise-only", action="store_true")
     a = p.parse_args()
 
     out_dir = a.out or os.path.join(ROOT, "results", "mode_p", a.grid)
-    train = TrainSpec(updates=a.updates)
+    train = TrainSpec(updates=a.updates, algs=tuple(a.algs.split(",")))
     if not a.summarise_only:
         todo = [c for c in cells(a.grid) if not os.path.exists(os.path.join(out_dir, f"{c.key}.json"))]
         print(f"{len(todo)} data cells to run with {a.workers} workers -> {out_dir}", flush=True)

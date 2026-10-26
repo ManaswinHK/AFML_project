@@ -9,8 +9,12 @@ from collections import defaultdict
 
 import numpy as np
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
+from whoearned.experiments import MATCHED_TARGET  # noqa: E402
+
 METRICS = ("l1", "spearman", "leakage", "missed")
-ORDER = ["vdn", "qmix", "coma", "mappo"]
+COALITION = ("dividend_error", "dividend_error_order2", "recall", "precision")
+ORDER = ["vdn", "qmix", "coma", "mappo", "na2q", "stas"]
 
 
 def _fmt(values):
@@ -54,6 +58,8 @@ def per_seed_rows(records):
                 snr = np.array(a["snr"]["snr"], dtype=float)
                 row["snr_coalition"] = float(np.nanmean(snr[:3]))
                 row["snr_bystanders"] = float(np.nanmean(snr[3:n])) if n > 3 else None
+            if "summary_coalition" in a:
+                row.update({f"coal_{k}": a["summary_coalition"][k] for k in COALITION})
             rows.append(row)
     return rows
 
@@ -111,14 +117,30 @@ def summarise_dir(out_dir):
                          f"{_fmt([v['leakage'] for v in vs]) if b else 'n/a'} | {_fmt([v['missed'] for v in vs])} | {sh} |")
         lines += [""]
 
-    lines += ["## End to end: read-out vs leave-one-out removal credit", "",
-              "| alg | enabler | delay | bystanders | seeds | L1 | Spearman | leakage | missed |",
-              "|---|---|---|---|---|---|---|---|---|"]
+    lines += ["## End to end: read-out vs its matched removal target", "",
+              "`target`: leave-one-out (loo) or Shapley, as matched to each read-out (problem statement v2, Section 2.4).", "",
+              "| alg | target | enabler | delay | bystanders | seeds | L1 | Spearman | leakage | missed |",
+              "|---|---|---|---|---|---|---|---|---|---|"]
     for (alg, d, b, es), rs in sorted(groups.items(), key=_alg_key):
         cells = [_fmt([r[m] for r in rs]) for m in METRICS]
         if b == 0:
             cells[2] = "n/a (none)"
-        lines.append(f"| {alg} | {_slack(es)} | {d} | {b} | {len(rs)} | " + " | ".join(cells) + " |")
+        lines.append(f"| {alg} | {MATCHED_TARGET[alg]} | {_slack(es)} | {d} | {b} | {len(rs)} | " + " | ".join(cells) + " |")
+
+    coal_rows = [r for r in rows if "coal_dividend_error" in r]
+    if coal_rows:
+        lines += ["", "## Coalition level: mixer-game dividends vs true Harsanyi dividends (H3)", "",
+                  "Dividend error is normalised (0 = exact, 2 = disjoint), over all orders and over orders ≤ 2. "
+                  "Recall and precision are Jaccard matches between coalitions holding > 10% of |dividends| "
+                  "and the true non-zero coalitions.", "",
+                  "| alg | enabler | delay | bystanders | dividend error | order ≤ 2 | recall | precision |",
+                  "|---|---|---|---|---|---|---|---|"]
+        cg = defaultdict(list)
+        for r in coal_rows:
+            cg[(r["alg"], r["delay"], r["bystanders"], r["enabler_start"])].append(r)
+        for (alg, d, b, es), rs in sorted(cg.items(), key=_alg_key):
+            lines.append(f"| {alg} | {_slack(es)} | {d} | {b} | "
+                         + " | ".join(_fmt([r[f'coal_{k}'] for r in rs]) for k in COALITION) + " |")
 
     snr_rows = [r for r in rows if "snr_coalition" in r]
     if snr_rows:

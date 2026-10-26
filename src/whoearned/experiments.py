@@ -15,11 +15,19 @@ from dataclasses import asdict, dataclass, field
 import numpy as np
 import torch as th
 
-from whoearned.envs import coalition_layout
-from whoearned.epymarl_bridge import build_harness, episodes_to_batch
-from whoearned.ground_truth import normalise_shares
-from whoearned.metrics import evaluate_against, evaluate_credit, pearson
-from whoearned.mode_p import ALGS, episode_credit, read_credit, train_step
+from whoearned.envs import coalition_layout, overlap_example
+from whoearned.epymarl_bridge import episodes_to_batch
+from whoearned.ground_truth import agents_of, normalise_shares
+from whoearned.metrics import (
+    coalition_recovery,
+    dividend_error,
+    evaluate_against,
+    evaluate_credit,
+    identified_coalitions,
+    pearson,
+    true_dividends,
+)
+from whoearned.mode_p import ALGS, episode_credit, make_harness, read_credit, train_step
 from whoearned.replay import ground_truth_open_loop, planted_dividends, rollout, step_counterfactuals
 from whoearned.scripted import ScriptedTeam
 
@@ -27,10 +35,14 @@ from whoearned.scripted import ScriptedTeam
 # episodes, versus 3% with start 0. Measured before the main runs (docs/pilot_findings.md).
 CRITICAL_ENABLER_START = 12
 
-# Read-out -> matched removal target (problem statement v2, Section 2.4).
-MATCHED_TARGET = {"vdn": "loo", "qmix": "loo", "coma": "loo", "mappo": "loo"}
+# Read-out -> matched removal target (problem statement v2, Section 2.4). STAS splits with
+# Shapley values; NA²Q's individual credit is its mixer game's Shapley value.
+MATCHED_TARGET = {"vdn": "loo", "qmix": "loo", "coma": "loo", "mappo": "loo", "na2q": "shapley", "stas": "shapley"}
 # Read-out -> the per-step counterfactual it estimates (two-level grading, docs/pilot_findings.md).
-STEP_TARGET = {"vdn": "noop", "qmix": "noop", "coma": "baseline", "mappo": "noop"}
+# None: the read-out estimates no single-agent per-step counterfactual, so it has no level-1 score.
+STEP_TARGET = {"vdn": "noop", "qmix": "noop", "coma": "baseline", "mappo": "noop", "na2q": None, "stas": None}
+# A coalition counts as identified if it holds more than this share of |dividends| (H3).
+IDENTIFY_THRESHOLD = 0.1
 
 
 @dataclass(frozen=True)
@@ -47,14 +59,31 @@ class DataCell:
     # the enabler starts late, so the finishers wait at the gate (A on the critical path).
     enabler_start: int = 0
     gamma: float = 0.99  # EPyMARL's default; the per-step truth must use the critics' discount
+    # "coalition": coalition_layout(n_bystanders). "partial": the same with partial synergy (the
+    # event pays if any finisher interacts). "overlap": overlap_example (B in two events; n_bystanders ignored).
+    layout: str = "coalition"
 
     @property
     def key(self) -> str:
         crit = f"_es{self.enabler_start}" if self.enabler_start else ""
-        return f"d{self.delay}_b{self.n_bystanders}{crit}_s{self.seed}"
+        prefix = "" if self.layout == "coalition" else f"{self.layout}_"
+        return f"{prefix}d{self.delay}_b{self.n_bystanders}{crit}_s{self.seed}"
+
+    def env_args(self) -> dict:
+        """EPyMARL env_args that build the same configuration as :meth:`config`."""
+        if self.layout == "overlap":
+            return {"map_name": "overlap_example", "layout_kwargs": {"delay": self.delay, "horizon": self.horizon}}
+        return {"map_name": "coalition_layout",
+                "layout_kwargs": {"n_bystanders": self.n_bystanders, "delay": self.delay, "horizon": self.horizon,
+                                  "partial": self.layout == "partial"}}
 
     def config(self):
-        return coalition_layout(self.n_bystanders, delay=self.delay, horizon=self.horizon)
+        if self.layout == "overlap":
+            return overlap_example(delay=self.delay, horizon=self.horizon)
+        if self.layout not in ("coalition", "partial"):
+            raise ValueError(f"unknown layout {self.layout!r}")
+        return coalition_layout(self.n_bystanders, delay=self.delay, horizon=self.horizon,
+                                partial=self.layout == "partial")
 
     def team(self, split: str, index: int) -> ScriptedTeam:
         base = self.seed * 100_000 + (0 if split == "train" else 50_000)
@@ -123,8 +152,23 @@ def _roles(cfg):
     return enablers, list(cfg.bystanders)
 
 
-def _score(alg: str, per_step: np.ndarray, truth: TestTruth, cfg) -> list[dict]:
-    """Per test episode: end-to-end (read-out vs removal) and level 1 (read-out vs per-step truth)."""
+def coalition_scores(dividends: np.ndarray, gt) -> dict:
+    """Coalition level (H3): one episode's estimated dividends (2^n,) vs the true dividends."""
+    est = {frozenset(agents_of(s)): float(dividends[s]) for s in range(1, len(dividends))}
+    tru = true_dividends(gt)
+    rec = coalition_recovery(identified_coalitions(est, IDENTIFY_THRESHOLD), list(tru))
+    return {
+        "dividend_error": dividend_error(est, tru),
+        "dividend_error_order2": dividend_error(est, tru, max_order=2),
+        "recall": rec.recall,
+        "precision": rec.precision,
+    }
+
+
+def _score(alg: str, out: dict, truth: TestTruth, cfg) -> list[dict]:
+    """Per test episode: end-to-end (read-out vs removal), level 1 (read-out vs per-step truth)
+    where the read-out has a per-step target, and coalition level where it has dividends."""
+    per_step = out["per_step"]
     credit = episode_credit(per_step)
     enablers, bystanders = _roles(cfg)
     rows = []
@@ -133,9 +177,12 @@ def _score(alg: str, per_step: np.ndarray, truth: TestTruth, cfg) -> list[dict]:
         for target in ("loo", "shapley"):
             row[target] = evaluate_credit(credit[b], gt, cfg, target=target).as_dict()
         row["matched"] = row[MATCHED_TARGET[alg]]
-        step_truth = truth.step[STEP_TARGET[alg]][b]
-        row["fidelity"] = evaluate_against(credit[b], step_truth.sum(0), enablers, bystanders).as_dict()
-        row["fidelity"]["step_pearson"] = pearson(per_step[b], step_truth)
+        if STEP_TARGET[alg] is not None:
+            step_truth = truth.step[STEP_TARGET[alg]][b]
+            row["fidelity"] = evaluate_against(credit[b], step_truth.sum(0), enablers, bystanders).as_dict()
+            row["fidelity"]["step_pearson"] = pearson(per_step[b], step_truth)
+        if "dividends" in out:
+            row["coalition"] = coalition_scores(out["dividends"][b], gt)
         shares = normalise_shares(credit[b])
         row["shares"] = None if shares is None else shares.tolist()
         rows.append(row)
@@ -199,12 +246,11 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
         "truth": {"shapley": truth.shapley, "loo": truth.loo},
         "algs": {},
     }
-    env_args = {"map_name": "coalition_layout",
-                "layout_kwargs": {"n_bystanders": cell.n_bystanders, "delay": cell.delay, "horizon": cell.horizon}}
+    env_args = cell.env_args()
     rng = np.random.default_rng(cell.seed)
     for alg in train.algs:
         ta = time.time()
-        h = build_harness(alg, env_args=env_args, seed=cell.seed)
+        h = make_harness(alg, env_args=env_args, seed=cell.seed)
         data, test = episodes_to_batch(h, train_eps), episodes_to_batch(h, test_eps)
         losses = []
         for k in range(train.updates):
@@ -213,19 +259,22 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
             if k % train.log_every == 0 or k == train.updates - 1:
                 losses.append((k, loss))
         out = read_credit(h, alg, test, test_eps)
-        rows = _score(alg, out["per_step"], truth, cfg)
-        fidelity = summarise(rows, "fidelity")
-        # Pooled over every (episode, step, agent): is the critic right about the per-step effect?
-        fidelity["step_pearson"] = pearson(out["per_step"], np.stack(truth.step[STEP_TARGET[alg]]))
+        rows = _score(alg, out, truth, cfg)
         rec = {
             "seconds": time.time() - ta,
             "loss_trace": losses,
             "summary": summarise(rows),
             "summary_loo": summarise(rows, "loo"),
             "summary_shapley": summarise(rows, "shapley"),
-            "summary_fidelity": fidelity,
             "episodes": rows,
         }
+        if STEP_TARGET[alg] is not None:
+            fidelity = summarise(rows, "fidelity")
+            # Pooled over every (episode, step, agent): is the critic right about the per-step effect?
+            fidelity["step_pearson"] = pearson(out["per_step"], np.stack(truth.step[STEP_TARGET[alg]]))
+            rec["summary_fidelity"] = fidelity
+        if "dividends" in out:
+            rec["summary_coalition"] = {k: _mean(r["coalition"][k] for r in rows) for k in rows[0]["coalition"]}
         if "snr" in out:
             rec["snr"] = {k: v.tolist() for k, v in out["snr"].items()}
         record["algs"][alg] = rec
