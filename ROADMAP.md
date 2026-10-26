@@ -30,7 +30,7 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
   - [x] Fix 2: per-step counterfactual ground truth (discounted, γ = 0.99) and two-level grading (fidelity + semantic gap).
   - [x] Pilot run 2: fixes confirmed (except VDN, by construction); thresholds proposed in `docs/pilot_findings.md`.
   - [x] Add the enabler-slack knob and horizon 80 for d=50 → main grid (120 cells, 5 seeds). Results: `docs/main_results.md`.
-  - [ ] Post-hoc: H1b restricted to genuinely critical episodes (rerun the ground-truth stage only).
+  - [x] Post-hoc: H1b split by realised criticality (`scripts/posthoc_h1b.py`; `docs/main_results.md` §3.1).
 
 ## Tier 2: should-have
 
@@ -77,7 +77,9 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
 
   **MAPPO artifact:** its shared advantage gives every agent ±1/n, so Λ = b/n by construction. Its H2 8/8 and its missed values are not evidence; only its SNR is informative.
 
-  **Post-hoc:** ΔΛ > 0 in all 16 VDN/QMIX conditions (sign test p = 1.5e-5, conditions not independent).
+  **Post-hoc:**
+  - ΔΛ > 0 in all 16 VDN/QMIX conditions (sign test p = 1.5e-5, conditions not independent).
+  - H1b split by realised criticality: noop missed is 0.11–0.12 in critical episodes vs 1.0 with slack, so the mechanism holds and the weak manipulation explains the failure. The baseline notion is still 0.52–0.56 when critical.
 ## Conventions
 
 - Agents are indexed 0..n-1. A coalition is a bitmask `int` (bit i set ⇔ agent i present). So with agents A..E = 0..4, {A,B,C} = 0b00111 = 7.

@@ -76,7 +76,11 @@ Rule, for each per-step notion: seed-mean level-2 missed ≥ 0.8 in every slack 
 | behaviour-baseline effect | 0.964–0.970 in all 12 ✓ | 1.020–1.039 ✗ |
 
 - **The slack half is clean, and it is the key mechanism result.** A perfect per-step critic gives a slack enabler essentially zero credit (missed ≈ 1). The value is identical to three decimals at every delay. The semantic gap between per-step and removal credit comes from slack (A's pull is not on the critical path), and delay plays no part in it.
-- **The critical half fails, partly for a reason stated in advance.** The amendment warned that the critical setting makes A critical in only about 50% of noisy episodes. Measured on the test episodes: 54% on average (range 37–63% across seeds), against 3% in the slack setting. This dilution is only part of the story. If the ~46% non-critical episodes have missed ≈ 0.99, as slack cells do, a seed mean of 0.66 implies missed ≈ 0.38 in the critical episodes. That is still above the 0.3 threshold. §3.1 proposes testing this directly, post hoc.
+- **The critical half fails, partly for a reason stated in advance.** The amendment warned that the critical setting makes A critical in only about 50% of noisy episodes. Measured on the test episodes: 54% on average (range 37–63% across seeds), against 3% in the slack setting. The post-hoc split in §3.1 shows that this dilution explains the noop failure completely:
+- in critical episodes, noop missed is 0.11–0.12;
+- in the late-start episodes where A was *not* the bottleneck, it is 1.31–1.35.
+
+The baseline notion still fails even in critical episodes (0.52–0.56).
 - **The behaviour-baseline notion is above 1 even when A is critical**: the enabler gets *negative* episode credit. The likely mechanism, not yet verified step by step: under the behaviour policy A's pull is the likely action, so its advantage is near zero. A's movement steps, which ε-noise frequently perturbs, then dominate with small negative advantages. If so, a COMA-style baseline underrates a critical enabler even with a perfect critic.
 
 ### H2: leakage vs bystanders
@@ -150,13 +154,43 @@ MAPPO's read-out is its **shared** advantage (n-step, on standardised rewards). 
 
 *These were done after looking at the main-grid results, were not pre-registered, and should be read as hypothesis-generating.*
 
-### 3.1 H1b restricted to genuinely critical episodes (planned, not yet run)
+### 3.1 H1b split by realised enabler criticality
 
-Prediction from the mixture argument in §1: restricted to test episodes where A is actually on the critical path, level-2 missed for the noop notion should be about 0.38. If it comes out at that level, the critical half fails for two reasons: the manipulation is diluted, and per-step credit under-credits A modestly even when A is critical.
+**Method.** `scripts/posthoc_h1b.py` regenerates each cell's 30 test episodes and their ground truth (no critic training). It labels each episode critical or not with the same rule the main run used: the event completed in the first step its gate allowed. Level-2 missed is then scored per episode.
+- Every one of the 120 cells reproduced its stored `semantic_gap` means exactly before being used.
+- The pre-registered bounds are reused unchanged.
+- Outputs: `results/mode_p/main_posthoc_h1b/` (per-episode JSON and `h1b_posthoc.md`).
 
-- **What it needs:** per-episode criticality flags. The cell JSONs store only the rate (`test_enabler_critical`).
-- **Cost:** only the ground-truth stage needs rerunning (about 4 minutes per data configuration, no critic training).
-- **Status:** not done yet. Until then, H1b's critical half stays *not supported* as pre-registered.
+**Results.** Seed means; the values are the same to two decimals at every delay.
+
+| notion | setting | episodes | missed, critical episodes | missed, non-critical episodes |
+|---|---|---|---|---|
+| noop | critical (12) | 80–81 of 150 per (delay, b) | **0.11–0.12** (sd ≈ 0.10) ✓ ≤ 0.3 | 1.31–1.35 |
+| noop | slack | 5 of 150 | 1.22 ± 2.07 (3 seeds; too few to interpret) | **1.00** ✓ ≥ 0.8 |
+| baseline | critical (12) | 80–81 of 150 | **0.52–0.56** ✗ | 1.61–1.62 |
+| baseline | slack | 5 of 150 | 1.30 ± 2.15 (too few) | **0.97** ✓ |
+
+Pooled over all cells:
+
+| notion | critical episodes | non-critical episodes |
+|---|---|---|
+| noop | mean 0.14, median 0.00 (n = 1028) | mean 1.10, median 1.00 (n = 2572) |
+| baseline | mean 0.54, median 0.00 (n = 1028) | mean 1.18, median 1.00 (n = 2572) |
+
+**Reading.**
+1. **For the noop notion, H1b's pattern holds once criticality is conditioned on what actually happened.**
+   - A perfect per-step critic gives the enabler nearly its full removal share when A was the bottleneck (missed ≈ 0.12).
+   - It gives A nothing when A had slack (missed ≈ 1.0).
+   - This holds at every delay.
+
+   The pre-registered failure was the weak manipulation (54% critical), not the mechanism. This corrects the 0.38 estimate in the first version of this document. That estimate assumed non-critical episodes behave like slack ones, but in the late-start setting they score about 1.3.
+2. **Non-critical episodes in the late-start setting score above 1.** The enabler gets *negative* per-step credit there. A plausible reading, not checked step by step: A starts late but still isn't the bottleneck, so its late pull is one of the actions that delays the discounted reward.
+3. **For the behaviour-baseline (COMA-style) notion, the critical half fails even after conditioning.** The median critical episode has missed 0.00, but the mean is 0.54. A large minority of critical episodes give A strongly negative credit, so the notion is unreliable even when the enabler is decisive.
+4. **Caveats.**
+   - The slack setting has only 5 critical episodes in total, too few to say anything about criticality there.
+   - Critical and non-critical episodes are not randomised: criticality is an outcome of the ε-noise, so the two groups may differ in other ways too.
+
+**Verdict:** H1b stays *not supported* as pre-registered. As a post-hoc, hypothesis-generating result, the slack mechanism is confirmed for the noop notion. It is not confirmed for the baseline notion.
 
 ### 3.2 Direction of the VDN/QMIX leakage effect (sign test)
 
@@ -171,7 +205,7 @@ The reasonable reading: bystander leakage grows for all value-decomposition meth
 
 ## 4. What the results support, in plain terms
 
-1. **Per-step credit loses enablers through slack, not delay** (confirmatory, H1b slack half). Even a perfect per-step critic gives a non-critical enabler about zero credit, whatever the delay. Removal-based credit gives it a full share.
+1. **Per-step credit loses enablers through slack, not delay** (confirmatory, H1b slack half). Even a perfect per-step critic gives a non-critical enabler about zero credit, whatever the delay. Removal-based credit gives it a full share. Post hoc (§3.1), the noop notion gives a genuinely critical enabler nearly full credit (missed ≈ 0.12), so slack is what makes the difference. The COMA-style baseline notion under-credits the enabler even then.
 2. **COMA's counterfactual baseline does not protect against bystanders; it leaks most** (confirmatory: H2′ reversed, H2 supported for COMA).
 3. **Good end-to-end credit does not mean faithful per-step credit** (confirmatory, H5). QMIX is the best end to end at d = 0, but with step r ≈ 0.1.
 4. **Delay hurts the methods whose critic cannot represent it.**
