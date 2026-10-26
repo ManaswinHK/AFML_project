@@ -34,11 +34,11 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
 
 ## Tier 2: should-have
 
-- [ ] **Step 7.** Port STAS and NA²Q (design and deviations: `docs/step7_ports.md`).
+- [x] **Step 7.** Port STAS and NA²Q (design and deviations: `docs/step7_ports.md`).
   - [x] NA²Q (`na2q.py`): agents + VAE + order-≤2 monotone mixer. Mode P uses a SARSA target, because the official max target diverges on fixed data.
   - [x] STAS (`stas.py`): STAS_ML return decomposition.
   - [x] Mixer-game Harsanyi dividends for VDN, QMIX and NA²Q (coalition level, H3); `run_mode_p.py --algs`.
-  - [ ] H3 grid: overlap and partial-synergy layouts × delay; run all six methods.
+  - [x] H3 grid: overlap and partial-synergy layouts × delay; run all six methods. Results: `docs/h3_results.md` (`scripts/analyse_h3.py`).
 - [ ] **Step 8.** Mode T (full training) on pilot-selected configurations; H4.
 - [ ] **Step 9.** Sensitivity analyses: no-op vs. removal, open- vs. closed-loop, Shapley vs. leave-one-out.
 
@@ -88,6 +88,12 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
   - NA²Q's official max target diverges on fixed data (Q_tot ≈ 115–140 vs a true ≈ 8). A SARSA target fixes it, so it is used in Mode P.
   - STAS spreads credit almost uniformly across agents. This persists at 6× the budget and on a synthetic single-agent task, so it is the method's identifiability limit, not undertraining.
   - Smoke cell: NA²Q L1 0.51, leakage 0.04; STAS L1 0.74, leakage 0.42.
+- **Step 7 H3 grid** (30 cells, 6 methods, 87 min on 8 workers; write-up in `docs/h3_results.md`).
+  - Pre-registered H3: ✗ on the literal rule (0 of 6 best-third-L1 pairs fall in the worst third of dividend error), but **uninformative**. Dividend error is about 2.0 (the maximum) in every pair, with a spread of 0.0007. NA²Q's recovery cannot fall with d, because it is zero at every d.
+  - Interaction mass is 0.000–0.002 for VDN, QMIX and NA²Q, against a true 1.0. The per-step mixer game cannot express coalitions whose members act at different steps. This is the coalition-level form of the semantic gap; a fair test needs an episode-level read-out (H5).
+  - **Post-hoc uniform baseline** (1/n to everyone): L1 0.45 on overlap and 0.89 on partial. No method's mean beats it in any of 36 conditions; STAS comes closest (0.52 on overlap, 2 of 5 seeds), because its near-uniform split matches the overlap truth.
+  - **Post-hoc STAS delay invariance:** d = 0 and d = 25 agree to within 4e-6 per episode. STAS sees only observations, actions and the total return, and none of these change with delay inside the horizon.
+  - H0: the partial layout realises its planted structure in only 40–50% of test episodes (return 8.2–8.8).
 ## Conventions
 
 - Agents are indexed 0..n-1. A coalition is a bitmask `int` (bit i set ⇔ agent i present). So with agents A..E = 0..4, {A,B,C} = 0b00111 = 7.
