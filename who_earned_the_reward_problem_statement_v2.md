@@ -4,13 +4,13 @@
 **Project:** Subgroup-Level Credit Assignment for Delayed Coalition Rewards in Cooperative MARL
 **Team:** Aporia (AFML Course Project, Custom Track)
 **Title:** *Measuring Who Earned the Reward: Ground-Truth Evaluation of Subgroup Credit Assignment under Delayed Coalition Rewards in Cooperative MARL*
-**Version:** v2, trimmed from v1 (literature check as of 23 October 2026; see Section 9 for what changed)
+**Version:** v2.1. v2 was trimmed from v1 (literature check as of 23 October 2026); v2.1 revises the research gaps (Section 3) after an external literature re-check of 27 October 2026. See Section 9 for what changed.
 
 ---
 
 ## 0. Summary
 
-In cooperative MARL, team reward is often produced by one **subgroup** of agents and arrives **after a delay**. Coalition-aware credit methods are evaluated by return, win rate and qualitative plots. Delayed-reward methods split credit per agent and per step, and are also evaluated by return. As far as we found, no work systematically checks, against a known correct answer, **whether the right subgroup received the credit when reward is delayed**.
+In cooperative MARL, team reward is often produced by one **subgroup** of agents and arrives **after a delay**. Coalition-aware credit methods are evaluated by return, win rate and qualitative plots. Delayed-reward methods split credit per agent and per step, and are also evaluated by return. Ground-truth credit checks exist in multi-agent settings, but only per agent or per component, and only for the proposing paper's own estimator (Section 3). As far as we found, no work checks the credit read-outs of *standard* learners against a known correct answer **at the coalition level, under delay**.
 
 This project:
 
@@ -159,38 +159,165 @@ In all-or-nothing games with disjoint coalitions the two targets give the same s
 
 ## 3. Research Gaps
 
-Each gap is stated narrowly. "Not found" means not found in our search, not proven absent; a final OpenReview check is needed before any publication claim.
+**Revised 27 October 2026 (v2.1).** The gaps G1–G5 of v2.0 are replaced by F1–F7 below.
 
-### G1. Coalition-level credit is not graded against a planted ground truth, and not under delay
+- **Sources.** This version draws on an external re-check of the literature through 27 October 2026, and is narrowed to match it.
+- **Our results so far.** Each gap lists what this project has found, with its status. Full results: `docs/results_overview.md`.
+- **Numbering.** The external analysis used its own G1–G9 numbering, from an earlier gap list. That numbering is not the G1–G5 used in v2.0.
 
-**Precedent we must acknowledge.** Value-decomposition papers compare learned values with a known payoff matrix in one-step games. QTRAN shows learned $Q_1$, $Q_2$ and $Q_{jt}$ next to the payoff matrix (its Table 1) [36]; QPLEX shows learned $Q_{tot}$ for five methods against the payoff matrix (its Table 4, Appendix C) [38]; WQMIX analyses the idealised tabular QMIX projection of known payoff matrices (its Tables 1–2) [37]. These check whether the **joint** value and greedy action are represented correctly, not whether credit goes to the right agents or coalitions, and they are one-step with no delay. SHAQ's credit evaluation is qualitative, on SMAC [23].
+**Citation flags.**
+- References [1]–[38] were checked against their primary sources in the v2 fact-check (23 October 2026).
+- **†** marks a reference added from the external analysis whose existence and content **we have not checked**. Several are 2026 preprints.
+- **‡** marks a reference we know exists, but whose bibliographic details (venue, pages, numbers quoted) are taken from the external analysis and not re-checked.
 
-**Gap.** Coalition-aware methods (Nucleolus [12], CORA [11], MACA [2], NA²Q [14], QCoFr [13]) validate their groups by return, win rate or qualitative plots. PRD-MAPPO [16] comes closest: in its Collision Avoidance task, relevant-set attention concentrates on agents of the same known team, but this is a qualitative heatmap under a per-step distance-based reward. CORA checks its sampled approximation against its own full solution, which is self-consistency, not truth.
+Verify every †/‡ item before the final write-up.
 
-### G2. Missed credit for early enablers under delay is not measured in MARL
+"Not found" means not found in our search or in the external analysis, not proven absent. A final OpenReview check, including ICLR 2027 submissions, is needed before any publication claim.
 
-STAS's Alice & Bob task is an enabler chain, but it is scored by reward and success rate. STAS's only quantitative credit check correlates credit with inverse distance to prey [3], a proximity proxy that by construction under-credits distant enablers. MAGIC [19] rewards delayed teammate influence and includes an artificial-delay study, but is scored by return and win rate. Counterfactual Shapley credit [7] credits enabling actions (a DoorKey key pickup five steps before the door toggle), but only for a single agent in small tabular environments, using simulator rollouts.
+**What is not new.**
+- **Planted-ground-truth attribution grading** is standard in explainable ML: shapiq‡ [44] (Möbius and interaction indices against exact values), XAI-Bench‡ [45] and AttributionLab‡ [46]. Our dividend-error and Jaccard metrics adapt that methodology.
+- **Ground-truth credit checks in multi-agent settings exist**, per agent or per component, but only for the proposing paper's own estimator:
+  - Agent Importance [8]: against true Shapley values and individual rewards in LBF/RWARE;
+  - COSAC† [39]: closed-form per-agent advantages in a sequential bandit;
+  - TOCA [27]: planted value components.
 
-### G3. Bystander leakage is described but not measured against known bystanders
+  The claim "credit is never graded against ground truth in MARL" is therefore **not** made.
+- **What is new** is the MARL instantiation: planted coalitions × delay × credit read-outs of *standard* learners, graded at both the individual and the coalition level.
 
-The lazy-agent problem is well known [20][21], and SHAQ gives an anecdote of QMIX crediting an agent that fled the battle [23]. Agent Importance [8] measures the contributions of trained policies after the fact, not the credit signal the learner uses.
+### F1. Coalition-level attribution of standard learners is not graded against planted coalitions (merges v2.0 G1 and G4)
 
-### G4. Individual credit can be right while coalition attribution is wrong
+**Gap.**
+- Coalition methods validate their groups by return, win rate or qualitative plots:
+  - Nucleolus [12], CORA [11], MACA [2], NA²Q [14], QCoFr [13];
+  - HySTAR [15] and HIVE† [48].
+- PRD-MAPPO [16] checks planted teams only visually.
+- One-step matrix games check the joint value against a known payoff matrix (QTRAN [36], WQMIX [37], QPLEX [38]), not the credit.
+- Harsanyi dividends have been computed in a multi-agent setting [24], but over analytic Gaussian coalition models, not learners' read-outs.
 
-**Worked counterexample**
+**Why individual credit is not enough.** The worked counterexample (from v2.0 G4) is kept:
 
 | Game | Values | Dividends | Shapley |
 |---|---|---|---|
 | Pure synergy | v(A) = v(B) = 0, v(AB) = 2 | Δ(AB) = 2 | 1, 1 |
 | Independent | v(A) = v(B) = 1, v(AB) = 2 | Δ(A) = Δ(B) = 1 | 1, 1 |
 
-The Shapley values are identical, but the coordination structure is opposite. We found no MARL credit benchmark that grades dividend-level attribution; the one 2026 multi-agent use of Harsanyi dividends we found [24] uses independent Q-learning on trajectory data.
+Identical Shapley values, opposite coordination structure.
 
-### G5. Return can hide unfaithful credit
+**Our evidence: H3 (negative).**
+- We built the benchmark and coalition metrics, and applied them to VDN, QMIX and NA²Q through a per-step mixer-game read-out.
+- **Every learned mixer game is additive.** Interaction mass is 0.000–0.002, against a true 1.0, and dividend error is about 2.0 (the maximum) in every configuration.
+- So the pre-registered H3 test is uninformative.
+- A positive answer requires an episode-level coalition read-out (H5).
 
-TOCA [27] reports a variant with higher return (≈374 vs ≈341) and worse credit error on turnover events (3.63 vs 2.14), for its own heads only. Systematic evidence across standard methods is missing.
+**Status: open; benchmark built, negative first result.**
 
-**Not claimed:** improving return with temporal redistribution [3][4][18]; improving win rate with grouping [2][11][12][15][30][31][32]; a fast proxy for individual importance [8]; turnover-robust credit [27]; departed-agent credit (moved to future work).
+### F2. Coalition credit under delayed reward, across time steps (v2.0 G1, delay part)
+
+**Gap.**
+- Agent–temporal redistribution methods allocate credit to (agent, step) cells: STAS [3], TAR² [4], CAST [18] and LaRe‡ [47].
+- None allocates to coalitions, or is graded against planted interactions *across time*: agents who contribute at different steps.
+
+**Our evidence.**
+- **The per-step coalition game cannot express synergy across time.** The planted coalitions act across steps (an enabler pulls first, finishers act later), so any game defined within one step is additive. This holds by construction, and the H3 grid confirms it.
+- **STAS's credit does not change with delay.** Its results at d = 0 and d = 25 agree to within 4e-6 per episode: it sees only observations, actions and the total return, and none of these change with delay inside the horizon.
+- **STAS's agent split is near uniform** at 6× the budget, and on a synthetic single-agent task.
+
+**Status: open. We contribute a mechanism for why per-step read-outs fail here; H5 is the planned positive test.**
+
+### F3. Missed credit for early enablers as delay grows (v2.0 G2)
+
+**Gap.**
+- The effect an upstream agent has *through* downstream agents is formalised in structural causal models: agent-specific effects‡ [40] and their Shapley decomposition‡ [41].
+- It is graded against closed-form truth only in delay-free sequential bandits (COSAC's indirect effect† [39]).
+- Methods that model delayed influence are scored by return or proxies:
+  - STAS's proximity correlation [3];
+  - MAGIC's artificial-delay study [19];
+  - counterfactual Shapley credit, which is single-agent [7].
+- No study measures the ground-truth enabler credit that standard learners miss as an explicit delay d grows.
+
+**Our evidence: H1a and H1b (answered, with a correction to the gap's premise).**
+- **Once the critic's state is Markov, delay barely matters.** H1a is not supported. VDN cannot see the payout countdown and fails to fit; QMIX has the right sign, but Holm p = 0.074.
+- **Slack is what removes enabler credit, not delay.** A *perfect* per-step critic gives an enabler with slack about zero credit at every delay: level-2 missed is 0.96–0.99 (H1b slack half, confirmatory).
+- When the enabler was actually decisive (post-hoc split), the noop notion gives it nearly full credit: missed 0.11–0.12.
+
+**Status: addressed for Mode P.**
+
+### F4. Bystander leakage is not measured against planted zero-contribution agents (v2.0 G3)
+
+**Gap.**
+- The lazy-agent problem is well known [20][21]: SHAQ's QMIX anecdote [23], influence diagnostics in two-agent LLM teams† [42].
+- Agent Importance [8] measures trained policies after the fact.
+- No study measures the share of credit a learner assigns to agents planted to contribute nothing.
+
+**Our evidence: H2 and H2′ (answered).**
+- **Leakage grows with bystanders.** For COMA this is confirmatory (8/8). For VDN/QMIX it holds in direction in 16/16 conditions (post-hoc sign test), but the per-condition tests are underpowered.
+- **COMA's counterfactual baseline leaks the most**, the reverse of the expectation: 0.22–0.48 more than VDN/QMIX.
+- **MAPPO's shared advantage leaks b/n by construction**, so it is excluded from leakage conclusions.
+
+**Status: addressed for Mode P.**
+
+### F5. Return can hide unfaithful credit, across standard learners (v2.0 G5)
+
+**Gap.**
+- TOCA [27] shows, within its own ablations, a variant with higher return and worse ground-truth credit. The external analysis reports ≈374 vs ≈341 return and turnover-event error 3.63 vs 2.14.
+- MARL benchmarks are summarised by aggregate return or win rate (Coordination Matters† [49]).
+- In single-agent LLM settings, implicit credit can be indistinguishable from a shuffled control ("Credit Without Ground Truth"† [50]).
+- How common this is across standard learners, seeds and delays is unmeasured.
+
+**Our evidence: related but not decisive.**
+- **Accuracy without fidelity (H5, confirmatory).** 30 of the 32 best end-to-end cells have per-step fidelity r < 0.3. QMIX looks right for the wrong reason.
+- **No method beats uniform credit (post-hoc, H3 grid).** On the overlap and partial layouts, no method's mean L1 beats giving each agent 1/n.
+- The return–faithfulness test itself is H4, in Mode T.
+
+**Status: open (H4, Mode T, not yet run).**
+
+### F6. Credit read-outs from implicit learners have not been validated (new)
+
+**Gap.**
+- Value-decomposition and actor-critic learners have no explicit credit vector. Theirs must be *extracted*, for example as a Q_tot difference, a counterfactual advantage, a shared advantage or a mixer game.
+- There is no accepted protocol for doing so.
+- Audits graded against the method's own outputs can be circular [50]†.
+
+**Our evidence: the project's main contribution so far.**
+- **Two-level grading** separates fidelity (read-out vs the per-step counterfactual it estimates) from the semantic gap (a perfect per-step critic vs removal credit). Results:
+  - Fidelity is r ≤ 0.36 for every method on the main grid.
+  - The semantic gap is large even for a perfect critic, because of slack (F3) and because the team recovers from a one-step deviation.
+- **MAPPO's shared-advantage read-out carries no per-agent information.** Every agent gets ±1/n.
+- **The mixer-game coalition read-out is blind to coalitions across time** (F2).
+
+**Status: open in the literature; addressed here in Mode P.**
+
+### F7. Sensitivity of the ground truth to the counterfactual protocol (partly addressed; v2.0 Section 2.3)
+
+**Gap.**
+- Counterfactual protocols are formalised:
+  - agent-specific effects in structural causal models‡ [40][41];
+  - fixed-history replay and counterfactual distribution shift in agent removal† [42];
+  - do-operator replay validated on planted structural causal models, single-agent† [43];
+  - no-op vs random vs replace-with-teammate removal proxies, compared with Monte Carlo Shapley‡ [52].
+- How much planted-coalition ground truth, and method rankings, change between removal, no-op, random, closed-loop and open-loop protocols in MARL is not quantified.
+
+**Our evidence: partial (H0).**
+- Removal vs no-op ground truth differs by a mean share L1 ≤ 0.18 per cell.
+- The only failures are at 4 bystanders, from physical interference.
+- Whether method rankings change under different protocols is Step 9.
+
+**Status: partially addressed; treated as an empirical sub-question.**
+
+### Demoted or not claimed
+
+- **Polynomial cost is not claimed as a gap.**
+  - At n ≤ 8, exact ground truth is feasible: 2⁸ = 256 coalition values.
+  - Polynomial approximators exist: Agent Importance [8], Monte Carlo/kernel Shapley and interaction indices [44], and O(N) Aumann–Shapley† [51].
+  - The low-order estimator (H5) is a **design contribution**, not a gap.
+- **Agent turnover and departed-agent credit** is partly addressed (TOCA [27]; review [1]) and moved to future work.
+- **Also not claimed:**
+  - improving return with temporal redistribution [3][4][18];
+  - improving win rate with grouping [2][11][12][15][30][31][32];
+  - a fast proxy for individual importance [8];
+  - new attribution metrics (they are adapted from [44]–[46]).
+
+**Novelty risk.** Credit assignment for LLM multi-agent systems is moving quickly (COSAC† [39], C3† [42], and the call for "multi-agent tasks with designed credit structure" in survey [6]). We position this project as **classical CTDE MARL with state dynamics and explicit delay**, which those settings do not have.
 
 ---
 
@@ -202,22 +329,22 @@ Predictions are **directional**. Numeric thresholds are fixed after a pilot (2 s
 
 Ground-truth variance across replays and disagreement between the default and sensitivity protocols are small compared with differences between methods. If H0 fails, the benchmark is fixed before H1–H4 are interpreted.
 
-### H1. Missed enabler credit grows with delay (G2), Mode P
+### H1. Missed enabler credit grows with delay (F3), Mode P
 
 $M$ increases with $d$ and with the enabler–finisher gap for VDN, QMIX and COMA. The redistribution method (STAS) has lower $M$ but not zero at the largest $d$.
 **Falsified if** $M$ does not increase with $d$ for any method.
 
-### H2. Leakage grows with bystanders (G3), Mode P
+### H2. Leakage grows with bystanders (F4), Mode P
 
 $\Lambda$ increases with the number of bystanders for VDN and QMIX. COMA leaks less than VDN and QMIX at $d = 0$.
 **Falsified if** $\Lambda$ is negligible for all methods at every bystander count.
 
-### H3. Individual metrics hide coalition errors (G1, G4), Mode P
+### H3. Individual metrics hide coalition errors (F1, F2), Mode P
 
 With overlap or partial synergy, some method–configuration pair has individual credit error in the best third but dividend error in the worst third. NA²Q's coalition recovery falls with $d$.
 **Falsified if** individual and dividend errors are tightly correlated across all configurations.
 
-### H4. Return is a weak proxy for credit faithfulness (G5), Mode T
+### H4. Return is a weak proxy for credit faithfulness (F5), Mode T
 
 Within each method, return and $1 - L_1$ are weakly correlated. At least two methods with statistically indistinguishable return differ significantly in $L_1$.
 **Falsified if** return strongly predicts $1-L_1$ within methods. That would itself be useful: return would be a reasonable proxy.
@@ -234,11 +361,11 @@ Within each method, return and $1 - L_1$ are weakly correlated. At least two met
 
 | | Gap | Metric | Manipulation | Mode |
 |---|---|---|---|---|
-| H1 | G2 | $M$ | delay, enabler gap | P |
-| H2 | G3 | $\Lambda$ | bystanders | P |
-| H3 | G1, G4 | $L_1$ vs. dividend error; Jaccard | overlap, synergy, delay | P |
-| H4 | G5 | return vs. $L_1$ | across seeds | T |
-| H5 | — | all + cost | method; coalition size vs. $k$ | P |
+| H1 | F3 | $M$ | delay, enabler gap | P |
+| H2 | F4 | $\Lambda$ | bystanders | P |
+| H3 | F1, F2 | $L_1$ vs. dividend error; Jaccard | overlap, synergy, delay | P |
+| H4 | F5 | return vs. $L_1$ | across seeds | T |
+| H5 | F1, F2 (design contribution) | all + cost | method; coalition size vs. $k$ | P |
 
 ---
 
@@ -266,7 +393,7 @@ Dropped from v1 for scope: QPLEX, TAR² (unless needed as the fallback), HYGMA, 
 
 ### 5.4 Milestones
 
-1. Environment + exact ground truth + unit tests reproducing the Section 1 and G4 numbers.
+1. Environment + exact ground truth + unit tests reproducing the Section 1 and Section 3 (F1 counterexample) numbers.
 2. Mode P with EPyMARL methods; H0, H1, H2.
 3. Port STAS and NA²Q; H3.
 4. Mode T; H4.
@@ -292,7 +419,10 @@ Dropped from v1 for scope: QPLEX, TAR² (unless needed as the fallback), HYGMA, 
 | PRD-MAPPO [16] | ✗ | ✓ | partial (qualitative) |
 | Agent Importance [8] | ✗ | ✗ | ✓ post-hoc, trained policies |
 | TOCA [27] | turnover only | ✗ | ✓ own heads only |
-| **This project** | ✓ | ✓ | ✓ dividends, marginals, Shapley; across methods; learning separated from estimation |
+| COSAC† [39] | ✗ (bandit) | ✗ | ✓ per-agent advantages, own estimator |
+| Agent-specific effects‡ [40][41] | ✗ | ✗ | causal explanation, not grading of learned credit |
+| shapiq‡ [44], XAI-Bench‡ [45] (non-RL) | ✗ | ✓ interaction indices | ✓ (methodology we adapt) |
+| **This project** | ✓ | ✓ | ✓ dividends, marginals, Shapley; standard learners' read-outs; learning separated from estimation; read-out fidelity graded separately (F6) |
 
 ---
 
@@ -306,7 +436,7 @@ Dropped from v1 for scope: QPLEX, TAR² (unless needed as the fallback), HYGMA, 
 | Planted roles differ from learned roles | Report realised roles from replay in Mode T |
 | Synthetic environment may not generalise | Kept minimal so failures can be traced to a knob; LBF variant listed as future work |
 | Estimator graded on its own assumptions | Coalitions of size $k+1$ included |
-| Recency of sources | Several key sources are 2026 preprints; re-check each before the final write-up |
+| Recency of sources | Several key sources are 2026 preprints; re-check each before the final write-up. References marked † or ‡ (Section 3) are not yet checked by us |
 
 ---
 
@@ -322,6 +452,17 @@ Dropped from v1 for scope: QPLEX, TAR² (unless needed as the fallback), HYGMA, 
 - **Gap claims softened:** matrix-game evaluations against known payoffs (QTRAN, WQMIX, QPLEX) are acknowledged as precedent; gaps are stated as "not at coalition level and not under delay".
 - **References:** the Substack explainer replaced with Harsanyi (1963) and Shapley (1953).
 
+**v2.1 (27 October 2026):**
+- **Research gaps** G1–G5 replaced by F1–F7 after an external literature re-check:
+  - G1 and G4 merged into F1; the delay part of G1 is now F2.
+  - G2 → F3, G3 → F4, G5 → F5.
+  - New: F6 (validity of read-outs) and F7 (protocol sensitivity).
+  - Polynomial cost demoted to a design contribution; turnover stays future work.
+- **Each gap now states our results so far** and its status.
+- **The claim is narrowed** from "never graded against ground truth" to "not at coalition level, under delay, for standard learners". XAI benchmarks are credited as the source of the grading methodology.
+- **References [39]–[52] added**, flagged † or ‡ where not yet checked by us. Notes added to [4] (two arXiv IDs) and [42] (two titles).
+- **Hypotheses H1–H5 and the sections after them are unchanged** (pre-registered). Only their gap labels were updated.
+
 ---
 
 ## 10. References
@@ -331,7 +472,7 @@ Numbering follows v1 so cross-references stay stable; [34]–[38] are new in v2;
 - [1] Saleh Abadi, A., & Soh, L.-K. *Challenges in Credit Assignment for Multi-Agent Reinforcement Learning in Open Agent Systems.* arXiv 2510.27659, 2025.
 - [2] Zhao, X., & Xie, Y. *Multi-level Advantage Credit Assignment for Cooperative Multi-Agent Reinforcement Learning (MACA).* AISTATS 2025. arXiv 2508.06836.
 - [3] Chen, S., Zhang, Z., Yang, Y., & Du, Y. *STAS: Spatial-Temporal Return Decomposition for Solving Sparse Rewards Problems in Multi-agent Reinforcement Learning.* AAAI 2024. (arXiv 2304.07520 uses the shorter title *STAS: Spatial-Temporal Return Decomposition for Multi-agent Reinforcement Learning*.) Code: https://github.com/zowiezhang/STAS
-- [4] Kapoor, A., Tessera, K., Baranwal, M., Khadilkar, H., Peters, J., Albrecht, S., & Sun, M. *Redistributing Rewards Across Time and Agents for Multi-Agent Reinforcement Learning (TAR²).* arXiv 2502.04864, v2 2025.
+- [4] Kapoor, A., Tessera, K., Baranwal, M., Khadilkar, H., Peters, J., Albrecht, S., & Sun, M. *Redistributing Rewards Across Time and Agents for Multi-Agent Reinforcement Learning (TAR²).* arXiv 2502.04864, v2 2025. (Per the external analysis, not re-checked: an earlier version exists as arXiv 2412.14779, *Agent-Temporal Credit Assignment for Optimal Policy Preservation…*.)
 - [6] Zhang, C. *From Reasoning to Agentic: Credit Assignment in Reinforcement Learning for Large Language Models.* arXiv 2604.09459, v3 2026.
 - [7] Li, M., Lee, K.-Z., & Bareinboim, E. *Counterfactual Shapley Credit Assignment.* arXiv 2607.16999, v2 2026.
 - [8] Mahjoub, O., de Kock, R., Singh, S., Khlifi, W., Vall, A., Tessera, K., & Pretorius, A. *Efficiently Quantifying Individual Agent Importance in Cooperative MARL.* AAAI XAI4DRL workshop; arXiv 2312.08466.
@@ -357,3 +498,22 @@ Numbering follows v1 so cross-references stay stable; [34]–[38] are new in v2;
 - [36] Son, K., Kim, D., Kang, W. J., Hostallero, D. E., & Yi, Y. *QTRAN: Learning to Factorize with Transformation for Cooperative Multi-Agent Reinforcement Learning.* ICML 2019, PMLR 97. https://arxiv.org/abs/1905.05408
 - [37] Rashid, T., Farquhar, G., Peng, B., & Whiteson, S. *Weighted QMIX: Expanding Monotonic Value Function Factorisation for Deep Multi-Agent Reinforcement Learning.* NeurIPS 2020. https://arxiv.org/abs/2006.10800
 - [38] Wang, J., Ren, Z., Liu, T., Yu, Y., & Zhang, C. *QPLEX: Duplex Dueling Multi-Agent Q-Learning.* ICLR 2021. https://arxiv.org/abs/2008.01062
+
+**Added in v2.1** from the external literature re-check (27 October 2026):
+- **†** = not yet checked by us: existence, authors, venue and quoted numbers all unverified.
+- **‡** = known to exist, but the details given here are not re-checked.
+
+- [39] † Deshmukh, Addanki, Subramanian & Vlassis. *COSAC* (per-agent advantages with closed-form ground truth in a sequential-bandit testbed). arXiv 2604.17693, 2026.
+- [40] ‡ Triantafyllou, S., Sukovic, A., Mandal, D., & Radanovic, G. *Agent-Specific Effects: A Causal Effect Propagation Analysis in Multi-Agent MDPs.* ICML 2024. arXiv 2310.11334.
+- [41] ‡ Triantafyllou, S., et al. *Counterfactual Effect Decomposition in Multi-Agent Sequential Decision Making.* ICML 2025. arXiv 2410.12539.
+- [42] † *C3 / Exact Is Easier: Credit Assignment for Cooperative LLM Agents.* arXiv 2603.06859, 2026. v1 is reportedly titled *Contextual Counterfactual Credit Assignment…*; cite the version used.
+- [43] † Shah. *CAR (Causal Agent Replay).* arXiv 2606.08275, 2026.
+- [44] ‡ Muschalik, M., Baniecki, H., Fumagalli, F., Kolpaczki, P., Hammer, B., & Hüllermeier, E. *shapiq: Shapley Interactions for Machine Learning.* NeurIPS 2024 Datasets & Benchmarks.
+- [45] ‡ *Synthetic Benchmarks for Scientific Research in Explainable Machine Learning (XAI-Bench).* arXiv 2106.12543, 2021.
+- [46] ‡ *AttributionLab: Faithfulness of Feature Attribution Under Controllable Environments.* arXiv 2310.06514, 2023.
+- [47] ‡ *LaRe: latent-reward, LLM-assisted episodic multi-agent credit assignment.* arXiv 2412.11120.
+- [48] † Zhou et al. *HIVE* (hypergraph Position-value decomposition). Neural Networks 203:109103, 2026.
+- [49] † *Coordination Matters* (process diagnostics beyond aggregate return in MARL benchmarks). arXiv 2605.06557, 2026.
+- [50] † *Credit Without Ground Truth* (single-agent ALFWorld audit of implicit and judge credit). arXiv 2608.19760, 2026.
+- [51] † *Million-agent Aumann–Shapley attribution* with analytic per-agent ground truth. arXiv 2605.11404, 2026.
+- [52] ‡ Heuillet, A., Couthouis, F., & Díaz-Rodríguez, N. *Collective eXplainable AI: Explaining Cooperative Strategies and Agent Contribution in Multiagent Reinforcement Learning with Shapley Values.* IEEE Computational Intelligence Magazine 17(1), 2022. arXiv 2110.01307.
