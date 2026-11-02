@@ -29,6 +29,14 @@ GRIDS = {
     "h3": dict(layouts=("overlap", "partial"), delays=(0, 25, 50), bystanders=(2,),
                enabler_starts=(0,), seeds=(0, 1, 2, 3, 4)),
     "h3_smoke": dict(layouts=("overlap", "partial"), delays=(0,), bystanders=(2,), enabler_starts=(0,), seeds=(0,)),
+    # H5 (low-order coalition estimator): the planted order-3 coalition plus the H3 layouts, d in {0, 50}.
+    "h5": dict(layouts=("coalition", "overlap", "partial"), delays=(0, 50), bystanders=(2,),
+               enabler_starts=(0,), seeds=(0, 1, 2, 3, 4)),
+    "h5_ref": dict(layouts=("coalition",), delays=(0, 50), bystanders=(2,), enabler_starts=(0,),
+                   seeds=(0, 1, 2, 3, 4)),
+    "h5_pilot": dict(layouts=("coalition", "overlap", "partial"), delays=(0,), bystanders=(2,),
+                     enabler_starts=(0,), seeds=(0,)),
+    "h5_smoke": dict(layouts=("coalition",), delays=(0,), bystanders=(2,), enabler_starts=(0,), seeds=(0,)),
 }
 
 

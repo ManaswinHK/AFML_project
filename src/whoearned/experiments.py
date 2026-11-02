@@ -15,9 +15,9 @@ from dataclasses import asdict, dataclass, field
 import numpy as np
 import torch as th
 
-from whoearned.envs import coalition_layout, overlap_example
+from whoearned.envs import NOOP, coalition_layout, overlap_example
 from whoearned.epymarl_bridge import episodes_to_batch
-from whoearned.ground_truth import agents_of, normalise_shares
+from whoearned.ground_truth import agents_of, mask_of, normalise_shares
 from whoearned.metrics import (
     coalition_recovery,
     dividend_error,
@@ -27,8 +27,8 @@ from whoearned.metrics import (
     pearson,
     true_dividends,
 )
-from whoearned.mode_p import ALGS, episode_credit, make_harness, read_credit, train_step
-from whoearned.replay import ground_truth_open_loop, planted_dividends, rollout, step_counterfactuals
+from whoearned.mode_p import ALGS, MIX, base_alg, episode_credit, make_harness, read_credit, train_step
+from whoearned.replay import ground_truth_open_loop, planted_dividends, replay, rollout, step_counterfactuals
 from whoearned.scripted import ScriptedTeam
 
 # Enabler start that puts A on the critical path in about half of the noisy (eps = 0.2)
@@ -37,12 +37,16 @@ CRITICAL_ENABLER_START = 12
 
 # Read-out -> matched removal target (problem statement v2, Section 2.4). STAS splits with
 # Shapley values; NA²Q's individual credit is its mixer game's Shapley value.
-MATCHED_TARGET = {"vdn": "loo", "qmix": "loo", "coma": "loo", "mappo": "loo", "na2q": "shapley", "stas": "shapley"}
+MATCHED_TARGET = {"vdn": "loo", "qmix": "loo", "coma": "loo", "mappo": "loo", "na2q": "shapley", "stas": "shapley",
+                  "ece2": "shapley", "ece3": "shapley"}
 # Read-out -> the per-step counterfactual it estimates (two-level grading, docs/pilot_findings.md).
 # None: the read-out estimates no single-agent per-step counterfactual, so it has no level-1 score.
-STEP_TARGET = {"vdn": "noop", "qmix": "noop", "coma": "baseline", "mappo": "noop", "na2q": None, "stas": None}
+STEP_TARGET = {"vdn": "noop", "qmix": "noop", "coma": "baseline", "mappo": "noop", "na2q": None, "stas": None,
+               "ece2": None, "ece3": None}
 # A coalition counts as identified if it holds more than this share of |dividends| (H3).
 IDENTIFY_THRESHOLD = 0.1
+# Replay-varied training data (H5): in each extra replay, each agent is kept with this probability.
+MIX_KEEP = 0.75
 
 
 @dataclass(frozen=True)
@@ -92,7 +96,19 @@ class DataCell:
                             enabler_start=self.enabler_start)
 
     def episodes(self, split: str):
+        """``train`` / ``test``: full team. ``mix``: the training episodes plus one open-loop replay
+        of each with a random subset removed (each agent kept with probability MIX_KEEP; removed
+        agents' actions set to noop). Actions stay as recorded, as in the ground-truth replay."""
         cfg = self.config()
+        if split == "mix":
+            rng = np.random.default_rng(10_000 + self.seed)
+            out = self.episodes("train")
+            for ep in list(out):
+                kept = mask_of(np.flatnonzero(rng.random(cfg.n_agents) < MIX_KEEP))
+                rep = replay(cfg, ep.actions, present=kept)
+                rep.actions[:, [i for i in range(cfg.n_agents) if not kept >> i & 1]] = NOOP
+                out.append(rep)
+            return out
         count = self.n_train if split == "train" else self.n_test
         return [rollout(cfg, self.team(split, s)) for s in range(count)]
 
@@ -183,9 +199,9 @@ def _score(alg: str, out: dict, truth: TestTruth, cfg) -> list[dict]:
         row = {"episode": b}
         for target in ("loo", "shapley"):
             row[target] = evaluate_credit(credit[b], gt, cfg, target=target).as_dict()
-        row["matched"] = row[MATCHED_TARGET[alg]]
-        if STEP_TARGET[alg] is not None:
-            step_truth = truth.step[STEP_TARGET[alg]][b]
+        row["matched"] = row[MATCHED_TARGET[base_alg(alg)]]
+        if STEP_TARGET[base_alg(alg)] is not None:
+            step_truth = truth.step[STEP_TARGET[base_alg(alg)]][b]
             row["fidelity"] = evaluate_against(credit[b], step_truth.sum(0), enablers, bystanders).as_dict()
             row["fidelity"]["step_pearson"] = pearson(per_step[b], step_truth)
         if "dividends" in out:
@@ -255,13 +271,18 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
     }
     env_args = cell.env_args()
     rng = np.random.default_rng(cell.seed)
+    mix_eps = cell.episodes("mix") if any(a.endswith(MIX) for a in train.algs) else None
+    if mix_eps is not None:
+        record["data"]["mix_return_mean"] = float(np.mean([e.total for e in mix_eps]))
+        record["data"]["mix_return_zero"] = float(np.mean([e.total == 0 for e in mix_eps]))
     for alg in train.algs:
         ta = time.time()
         h = make_harness(alg, env_args=env_args, seed=cell.seed)
-        data, test = episodes_to_batch(h, train_eps), episodes_to_batch(h, test_eps)
+        alg_train = mix_eps if alg.endswith(MIX) else train_eps
+        data, test = episodes_to_batch(h, alg_train), episodes_to_batch(h, test_eps)
         losses = []
         for k in range(train.updates):
-            idx = rng.choice(len(train_eps), train.batch_size, replace=False)
+            idx = rng.choice(len(alg_train), train.batch_size, replace=False)
             loss = train_step(h, alg, data[idx], k)
             if k % train.log_every == 0 or k == train.updates - 1:
                 losses.append((k, loss))
@@ -275,14 +296,16 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
             "summary_shapley": summarise(rows, "shapley"),
             "episodes": rows,
         }
-        if STEP_TARGET[alg] is not None:
+        if STEP_TARGET[base_alg(alg)] is not None:
             fidelity = summarise(rows, "fidelity")
             # Pooled over every (episode, step, agent): is the critic right about the per-step effect?
-            fidelity["step_pearson"] = pearson(out["per_step"], np.stack(truth.step[STEP_TARGET[alg]]))
+            fidelity["step_pearson"] = pearson(out["per_step"], np.stack(truth.step[STEP_TARGET[base_alg(alg)]]))
             rec["summary_fidelity"] = fidelity
         if "dividends" in out:
             rec["summary_coalition"] = {k: _mean(r["coalition"][k] for r in rows)
                                         for k in rows[0]["coalition"] if k != "dividends"}
+        if hasattr(h.learner, "n_parameters"):
+            rec["n_parameters"] = h.learner.n_parameters()
         if "snr" in out:
             rec["snr"] = {k: v.tolist() for k, v in out["snr"].items()}
         record["algs"][alg] = rec

@@ -11,10 +11,12 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
 from whoearned.experiments import MATCHED_TARGET  # noqa: E402
+from whoearned.mode_p import base_alg  # noqa: E402
 
 METRICS = ("l1", "spearman", "leakage", "missed")
 COALITION = ("dividend_error", "dividend_error_order2", "recall", "precision", "interaction_mass", "true_interaction_mass")
-ORDER = ["vdn", "qmix", "coma", "mappo", "na2q", "stas"]
+ORDER = ["vdn", "qmix", "coma", "mappo", "na2q", "stas", "ece2", "ece3",
+         "stas_mix", "ece2_mix", "ece3_mix"]
 
 
 def _fmt(values):
@@ -125,7 +127,7 @@ def summarise_dir(out_dir):
         cells = [_fmt([r[m] for r in rs]) for m in METRICS]
         if b == 0:
             cells[2] = "n/a (none)"
-        lines.append(f"| {alg} | {MATCHED_TARGET[alg]} | {_slack(es)} | {d} | {b} | {len(rs)} | " + " | ".join(cells) + " |")
+        lines.append(f"| {alg} | {MATCHED_TARGET[base_alg(alg)]} | {_slack(es)} | {d} | {b} | {len(rs)} | " + " | ".join(cells) + " |")
 
     coal_rows = [r for r in rows if "coal_dividend_error" in r]
     if coal_rows:

@@ -10,6 +10,11 @@
   SARSA target. The official max target diverges on fixed data; see ``whoearned.na2q``.
 - STAS (``whoearned.stas``): the return-decomposition model only. It is trained so its
   per-agent, per-step rewards sum to the episode return.
+- ECE-k (``whoearned.coalition_estimator``, H5): the episodic coalition-term return model with
+  terms up to order k (``ece2``, ``ece3``).
+
+A ``_mix`` suffix (e.g. ``ece2_mix``, ``stas_mix``) is the same method trained on composition-varied
+data (training episodes plus open-loop replays with random agents removed; ``DataCell.episodes("mix")``). Test data and read-outs are unchanged.
 
 Actors are never trained. Read-outs that need a policy (COMA baseline, MAPPO SNR)
 use the scripted behaviour probabilities recorded in each episode.
@@ -23,6 +28,7 @@ from __future__ import annotations
 import numpy as np
 import torch as th
 
+from whoearned.coalition_estimator import CoalitionEstimator
 from whoearned.envs import NOOP
 from whoearned.epymarl_bridge import EpisodeBatch, Harness, build_harness
 from whoearned.na2q import NA2Q, coalition_game, game_dividends, game_shapley_per_step
@@ -40,19 +46,30 @@ from whoearned.stas import STAS
 Q_ALGS = ("vdn", "qmix")
 ALGS = ("vdn", "qmix", "coma", "mappo")  # the main grid
 PORTED_ALGS = ("na2q", "stas")           # Step 7: not in EPyMARL
-ALL_ALGS = ALGS + PORTED_ALGS
-COALITION_ALGS = ("vdn", "qmix", "na2q")  # have a mixer game, hence dividends
+ESTIMATOR_ALGS = ("ece2", "ece3")        # H5: ours
+ALL_ALGS = ALGS + PORTED_ALGS + ESTIMATOR_ALGS
+COALITION_ALGS = ("vdn", "qmix", "na2q") + ESTIMATOR_ALGS  # expose dividends
+MIX = "_mix"
+
+
+def base_alg(alg: str) -> str:
+    """The method behind an algorithm name: ``ece2_mix`` -> ``ece2``."""
+    return alg.removesuffix(MIX)
 
 
 def make_harness(alg: str, env_args: dict, seed: int = 0) -> Harness:
     """EPyMARL harness for ``alg``. Ported methods reuse QMIX's batch layout and swap in their own learner."""
-    if alg not in PORTED_ALGS:
+    alg = base_alg(alg)
+    if alg not in PORTED_ALGS + ESTIMATOR_ALGS:
         return build_harness(alg, env_args=env_args, seed=seed)
     h = build_harness("qmix", env_args=env_args, seed=seed)
     info = h.env.get_env_info()
     if alg == "na2q":
         h.learner = NA2Q(info["n_agents"], info["n_actions"], info["obs_shape"], info["state_shape"],
                          seed=seed, target="sarsa")
+    elif alg in ESTIMATOR_ALGS:
+        h.learner = CoalitionEstimator(info["n_agents"], info["n_actions"], info["obs_shape"],
+                                       len(h.env.config.events), k=int(alg[-1]), seed=seed)
     else:
         h.learner = STAS(info["n_agents"], info["n_actions"], info["obs_shape"], info["episode_limit"], seed=seed)
     h.mac = None
@@ -87,9 +104,10 @@ def _update_targets(learner, args):
 def train_step(harness: Harness, alg: str, batch: EpisodeBatch, step: int) -> float:
     """One critic update on ``batch``; returns the critic loss."""
     learner, args = harness.learner, harness.args
+    alg = base_alg(alg)
     if alg == "na2q":
         return learner.train(batch, episode_num=step * batch.batch_size)
-    if alg == "stas":
+    if alg == "stas" or alg in ESTIMATOR_ALGS:
         return learner.train(batch)
     if alg in Q_ALGS:
         before = len(harness.logger.stats.get("loss", []))
@@ -129,8 +147,12 @@ def read_credit(harness: Harness, alg: str, batch: EpisodeBatch, episodes: list[
     MAPPO also returns its SNR diagnostic. VDN, QMIX and NA²Q also return ``dividends``
     (B, 2^n): the episode-summed Harsanyi dividends of their mixer game. NA²Q's individual
     credit is the Shapley value of its mixer game, i.e. its unary terms plus half of each
-    pairwise term.
+    pairwise term. ECE-k's dividends are its coalition terms; its credit is their Shapley split.
     """
+    alg = base_alg(alg)
+    if alg in ESTIMATOR_ALGS:
+        d = harness.learner.dividends(batch)
+        return {"per_step": harness.learner.credit(batch, d), "dividends": d}
     if alg == "na2q":
         game = harness.learner.mixer_game(batch)
         return {"per_step": game_shapley_per_step(game), "dividends": game_dividends(game)}
@@ -156,5 +178,5 @@ def mixer_game(harness: Harness, batch: EpisodeBatch) -> np.ndarray:
     return coalition_game(lambda qs: harness.learner.mixer(qs, states).squeeze(-1), chosen, q[..., NOOP])
 
 
-__all__ = ["ALGS", "ALL_ALGS", "COALITION_ALGS", "PORTED_ALGS", "Q_ALGS", "make_harness", "mixer_game",
+__all__ = ["ALGS", "ALL_ALGS", "COALITION_ALGS", "ESTIMATOR_ALGS", "PORTED_ALGS", "Q_ALGS", "base_alg", "make_harness", "mixer_game",
            "behaviour_probs", "episode_credit", "read_credit", "train_step"]
