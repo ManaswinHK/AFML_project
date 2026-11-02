@@ -155,6 +155,7 @@ Overlap and partial-synergy layouts × d ∈ {0, 25, 50} × 5 seeds. It ran in 8
 | **H3** "best-third individual error but worst-third dividend error"; NA²Q recovery falls with d | confirmatory: ✗ literally, **uninformative** | 0/6 pairs; dividend error 1.9993–2.0000 everywhere (spread 0.0007); NA²Q recovery is zero at every d |
 | Mixer games are additive | descriptive | interaction mass 0.000–0.002 (VDN, QMIX, NA²Q) vs a true 1.0 |
 | No method beats uniform credit | post-hoc | uniform L1 0.45 (overlap) / 0.89 (partial); no method's mean beats it in any of 36 conditions; STAS comes closest (0.52; 2/5 seeds) |
+| Main grid: methods rarely beat uniform | post-hoc | 5 of 96 method-conditions beat it (QMIX 3, VDN 1, MAPPO 1 artifact), all at d ≤ 10 except the artifact; none at d ≥ 25; COMA 0/24 (`main_results.md` §3.3) |
 | STAS ignores delay | post-hoc | d = 0 and d = 25 agree to within 4e-6 per episode |
 | Partial-synergy data is weak (H0) | descriptive | realised = planted 40–50%; return 8.2–8.8 instead of 10 |
 
@@ -191,13 +192,12 @@ Overlap and partial-synergy layouts × d ∈ {0, 25, 50} × 5 seeds. It ran in 8
 - Planted ≠ realised coalitions in a sizeable share of episodes (b = 4; the partial layout). Grading always uses the realised truth.
 - The critical-enabler manipulation is weak (54% critical).
 - STAS and NA²Q are our reimplementations; the official code was compared line by line but not executed.
-- The uniform baseline was computed for the H3 grid only. It has not yet been applied to the main grid.
+- The uniform baseline is post-hoc on both grids. On the main grid it is exact at b = 0 (true credit is equal shares there), so only b > 0 cells test it.
 
 ## 9. Still to do
 
 | Item | What it answers |
 |---|---|
-| Uniform baseline on the main grid | whether the main-grid L1 values carry information |
 | **H5** low-order episodic coalition estimator | whether coalition credit is recoverable at all with an episode-level read-out; includes the size k+1 honesty check |
 | **Step 8** Mode T (online training) | H4: is return a weak proxy for credit faithfulness? |
 | **Step 9** sensitivity analyses | noop vs removal, open- vs closed-loop replay, Shapley vs LOO |

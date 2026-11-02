@@ -203,6 +203,28 @@ A one-sided sign test over the 16 condition means gives p = 1.5 × 10⁻⁵. The
 
 The reasonable reading: bystander leakage grows for all value-decomposition methods. The pre-registered per-condition test, with 5 seeds and Holm over 32 conditions, was underpowered to show it condition by condition.
 
+### 3.3 Uniform-credit baseline
+
+Uniform credit gives 1/n to every agent. It needs no training. It is scored against the same leave-one-out truth, on the same valid test episodes as each method. Script: `scripts/posthoc_uniform.py`; full table in `results/mode_p/main_posthoc_uniform/uniform_posthoc.md`.
+
+| method | conditions where its mean L1 beats uniform | mean (method − uniform) at b = 0 / 2 / 4 |
+|---|---|---|
+| VDN | 1/24 | +0.86 / +0.53 / +0.34 |
+| QMIX | 3/24 | +0.72 / +0.17 / +0.18 |
+| COMA | 0/24 | +1.27 / +0.72 / +0.56 |
+| MAPPO | 1/24 (artifact, §2) | +1.73 / +1.08 / +0.85 |
+
+- **Uniform L1 is 0.000 at b = 0** in every cell. With no bystanders, the true leave-one-out credit is split equally among A, B and C, so uniform is the exact answer there. The b = 0 rows therefore only show how far each method is from the right answer; they say nothing about uniform being a strong baseline.
+- **With bystanders, uniform L1 is 0.72–0.73 (b = 2) and 1.00–1.02 (b = 4).** The planted values would be 0.80 and 1.14; the realised truth is a little less concentrated (H0).
+- **The only wins:**
+  - QMIX at d = 0, slack, b = 2 (0.44 vs 0.73) and b = 4 (0.66 vs 1.02), 5/5 seeds each;
+  - QMIX at d = 10, critical, b = 4 (0.85 vs 1.00), 5/5 seeds;
+  - VDN at d = 0, slack, b = 4 (0.79 vs 1.02), 5/5 seeds;
+  - MAPPO at d = 50, critical, b = 2, by 0.01. This is the ±1/n artifact landing near uniform, not information.
+- **No method beats uniform at d ≥ 25.** COMA never beats it.
+
+Reading: across most of the main grid, the L1 values do not show that a method carries information about who earned the reward beyond "share equally". The wins are confined to QMIX and VDN at short delay, which is where the H5 result (§1) already shows QMIX is accurate for the wrong reason. This reinforces the H3-grid finding and makes a uniform row a required reference for any L1 table in this benchmark.
+
 ## 4. What the results support, in plain terms
 
 1. **Per-step credit loses enablers through slack, not delay** (confirmatory, H1b slack half). Even a perfect per-step critic gives a non-critical enabler about zero credit, whatever the delay. Removal-based credit gives it a full share. Post hoc (§3.1), the noop notion gives a genuinely critical enabler nearly full credit (missed ≈ 0.12), so slack is what makes the difference. The COMA-style baseline notion under-credits the enabler even then.
@@ -214,6 +236,7 @@ The reasonable reading: bystander leakage grows for all value-decomposition meth
 
    (H1a not supported.)
 5. **Shared-advantage methods (MAPPO) cannot be evaluated by per-agent credit read-outs at all.** Only their gradient SNR is informative.
+6. **Almost no cell beats equal shares** (post-hoc, §3.3). Mean L1 is below the uniform baseline in only 5 of 96 method-conditions, all at d ≤ 10 except one MAPPO artifact.
 
 ## 5. Limitations
 

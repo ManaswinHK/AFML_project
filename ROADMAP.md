@@ -31,6 +31,7 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
   - [x] Pilot run 2: fixes confirmed (except VDN, by construction); thresholds proposed in `docs/pilot_findings.md`.
   - [x] Add the enabler-slack knob and horizon 80 for d=50 → main grid (120 cells, 5 seeds). Results: `docs/main_results.md`.
   - [x] Post-hoc: H1b split by realised criticality (`scripts/posthoc_h1b.py`; `docs/main_results.md` §3.1).
+  - [x] Post-hoc: uniform-credit baseline on the main grid (`scripts/posthoc_uniform.py`; `docs/main_results.md` §3.3).
 
 ## Tier 2: should-have
 
