@@ -102,7 +102,7 @@ Results go to `results/mode_p/h3/`.
 
 The H5 grid has 30 cells: coalition, overlap and partial × d ∈ {0, 50} × b = 2 × 5 seeds. It is followed by `h5_ref`: 10 coalition cells scoring plain NA²Q and STAS. The pre-registration is `docs/h5_preregistration.md`.
 
-The laptop stopped after 16 H5 cells. To continue here:
+The laptop stopped after 8 H5 cells: coalition d = 0 for all 5 seeds, and overlap d = 0 for seeds 0–2. To continue here:
 
 1. Update the code: `git pull`, then `git submodule update --init`.
 2. Copy the finished cells. Results are git-ignored, so copy the folder `results/mode_p/h5/` from the laptop to the same path here, for example via a USB stick or OneDrive. The runner skips every cell whose JSON is present.
@@ -118,7 +118,7 @@ The laptop stopped after 16 H5 cells. To continue here:
 
 If a cell fails with a CUDA or CUBLAS error, too many workers are sharing the GPU. Rerun with fewer workers, or hide the GPU (`set CUDA_VISIBLE_DEVICES=` in cmd) and use `--workers 10`.
 
-Expected cost: `na2q_mix` dominates. It took roughly an hour of a coalition d = 0 cell on the laptop, against 4–7 minutes for each ECE variant. The d = 50 cells are slower still.
+Expected cost: `na2q_mix` dominates. It took roughly an hour of a coalition d = 0 cell on the laptop, against 4–7 minutes for each ECE variant. The coalition d = 50 cells are much slower still: on the laptop they ran for more than 5 CPU-hours each without finishing. Expect them to dominate the run.
 
 4. Analyse:
 
