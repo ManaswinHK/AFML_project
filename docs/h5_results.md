@@ -44,13 +44,34 @@ A family is supported only if every eligible condition is significant after Holm
 | H5b, individual L1: ECE-k_mix < uniform credit | 8/8, Holm p ≤ 0.0001 | **Supported** |
 
 - **Coalition recovery is real.** ECE-3_mix brings dividend error on the order-3 coalition layout from 2.0 (every NA²Q variant) down to 0.43. Its recall is 0.96 and its precision 0.96. Interaction mass is 0.99 against a true 1.0, where NA²Q has 0.000–0.005.
-- **It is the first method to beat uniform credit** on individual L1, by 0.29–0.61 in every condition. No method did that on the H3 grid.
+- **It is the first method to beat uniform credit by a wide margin, and significantly, in every condition**: by 0.29–0.61 L1. Other methods beat uniform only occasionally and narrowly:
+  - main grid: 5 of 96 method-conditions (`docs/main_results.md` §3.3);
+  - here: NA²Q on coalition d = 0 (0.60 vs 0.73) and STAS_mix on coalition and overlap (0.69 vs 0.73; 0.42 vs 0.45).
+
+  None of those is consistent across conditions.
 - **The leakage claim fails mainly because of the data, not the model.** Against plain NA²Q, every leakage difference has the right sign, but with 5 seeds most miss Holm narrowly. Against data-matched NA²Q_mix, at d = 0 the differences are about 0.00–0.01. The replay data alone already removes most of NA²Q's leakage. Only at d = 50, where NA²Q_mix leaks more (0.10–0.21), does ECE-3_mix pull ahead, and that is significant in only one condition.
 
 ## 2. Descriptive
 
 - **The replay data is essential.** Without it, `ece2` and `ece3` reproduce uniform credit (L1 0.73 vs 0.73 on coalition), leak 0.40 and recover no true coalition (recall 0). Trained on the episodes alone, every agent is always present, so the full-team model cannot tell agents apart.
 - **Honesty check (ECE-2 on order-3 layouts).** ECE-2_mix cannot represent {A, B, C}: its dividend error stays at 2.0 on coalition and 1.77 on overlap, against ECE-3_mix's 0.43 and 1.08–1.13. Its individual L1 is still close (0.14 vs 0.12 on coalition). As in H3, individual credit can look right while the coalition structure is wrong.
-- **Delay invariance.** ECE results are the same at d = 0 and d = 50 to within 0.01 on every metric, as expected for an estimator that sees only actions and the episode return. NA²Q's L1 grows with delay (coalition 0.60 → 1.38).
+- **Delay invariance.** This is expected for an estimator that sees only actions and the episode return.
+  - ECE L1 and leakage are the same at d = 0 and d = 50 to within 0.01.
+  - The structure metrics move a little more:
+    - ECE-3_mix overlap dividend error: 1.08 → 1.13;
+    - ECE-2_mix partial dividend error: 1.09 → 1.07;
+    - plain ECE-3 partial precision: 0.84 → 0.74.
+  - All of these are within about one seed sd.
+  - By contrast, NA²Q's L1 grows with delay (coalition 0.60 → 1.38).
 - **STAS_mix vs STAS.** The replay data lowers STAS's L1 slightly (for example overlap 0.52 → 0.42 at d = 0), but leakage is unchanged (about 0.35–0.38 on coalition). Mind the device caveat above for overlap d = 0.
-- **Cost.** ECE variants take about 140–170 s per cell with 47k–59k parameters, against 928 s for NA²Q_mix and 502 s for STAS_mix.
+- **Cost.** The cost table in `h5_analysis.md` averages cells from two machines, so use the per-machine means here (seconds per cell):
+
+  | method | Ryzen PC, 22 cells | laptop, 8 cells (contended) |
+  |---|---|---|
+  | ece2 / ece3 | 108 / 102 | 232 / 243 |
+  | ece2_mix / ece3_mix | 106 / 109 | 322 / 337 |
+  | na2q_mix | 379 | 2438 |
+  | stas_mix | 374 | 857 |
+
+  - On one machine, ECE-3_mix is about 3.5× cheaper than NA²Q_mix and STAS_mix, with 47k–59k parameters.
+  - The laptop ratio, about 7×, is inflated by CPU contention.

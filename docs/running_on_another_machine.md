@@ -102,6 +102,8 @@ Results go to `results/mode_p/h3/`.
 
 The H5 grid has 30 cells: coalition, overlap and partial × d ∈ {0, 50} × b = 2 × 5 seeds. It is followed by `h5_ref`: 10 coalition cells scoring plain NA²Q and STAS. The pre-registration is `docs/h5_preregistration.md`.
 
+**Status (2026-11-03): done.** All 30 H5 cells and 10 `h5_ref` cells are committed under `results/mode_p/`, and the write-up is `docs/h5_results.md`. On the Ryzen PC a coalition d = 50 cell took 13 minutes, not the 5+ CPU-hours seen on the laptop. The steps below are kept for reference.
+
 The laptop stopped after 8 H5 cells: coalition d = 0 for all 5 seeds, and overlap d = 0 for seeds 0–2. To continue here:
 
 1. Update the code: `git pull`, then `git submodule update --init`.
@@ -118,7 +120,7 @@ The laptop stopped after 8 H5 cells: coalition d = 0 for all 5 seeds, and overla
 
 If a cell fails with a CUDA or CUBLAS error, too many workers are sharing the GPU. Rerun with fewer workers, or hide the GPU (`set CUDA_VISIBLE_DEVICES=` in cmd) and use `--workers 10`.
 
-Expected cost: `na2q_mix` dominates. It took roughly an hour of a coalition d = 0 cell on the laptop, against 4–7 minutes for each ECE variant. The coalition d = 50 cells are much slower still: on the laptop they ran for more than 5 CPU-hours each without finishing. Expect them to dominate the run.
+Expected cost: `na2q_mix` dominates. It took roughly an hour of a coalition d = 0 cell on the laptop, against 4–7 minutes for each ECE variant. On the laptop the coalition d = 50 cells ran for more than 5 CPU-hours each without finishing. On the Ryzen PC they took about 13 minutes each.
 
 4. Analyse:
 
