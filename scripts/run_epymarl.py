@@ -39,6 +39,11 @@ from whoearned.epymarl_env import make_env  # noqa: E402
 epymarl_envs.REGISTRY["planted"] = make_env
 
 import main as epymarl_main  # noqa: E402  (defines the sacred Experiment `ex`)
+import run as epymarl_run  # noqa: E402
+
+# run.py puts str(datetime.now()) in the model directory name; its colons are illegal on Windows.
+epymarl_run.datetime = types.SimpleNamespace(
+    datetime=types.SimpleNamespace(now=lambda: __import__("time").strftime("%Y-%m-%d_%H-%M-%S")))
 
 SETTINGS["CAPTURE_MODE"] = "sys"  # "fd" capture is unreliable on Windows
 

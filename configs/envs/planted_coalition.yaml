@@ -1,0 +1,18 @@
+# coalition_layout (A enables, B and C finish, plus bystanders): the Mode P main-grid layout, for Mode T.
+env: "planted"
+
+env_args:
+  map_name: "coalition_layout"
+  layout_kwargs:
+    n_bystanders: 2
+    delay: 0
+    horizon: 60
+  present: null
+
+test_greedy: True
+test_nepisode: 20
+test_interval: 10000
+log_interval: 10000
+runner_log_interval: 10000
+learner_log_interval: 10000
+t_max: 1000000
