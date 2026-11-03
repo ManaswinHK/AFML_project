@@ -16,7 +16,7 @@ from whoearned.mode_p import base_alg  # noqa: E402
 METRICS = ("l1", "spearman", "leakage", "missed")
 COALITION = ("dividend_error", "dividend_error_order2", "recall", "precision", "interaction_mass", "true_interaction_mass")
 ORDER = ["vdn", "qmix", "coma", "mappo", "na2q", "stas", "ece2", "ece3",
-         "stas_mix", "ece2_mix", "ece3_mix"]
+         "stas_mix", "na2q_mix", "ece2_mix", "ece3_mix"]
 
 
 def _fmt(values):
