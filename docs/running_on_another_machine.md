@@ -98,6 +98,36 @@ The H3 grid has 30 cells: the overlap and partial-synergy layouts × d ∈ {0, 2
 
 Results go to `results/mode_p/h3/`.
 
+## 7c. H5 grid (Step 9: coalition estimator), continued from the laptop
+
+The H5 grid has 30 cells: coalition, overlap and partial × d ∈ {0, 50} × b = 2 × 5 seeds. It is followed by `h5_ref`: 10 coalition cells scoring plain NA²Q and STAS. The pre-registration is `docs/h5_preregistration.md`.
+
+The laptop stopped after 16 H5 cells. To continue here:
+
+1. Update the code: `git pull`, then `git submodule update --init`.
+2. Copy the finished cells. Results are git-ignored, so copy the folder `results/mode_p/h5/` from the laptop to the same path here, for example via a USB stick or OneDrive. The runner skips every cell whose JSON is present.
+3. Run the rest. STAS uses the GPU; as for H3, keep the worker count modest so the workers do not overload the one GPU:
+
+```bash
+.venv/Scripts/python scripts/run_mode_p.py --grid h5 --workers 6 --algs ece2,ece3,ece2_mix,ece3_mix,na2q_mix,stas_mix
+```
+
+```bash
+.venv/Scripts/python scripts/run_mode_p.py --grid h5_ref --workers 6 --algs na2q,stas
+```
+
+If a cell fails with a CUDA or CUBLAS error, too many workers are sharing the GPU. Rerun with fewer workers, or hide the GPU (`set CUDA_VISIBLE_DEVICES=` in cmd) and use `--workers 10`.
+
+Expected cost: `na2q_mix` dominates. It took roughly an hour of a coalition d = 0 cell on the laptop, against 4–7 minutes for each ECE variant. The d = 50 cells are slower still.
+
+4. Analyse:
+
+```bash
+.venv/Scripts/python scripts/analyse_h5.py
+```
+
+This writes `results/mode_p/h5/h5_analysis.md`.
+
 ## 8. Bring results back (optional)
 
 To analyse on the original PC, copy the folder `results/mode_p/main/` to the same path there. It is git-ignored, so copy it directly rather than through git.
