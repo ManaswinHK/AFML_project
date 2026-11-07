@@ -50,7 +50,7 @@ The episodic coalition estimator (ECE-k) fits an episode-return model with coali
 ## 6. Sensitivity (`docs/sensitivity.md`)
 
 - **Shapley vs leave-one-out.** The two targets differ by L1 ≤ 0.03 on the coalition layout (0.06 on partial, 0.10 on overlap); rankings agree in 27 of 30 conditions and the best method is always the same. No verdict changes.
-- **Open- vs closed-loop removal.** The closed-loop truth recovers the planted coalition in 100% of 3,600 test episodes (open loop: 83%; 66% at 4 bystanders), so the H0 failures are an artefact of open-loop replay. H2, H2′ and H-fid are unchanged, but **H1a becomes supported through one QMIX condition** (Holm p 0.074 → 0.030). H1a is therefore borderline, not a robust negative.
+- **Open- vs closed-loop removal.** The closed-loop truth recovers the planted coalition in 100% of 3,600 test episodes (open loop: 83%; 66% at 4 bystanders), so the H0 failures are an artefact of open-loop replay: **H0 becomes supported** under closed loop (all 120 cells pass; max remove-vs-noop L1 0.000). H1b, H2, H2′ and H-fid are unchanged, but **H1a becomes supported through one QMIX condition** (Holm p 0.074 → 0.030). H1a is therefore borderline, not a robust negative. The pre-registered verdicts stay the open-loop ones; these are sensitivity results.
 
 ## 7. Mode T and H4 (return vs credit faithfulness)
 
@@ -73,7 +73,6 @@ Plain online training never earned reward: QMIX and MAPPO for 400k steps and QMI
 - ECE with replay data needs the ability to replay episodes with agents removed, a stronger assumption than any compared method makes.
 - STAS and NA²Q are our reimplementations. STAS ran on a mix of devices in H5 (laptop GPU, laptop CPU, RTX 4060); it is descriptive there.
 - The uniform baseline, the H1b split by criticality, the VDN/QMIX sign test and the sensitivity checks are post-hoc or exploratory and are labelled so in their documents.
-- H0 and H1b were not re-tested under the closed-loop truth.
 
 ## 9. Reproducing
 

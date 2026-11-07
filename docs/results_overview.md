@@ -94,9 +94,9 @@ The grid is d ∈ {0, 10, 25, 50} × b ∈ {0, 2, 4} × {slack, critical} × 5 s
 
 | Hypothesis | Verdict | Key numbers |
 |---|---|---|
-| **H0** ground truth is protocol-stable | ✗, narrowly | 104/120 cells pass; the 16 failures are 4 b = 4 data configurations × 4 delays (worst remove-vs-noop L1 0.18; worst realised = planted 0.53) |
+| **H0** ground truth is protocol-stable | ✗, narrowly | 104/120 cells pass; the 16 failures are 4 b = 4 data configurations × 4 delays (worst remove-vs-noop L1 0.18; worst realised = planted 0.53). **Sensitive to the removal protocol**: under closed-loop replay all 120 cells pass (§9) |
 | **H1a** missed enabler credit grows with delay | ✗ | VDN's critic does not converge under delay (excluded by the gate); QMIX has the right sign everywhere (best ΔM +0.49), Holm p = 0.074. **Sensitive to the removal protocol**: against a closed-loop truth the same condition reaches Holm p = 0.030 (§9) |
-| **H1b** slack, not delay, removes per-step enabler credit | ✗ as written | slack half ✓ in 24/24 cells (level-2 missed 0.96–0.99, the same at every delay); critical half ✗, because only 54% of "critical" episodes were critical |
+| **H1b** slack, not delay, removes per-step enabler credit | ✗ as written | slack half ✓ in 24/24 cells (level-2 missed 0.96–0.99, the same at every delay); critical half ✗, because only 54% of "critical" episodes were critical. Unchanged under closed-loop truth (critical 0.65 / 0.99–1.03) |
 | **H2** leakage grows with bystanders | COMA ✓ 8/8; VDN 1/8; QMIX 1/8 | COMA ΔΛ +0.12 to +0.21, Holm p ≤ 0.018 |
 | **H2′** COMA leaks less than VDN/QMIX at d = 0 | ✗, **reversed** 0/8 | COMA leaks 0.22–0.48 *more* (b = 2: COMA 0.42, VDN 0.14, QMIX 0.07) |
 | **H-fid** end-to-end accuracy does not imply fidelity | ✓ | 30 of the 32 best end-to-end cells have step r < 0.3; level-1 r ≤ 0.36 for every method |
@@ -213,9 +213,9 @@ From `docs/sensitivity.md`. Both are re-analyses of stored results, with no retr
 | Check | Result |
 |---|---|
 | **A. Shapley vs leave-one-out** | targets differ by L1 ≤ 0.03 on the coalition layout, 0.06 (partial) and 0.10 (overlap); method rankings agree in 27 of 30 conditions (tau ≥ 0.94) and the best method is always the same; **H5b is supported 8/8 under both** |
-| **B. Open- vs closed-loop replay** | the closed-loop truth recovers the planted coalition in **100%** of the 3,600 test episodes (open loop 83%; 66% at b = 4); LOO shares differ by L1 0.10 on average (0 at b = 0, 0.21 at b = 4); **H2, H2′ and H-fid are unchanged; H1a becomes supported through one QMIX condition** (Holm p 0.074 → 0.030) |
+| **B. Open- vs closed-loop replay** | the closed-loop truth recovers the planted coalition in **100%** of the 3,600 test episodes (open loop 83%; 66% at b = 4); LOO shares differ by L1 0.10 on average (0 at b = 0, 0.21 at b = 4); **H1b, H2, H2′ and H-fid are unchanged; H0 becomes supported (all 120 cells pass); H1a becomes supported through one QMIX condition** (Holm p 0.074 → 0.030) |
 
-H0 and H1b were not re-tested under the closed-loop truth. A no-op vs removal check was dropped as a separate item.
+H0 and H1b were re-tested under the closed-loop truth (`docs/sensitivity.md` §B3): H0's remove-vs-noop L1 is 0.000 in every cell, so H0 is supported; H1b is unchanged. A no-op vs removal check is covered by H0's comparison.
 
 ---
 
@@ -234,7 +234,7 @@ H0 and H1b were not re-tested under the closed-loop truth. A no-op vs removal ch
    - A low-order return model trained on episodes plus removal replays recovers the planted coalition (dividend error 0.43 vs 2.0), while per-step mixer games cannot (H3).
    - Without the replays it is no better than uniform credit.
 5. **Return is a weak proxy for credit accuracy where it can be tested** (H4, descriptive, VDN and QMIX with a seeded buffer): within-method ρ ≈ +0.15 to +0.20, and the higher-return method (QMIX) does not assign credit more accurately. Plain online training never learns the task, and COMA and MAPPO could not be tested.
-6. **The main conclusions are robust to the credit target and mostly to the removal protocol.** Shapley vs leave-one-out changes nothing; the closed-loop truth changes only the borderline H1a.
+6. **The main conclusions are robust to the credit target and mostly to the removal protocol.** Shapley vs leave-one-out changes nothing; the closed-loop truth changes only the borderline H1a and H0 (whose open-loop failure was an artefact of replay).
 4. **COMA's counterfactual baseline does not protect against bystanders; it leaks most** (H2′ reversed). The behaviour-baseline notion also under-credits a decisive enabler (post-hoc).
 5. **Delay mainly breaks methods that cannot represent it.**
    - VDN cannot see the payout countdown and fails to fit.
@@ -264,5 +264,4 @@ H0 and H1b were not re-tested under the closed-loop truth. A no-op vs removal ch
 | Item | What it answers |
 |---|---|
 | Extend H4 to COMA and MAPPO | pre-train on demonstrations or use behavioural cloning so the on-policy learners earn reward (`docs/mode_t_results.md` §5) |
-| Re-test H0 and H1b against the closed-loop truth | whether those verdicts depend on the removal protocol |
 | Final report and presentation | `docs/next_steps_pc.md` Step 7 |

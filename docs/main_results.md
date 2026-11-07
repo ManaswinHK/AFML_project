@@ -33,7 +33,7 @@ Sections 1–2 are **confirmatory**: the pre-registered rules, applied exactly a
 
 H3 (coalition level) is in `docs/h3_results.md`; the coalition estimator H5 is in `docs/h5_results.md`. H4 (Mode T) was assessed descriptively for VDN and QMIX only (`docs/mode_t_results.md`).
 
-**Sensitivity to the removal protocol** (`docs/sensitivity.md`). Re-scoring the grid against a closed-loop truth leaves H2, H2′ and H-fid unchanged, but **H1a becomes supported through one condition** (QMIX, b = 4, critical: Holm p 0.074 → 0.030). Treat H1a as borderline, not as a robust negative. The closed-loop truth also recovers the planted coalition in 100% of test episodes (open loop: 83%, 66% at b = 4), so the H0 failures are an artefact of open-loop replay. Shapley vs leave-one-out changes no verdict.
+**Sensitivity to the removal protocol** (`docs/sensitivity.md`). Re-scoring the grid against a closed-loop truth leaves H1b, H2, H2′ and H-fid unchanged, but **H0 becomes supported** (all 120 cells pass; the closed-loop truth recovers the planted coalition in 100% of test episodes, open loop 83%, 66% at b = 4, so the H0 failures are an artefact of open-loop replay) and **H1a becomes supported through one condition** (QMIX, b = 4, critical: Holm p 0.074 → 0.030). Treat H1a as borderline, not as a robust negative. The pre-registered verdicts below are the open-loop ones. Shapley vs leave-one-out changes no verdict.
 > **Naming.** Earlier drafts of this document called the finding "accuracy without fidelity" *H5*. The problem statement's H5 is the low-order coalition estimator (`docs/h5_results.md`), so this finding is now **H-fid**. The generated `hypotheses.md` files still print the old label.
 
 
@@ -46,6 +46,7 @@ Rule: mean remove-vs-noop share L1 ≤ 0.15 **and** realised = planted ≥ 0.6, 
   - Worst mean L1: 0.180.
   - Worst realised = planted: 0.53.
 - **Mechanism:** this is the physical interference already seen in Step 3. With four bystanders on a 5-row grid, a noisy agent sometimes blocks or unblocks someone, so the realised coalition differs from the planted one.
+- **Closed-loop check** (`docs/sensitivity.md` §B3): with the team re-planning around absent agents, all 120 cells pass (max remove-vs-noop L1 0.000, realised = planted 1.00). The H0 failure is a property of open-loop replay.
 - **Consequence:** every metric is graded against the **realised** ground truth (exact replay), not the planted structure. The failure lowers how far the planted labels can be trusted at b = 4, not the validity of the grading. It does mean that at b = 4 the "bystanders" are not always inert. The leakage metric already handles this, because it uses *realised* bystanders (agents in no non-zero dividend).
 
 ### H1a: delay increases missed enabler credit
@@ -85,6 +86,7 @@ Rule, for each per-step notion: seed-mean level-2 missed ≥ 0.8 in every slack 
 - in the late-start episodes where A was *not* the bottleneck, it is 1.31–1.35.
 
 The baseline notion still fails even in critical episodes (0.52–0.56).
+- **Closed-loop check** (`docs/sensitivity.md` §B3): unchanged. Slack still 0.991 (noop) and 0.966–0.970 (baseline); critical 0.646–0.665 and 0.989–1.028. The critical half still fails, for the 54% reason above.
 - **The behaviour-baseline notion is above 1 even when A is critical**: the enabler gets *negative* episode credit. The likely mechanism, not yet verified step by step: under the behaviour policy A's pull is the likely action, so its advantage is near zero. A's movement steps, which ε-noise frequently perturbs, then dominate with small negative advantages. If so, a COMA-style baseline underrates a critical enabler even with a perfect critic.
 
 ### H2: leakage vs bystanders
@@ -245,6 +247,6 @@ Reading: across most of the main grid, the L1 values do not show that a method c
 ## 5. Limitations
 
 - **Statistical power.** 5 seeds and Holm across up to 32 conditions make the per-condition tests underpowered; §3.2 suggests H2 for VDN/QMIX is a power failure rather than a null.
-- **Planted vs realised coalitions.** At b = 4 the realised coalition differs from the planted one in up to 47% of episodes (H0).
+- **Planted vs realised coalitions.** At b = 4 the realised coalition differs from the planted one in up to 47% of episodes under open-loop replay (H0); under closed-loop replay it never does.
 - **Training mode.** Mode P trains critics only, on scripted data. VDN/QMIX learn Q*, while COMA/MAPPO learn the behaviour policy's value. The conclusions are about critics as credit estimators, not about online learning (Mode T, Step 8).
 - **The critical-enabler manipulation is weak.** It produces only about 54% critical episodes.

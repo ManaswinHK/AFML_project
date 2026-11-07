@@ -6,9 +6,9 @@
 
 Rule: every cell has mean remove-vs-noop share L1 ≤ 0.15 and realised = planted ≥ 0.6.
 
-- Cells: 120. Max mean L1: 0.180. Max per-episode L1: 0.800.
-- Min realised = planted: 0.53.
-- **Verdict: NOT SUPPORTED**
+- Cells: 120. Max mean L1: 0.000. Max per-episode L1: 0.000.
+- Min realised = planted: 1.00.
+- **Verdict: SUPPORTED**
 
 ## H1a: missed enabler credit grows with delay
 
@@ -50,29 +50,29 @@ Rule: for each per-step notion, the seed-mean level-2 missed credit is ≥ 0.8 i
 | notion | enabler | delay | bystanders | missed (mean over seeds) | meets |
 |---|---|---|---|---|---|
 | baseline | slack | 0 | 0 | 0.966 | ✓ |
-| baseline | slack | 0 | 2 | 0.969 | ✓ |
-| baseline | slack | 0 | 4 | 0.964 | ✓ |
+| baseline | slack | 0 | 2 | 0.970 | ✓ |
+| baseline | slack | 0 | 4 | 0.966 | ✓ |
 | baseline | slack | 10 | 0 | 0.966 | ✓ |
-| baseline | slack | 10 | 2 | 0.969 | ✓ |
-| baseline | slack | 10 | 4 | 0.964 | ✓ |
+| baseline | slack | 10 | 2 | 0.970 | ✓ |
+| baseline | slack | 10 | 4 | 0.966 | ✓ |
 | baseline | slack | 25 | 0 | 0.966 | ✓ |
-| baseline | slack | 25 | 2 | 0.969 | ✓ |
-| baseline | slack | 25 | 4 | 0.964 | ✓ |
+| baseline | slack | 25 | 2 | 0.970 | ✓ |
+| baseline | slack | 25 | 4 | 0.966 | ✓ |
 | baseline | slack | 50 | 0 | 0.966 | ✓ |
 | baseline | slack | 50 | 2 | 0.970 | ✓ |
-| baseline | slack | 50 | 4 | 0.964 | ✓ |
+| baseline | slack | 50 | 4 | 0.966 | ✓ |
 | baseline | critical | 0 | 0 | 1.024 | ✗ |
-| baseline | critical | 0 | 2 | 1.020 | ✗ |
-| baseline | critical | 0 | 4 | 1.037 | ✗ |
+| baseline | critical | 0 | 2 | 0.994 | ✗ |
+| baseline | critical | 0 | 4 | 0.989 | ✗ |
 | baseline | critical | 10 | 0 | 1.024 | ✗ |
-| baseline | critical | 10 | 2 | 1.020 | ✗ |
-| baseline | critical | 10 | 4 | 1.037 | ✗ |
+| baseline | critical | 10 | 2 | 0.994 | ✗ |
+| baseline | critical | 10 | 4 | 0.989 | ✗ |
 | baseline | critical | 25 | 0 | 1.023 | ✗ |
-| baseline | critical | 25 | 2 | 1.020 | ✗ |
-| baseline | critical | 25 | 4 | 1.037 | ✗ |
+| baseline | critical | 25 | 2 | 0.994 | ✗ |
+| baseline | critical | 25 | 4 | 0.989 | ✗ |
 | baseline | critical | 50 | 0 | 1.028 | ✗ |
-| baseline | critical | 50 | 2 | 1.023 | ✗ |
-| baseline | critical | 50 | 4 | 1.039 | ✗ |
+| baseline | critical | 50 | 2 | 0.997 | ✗ |
+| baseline | critical | 50 | 4 | 0.991 | ✗ |
 | noop | slack | 0 | 0 | 0.991 | ✓ |
 | noop | slack | 0 | 2 | 0.991 | ✓ |
 | noop | slack | 0 | 4 | 0.991 | ✓ |
@@ -86,17 +86,17 @@ Rule: for each per-step notion, the seed-mean level-2 missed credit is ≥ 0.8 i
 | noop | slack | 50 | 2 | 0.991 | ✓ |
 | noop | slack | 50 | 4 | 0.991 | ✓ |
 | noop | critical | 0 | 0 | 0.663 | ✗ |
-| noop | critical | 0 | 2 | 0.653 | ✗ |
-| noop | critical | 0 | 4 | 0.665 | ✗ |
+| noop | critical | 0 | 2 | 0.646 | ✗ |
+| noop | critical | 0 | 4 | 0.649 | ✗ |
 | noop | critical | 10 | 0 | 0.663 | ✗ |
-| noop | critical | 10 | 2 | 0.653 | ✗ |
-| noop | critical | 10 | 4 | 0.665 | ✗ |
+| noop | critical | 10 | 2 | 0.646 | ✗ |
+| noop | critical | 10 | 4 | 0.649 | ✗ |
 | noop | critical | 25 | 0 | 0.663 | ✗ |
-| noop | critical | 25 | 2 | 0.653 | ✗ |
-| noop | critical | 25 | 4 | 0.665 | ✗ |
+| noop | critical | 25 | 2 | 0.646 | ✗ |
+| noop | critical | 25 | 4 | 0.649 | ✗ |
 | noop | critical | 50 | 0 | 0.665 | ✗ |
-| noop | critical | 50 | 2 | 0.655 | ✗ |
-| noop | critical | 50 | 4 | 0.667 | ✗ |
+| noop | critical | 50 | 2 | 0.648 | ✗ |
+| noop | critical | 50 | 4 | 0.651 | ✗ |
 
 - baseline: 12/24 cells meet → **NOT SUPPORTED**
 - noop: 12/24 cells meet → **NOT SUPPORTED**

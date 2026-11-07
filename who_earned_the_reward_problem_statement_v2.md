@@ -371,9 +371,9 @@ Within each method, return and $1 - L_1$ are weakly correlated. At least two met
 
 | | Status | In one line |
 |---|---|---|
-| H0 | not supported (narrow) | 16 of 120 cells (4 data configurations, all b = 4) have realised ≠ planted too often under open-loop replay; under closed-loop replay realised = planted in 100% of episodes |
+| H0 | not supported (narrow) | 16 of 120 cells (4 data configurations, all b = 4) have realised ≠ planted too often under open-loop replay; under closed-loop replay realised = planted in 100% of episodes and all 120 cells pass (supported; `docs/sensitivity.md` §B3) |
 | H1a | not supported (sensitive) | VDN's critic does not converge under delay; QMIX has the right sign (Holm p = 0.074). Supported through one condition if scored against a closed-loop truth |
-| H1b | not supported | slack half holds in 24/24 cells; critical half fails because only 54% of "critical" episodes were critical |
+| H1b | not supported | slack half holds in 24/24 cells; critical half fails because only 54% of "critical" episodes were critical; unchanged under the closed-loop truth |
 | H2 | supported for COMA; not for VDN, QMIX | MAPPO's 8/8 is an artefact of its shared advantage |
 | H2′ | not supported (reversed) | COMA leaks more than VDN and QMIX in all 8 comparisons |
 | H3 | not supported literally; uninformative | dividend error is 1.9993–2.0000 for every method, so it cannot rank methods |
