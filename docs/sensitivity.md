@@ -1,6 +1,6 @@
 # Sensitivity Checks
 
-Two checks on whether the Mode P findings depend on a protocol choice. Check A is a re-analysis of stored results. Check B (open- vs closed-loop replay) is added below when it has run.
+Two checks on whether the Mode P findings depend on a protocol choice. Check A is a re-analysis of stored results. Check B re-scores the main grid against a closed-loop truth.
 
 ## A. Shapley vs leave-one-out as the credit target
 
@@ -49,3 +49,44 @@ H5b (ECE-k_mix beats uniform credit on individual L1) was graded against Shapley
 **Conclusion for check A.** Choosing Shapley or leave-one-out does not change any ranking or verdict tested here. The main grid's leave-one-out target was a safe default, and the layouts where the two differ (overlap, partial synergy) are the ones scored against Shapley in H3 and H5.
 
 **Limits.** Only the individual-L1 comparison is re-scored. Dividend error (H3, H5a) does not depend on this choice, because it compares Harsanyi dividends. Leakage and missed credit were not recomputed against the second target.
+
+## B. Open-loop vs closed-loop removal as the ground truth
+
+**Code:** `scripts/sensitivity_loop.py`. **Output:** `results/mode_p/sensitivity/loop.md`; the re-scored cells are in `results/mode_p/main_closed_loop/` (same file names as `main/`, closed-loop metrics in place of the open-loop ones).
+
+**Protocols.**
+- *Open loop* (the default): replay the recorded full-team actions with the removed agents absent. The remaining agents cannot react, so a removed agent can leave the others blocked or in the way.
+- *Closed loop*: re-run the scripted team with those agents absent, so the others react (`ground_truth_closed_loop`).
+
+For each of the 120 main-grid cells the 30 test episodes were regenerated and the closed-loop truth computed (11–15 s per cell). Method credit is the stored credit; only the target changes. Two checks passed: (i) scoring the stored credit against the stored open-loop target reproduces every stored per-episode metric to 1e-9; (ii) the closed-loop full-team run reproduces the return of all 3,600 test episodes.
+
+### B1. The truths agree without bystanders and differ with them
+
+Mean L1 between open- and closed-loop normalised leave-one-out shares per test episode (0 = identical, 2 = disjoint). The delay does not change it.
+
+| bystanders | enabler | LOO L1 | Shapley L1 | episodes with identical LOO |
+|---|---|---|---|---|
+| 0 | slack / critical | 0.000 / 0.000 | 0.000 / 0.000 | 1.00 / 1.00 |
+| 2 | slack / critical | 0.079 / 0.099 | 0.079 / 0.096 | 0.87 / 0.83 |
+| 4 | slack / critical | 0.183 / 0.214 | 0.179 / 0.211 | 0.71 / 0.66 |
+
+Overall: LOO L1 0.096, identical in 84% of episodes.
+
+**The closed-loop truth always equals the planted structure** (realised = planted in 3,600 of 3,600 test episodes). The open-loop truth does so in 100% / 84% / 66% of episodes at b = 0 / 2 / 4. So the open-loop deviations described under H0 (`docs/main_results.md`) are an artefact of replaying a fixed action sequence with an agent missing, not of the environment: when the team reacts, the physical interference disappears.
+
+### B2. One verdict changes: H1a
+
+The pre-registered tests that score method credit against the removal target were re-run on the re-scored cells (`scripts/analyse_hypotheses.py results/mode_p/main_closed_loop`).
+
+| test | open loop (reported) | closed loop |
+|---|---|---|
+| H1a, missed enabler credit grows with delay | not supported | **supported** |
+| H2, leakage grows with bystanders | COMA, MAPPO supported; VDN, QMIX not | unchanged |
+| H2′, COMA leaks less than VDN/QMIX at d = 0 | not supported (0/8) | unchanged |
+| H5, end-to-end accuracy does not imply fidelity | supported | unchanged (cut-off L1 1.103 → 1.147) |
+
+**H1a changes through a single condition.** QMIX with 4 bystanders and a critical enabler goes from ΔM = +0.491 (Holm p = 0.074) to +0.547 (Holm p = 0.030), which clears the 0.05 line. No other condition changes status: every other QMIX condition stays below the rule, VDN's conditions still do not count because its critic did not converge, and COMA and MAPPO keep the same sign and a similar size. H1a as reported in `docs/main_results.md` should therefore be described as **sensitive to the removal protocol**: not supported under the pre-registered open-loop truth, supported by one condition under the closed-loop truth, with the same direction in both. It is not a robust positive result.
+
+**Not re-tested.** H0 compares an open-loop removal with a no-op null, so it has no closed-loop counterpart here; the "realised = planted ≥ 0.6" half of its rule is met everywhere under closed loop (100%), but the other half (remove-vs-noop L1 ≤ 0.15) was not recomputed. H1b scores per-step counterfactual returns, which would have to be regenerated (about 7–13 s per test episode); it is also unchanged in the re-scored file only because that file repeats its open-loop numbers. H3 and H5 (coalition estimator) are not part of the main grid and were not re-scored.
+
+**Conclusion for check B.** The main-grid findings that rest on leakage (H2, H2′) and on end-to-end versus step-level fidelity (H5) do not depend on the removal protocol. The one that does is the borderline H1a. The closed-loop truth is also the cleaner benchmark (it always recovers the planted coalition), which supports reading the H0 failures as a property of open-loop replay.
