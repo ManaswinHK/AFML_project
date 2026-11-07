@@ -43,10 +43,10 @@ Credit is scored as in Mode P: the method's own read-out on 30 test episodes (th
 
 | method | checkpoints used (of 100) | Spearman ρ | 95% CI | reading |
 |---|---|---|---|---|
-| QMIX | 58 | +0.20 | [−0.12, +0.47] | weak |
-| VDN | 51 | +0.15 | [−0.18, +0.34] | weak |
+| QMIX | 58 | +0.20 | [−0.10, +0.48] | weak |
+| VDN | 51 | +0.15 | [−0.19, +0.35] | weak |
 
-No CI reaches 0.7, so return does **not** strongly predict credit accuracy. Split by delay the estimates are −0.05 to +0.20, with wide intervals. Keeping only checkpoints with at least 10 of 30 episodes with defined credit gives QMIX ρ = +0.29 (CI [+0.03, +0.59], 32 checkpoints) and VDN ρ = +0.30 (CI [−0.42, +0.96], only 11 checkpoints, so uninformative).
+No CI reaches 0.7, so return does **not** strongly predict credit accuracy. Split by delay the estimates are −0.05 to +0.20, with wide intervals. Keeping only checkpoints with at least 10 of 30 episodes with defined credit gives QMIX ρ = +0.29 (CI [+0.02, +0.58], 32 checkpoints) and VDN ρ = +0.30 (CI [−0.42, +0.96], only 11 checkpoints, so uninformative).
 
 **Two methods with indistinguishable return differing in L1: not shown.** Over the 10 paired runs (QMIX vs VDN), QMIX's return is significantly higher (6.5 vs 3.1 at the last checkpoint with defined credit; p = 0.013; and 6.5 vs 2.4 over checkpoints at t ≥ 240k, p = 0.002) while L1 hardly differs (0.64 vs 0.75, p = 0.44; 0.57 vs 0.60, p = 0.51). The pattern is the reverse of what that clause describes, so the clause is not met, although "QMIX earns far more yet assigns credit no more accurately" points the same way as H4's spirit.
 
@@ -86,9 +86,9 @@ The cause was not diagnosed. A critic that is poor early on feeding noisy advant
 | method | checkpoints with credit | Spearman ρ | 95% CI | L1 vs uniform |
 |---|---|---|---|---|
 | COMA | 7 | undefined (return is constant at 0.33) | – | 1.44 vs 0.70 (better than uniform in 0 of 4 runs) |
-| MAPPO | 19 | +0.40 | [−0.73, +0.82] | 0.81 vs 0.84 (better in 2 of 5 runs) |
+| MAPPO | 19 | +0.40 | [−0.73, +0.81] | 0.81 vs 0.84 (better in 2 of 5 runs) |
 
-MAPPO's estimate rests on a handful of runs (+0.85 at delay 0 from 8 checkpoints, −0.36 at delay 25 from 11) and is uninformative. In the all-pairs comparison "COMA vs VDN" is flagged "return indistinguishable and L1 different", but only on 4 pairs with returns 0.33 vs 5.0 (p = 0.079): that is an underpowered test, not equivalence, and it should not be read as support for H4's second clause.
+MAPPO's estimate rests on a handful of runs (+0.85 at delay 0 from 8 checkpoints in 2 runs, −0.36 at delay 25 from 11 checkpoints in 3 runs) and is uninformative. In the all-pairs comparison "COMA vs VDN" is flagged "return indistinguishable and L1 different", but only on 4 pairs with returns 0.33 vs 5.0 (p = 0.079): that is an underpowered test, not equivalence, and it should not be read as support for H4's second clause.
 
 **Verdict.** The extension to COMA and MAPPO **did not yield an H4 test**: the pretraining is sound, but the learners do not hold a rewarding policy long enough, or under the ε = 0.2 scoring noise, to give a usable range of return with defined credit. H4 therefore remains descriptive for VDN and QMIX only. Denser checkpoints (every 10k steps) would sample the collapse window more finely but would not change what the learners do; this was not run.
 

@@ -199,7 +199,7 @@ From `docs/mode_t_results.md`.
 
 | Result | Numbers |
 |---|---|
-| Within-method Spearman ρ(return, 1 − L1) | QMIX +0.20 (95% CI [−0.12, +0.47]); VDN +0.15 ([−0.18, +0.34]) → weak; no CI reaches 0.7 |
+| Within-method Spearman ρ(return, 1 − L1) | QMIX +0.20 (95% CI [−0.10, +0.48]); VDN +0.15 ([−0.19, +0.35]) → weak; no CI reaches 0.7 |
 | Similar return, different L1? | not shown: QMIX's return is significantly higher (6.5 vs 3.1, p = 0.013) while L1 barely differs (0.64 vs 0.75, p = 0.44) |
 | Post-hoc: learned credit vs uniform (last checkpoint per run) | QMIX 0.64 vs uniform 0.79, better in 7/10 runs (Wilcoxon p = 0.020); VDN 0.75 vs 0.68, 4/10 (p = 0.43) |
 
@@ -233,7 +233,7 @@ H0 and H1b were re-tested under the closed-loop truth (`docs/sensitivity.md` §B
 4. **Coalition credit is recoverable, but only with an episode-level read-out and counterfactual data** (H5).
    - A low-order return model trained on episodes plus removal replays recovers the planted coalition (dividend error 0.43 vs 2.0), while per-step mixer games cannot (H3).
    - Without the replays it is no better than uniform credit.
-5. **Return is a weak proxy for credit accuracy where it can be tested** (H4, descriptive, VDN and QMIX with a seeded buffer): within-method ρ ≈ +0.15 to +0.20, and the higher-return method (QMIX) does not assign credit more accurately. Plain online training never learns the task, and COMA and MAPPO could not be tested. COMA and MAPPO could not be tested even with behavioural-cloning pretraining.
+5. **Return is a weak proxy for credit accuracy where it can be tested** (H4, descriptive, VDN and QMIX with a seeded buffer): within-method ρ ≈ +0.15 to +0.20, and the higher-return method (QMIX) does not assign credit more accurately. Plain online training never learns the task, and COMA and MAPPO could not be tested, even with behavioural-cloning pretraining.
 6. **The main conclusions are robust to the credit target and mostly to the removal protocol.** Shapley vs leave-one-out changes nothing; the closed-loop truth changes only the borderline H1a and H0 (whose open-loop failure was an artefact of replay).
 4. **COMA's counterfactual baseline does not protect against bystanders; it leaks most** (H2′ reversed). The behaviour-baseline notion also under-credits a decisive enabler (post-hoc).
 5. **Delay mainly breaks methods that cannot represent it.**

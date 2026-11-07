@@ -99,6 +99,8 @@ The pre-registered tests that score method credit against the removal target wer
 
 **H0 becomes supported.** The rule (every cell: remove-vs-noop share L1 ≤ 0.15 and realised = planted ≥ 0.6) is met in all 120 cells: max mean L1 0.000, realised = planted 1.00 everywhere. Under open loop the worst cells were 0.133 / 0.138 (b = 2) and 0.180 / 0.173 (b = 4), with realised = planted down to 0.53. So the H0 failure is an artefact of open-loop replay, as §B1 suggested; the environment itself is protocol-stable once the team can react.
 
+Read the closed-loop L1 of exactly 0 with its construction in mind. The closed-loop no-op null is ours: the scripted team plans as if the inert agents were absent and routes around them, and in all 3,600 test episodes an inert agent never changed an outcome. So the two closed-loop nulls agree in every episode almost by construction. What this shows is that the open-loop disagreement comes from replaying fixed actions into a changed grid, not from the environment; it does not show that any reactive team would be protocol-stable. The second half of the rule (realised = planted 1.00) does not depend on the no-op null.
+
 **H1b is unchanged (not supported).** Level-2 missed enabler credit, mean over seeds:
 
 | notion | enabler | open loop | closed loop |

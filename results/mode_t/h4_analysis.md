@@ -6,27 +6,27 @@ Runs: 40 (coma: 10, mappo: 10, qmix: 10, vdn: 10); seeded replay buffer: [0, 200
 
 ## Within-method: Spearman ρ(return, 1 − L1)
 
-| method | delays | checkpoints used | dropped (no credit) | ρ pooled | 95% CI (resample runs) | reading |
-|---|---|---|---|---|---|---|
-| coma | all | 7 | 93 | +nan | [+nan, +nan] | moderate |
-| coma | 0 | 4 | 46 | +nan | [+nan, +nan] | moderate |
-| coma | 25 | 3 | 47 | +nan | [+nan, +nan] | moderate |
-| mappo | all | 19 | 81 | +0.40 | [-0.73, +0.82] | moderate |
-| mappo | 0 | 8 | 42 | +0.85 | [+0.85, +0.87] | strong |
-| mappo | 25 | 11 | 39 | -0.36 | [-1.00, -0.12] | weak |
-| qmix | all | 58 | 42 | +0.20 | [-0.10, +0.47] | weak |
-| qmix | 0 | 36 | 14 | +0.12 | [-0.15, +0.41] | weak |
-| qmix | 25 | 22 | 28 | +0.14 | [-0.35, +0.66] | weak |
-| vdn | all | 51 | 49 | +0.15 | [-0.18, +0.34] | weak |
-| vdn | 0 | 26 | 24 | -0.05 | [-0.43, +0.36] | weak |
-| vdn | 25 | 25 | 25 | +0.20 | [-0.27, +0.45] | weak |
+| method | delays | runs with credit | checkpoints used | dropped (no credit) | ρ pooled | 95% CI (resample runs) | reading |
+|---|---|---|---|---|---|---|---|
+| coma | all | 4 | 7 | 93 | +nan | [+nan, +nan] | undefined |
+| coma | 0 | 2 | 4 | 46 | +nan | [+nan, +nan] | too few runs (2) |
+| coma | 25 | 2 | 3 | 47 | +nan | [+nan, +nan] | too few runs (2) |
+| mappo | all | 5 | 19 | 81 | +0.40 | [-0.73, +0.81] | moderate |
+| mappo | 0 | 2 | 8 | 42 | +0.85 | [+0.85, +0.87] | too few runs (2) |
+| mappo | 25 | 3 | 11 | 39 | -0.36 | [-1.00, -0.12] | too few runs (3) |
+| qmix | all | 10 | 58 | 42 | +0.20 | [-0.10, +0.48] | weak |
+| qmix | 0 | 5 | 36 | 14 | +0.12 | [-0.15, +0.39] | weak |
+| qmix | 25 | 5 | 22 | 28 | +0.14 | [-0.35, +0.69] | weak |
+| vdn | all | 10 | 51 | 49 | +0.15 | [-0.19, +0.35] | weak |
+| vdn | 0 | 5 | 26 | 24 | -0.05 | [-0.43, +0.30] | weak |
+| vdn | 25 | 5 | 25 | 25 | +0.20 | [-0.24, +0.45] | weak |
 
 Sensitivity: keeping only checkpoints with at least 10 of 30 episodes with defined credit.
 
 | method | checkpoints used | ρ pooled | 95% CI |
 |---|---|---|---|
 | qmix | 32 | +0.29 | [+0.02, +0.58] |
-| vdn | 11 | +0.30 | [-0.42, +0.87] |
+| vdn | 11 | +0.30 | [-0.42, +0.96] |
 
 ## Between methods: similar return, different L1?
 

@@ -30,14 +30,15 @@ import itertools
 import json
 import os
 import sys
+import zlib
 
 import numpy as np
 from scipy.stats import spearmanr, ttest_rel, wilcoxon
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODE_T = os.path.join(ROOT, "results", "mode_t")
-RNG = np.random.default_rng(0)
 N_BOOT = 4000
+MIN_RUNS = 4  # a run-resampling CI from fewer runs is degenerate; such rows get no reading
 MIN_VALID = 10  # sensitivity: keep only checkpoints where at least this many of the 30 episodes have defined credit
 
 
@@ -74,11 +75,14 @@ def pooled_rho(runs_rows):
     return rho(x, y)
 
 
-def boot_ci(runs_rows):
+def boot_ci(runs_rows, key):
+    """Cluster-bootstrap 95% CI. The generator is seeded from ``key`` (method, delay, filter), so a CI does not
+    change when other methods are added to the results folder."""
+    rng = np.random.default_rng(zlib.crc32(key.encode()))
     stats = []
     n = len(runs_rows)
     for _ in range(N_BOOT):
-        idx = RNG.integers(0, n, n)
+        idx = rng.integers(0, n, n)
         v = pooled_rho([runs_rows[i] for i in idx])
         if not np.isnan(v):
             stats.append(v)
@@ -93,6 +97,8 @@ def uniform_l1(loo):
 
 
 def label(point, ci):
+    if np.isnan(point):
+        return "undefined"
     if ci[0] > 0.7:
         return "strong"
     if point < 0.3:
@@ -116,8 +122,8 @@ def main():
 
     # ---- within-method correlation
     out += ["## Within-method: Spearman ρ(return, 1 − L1)", "",
-            "| method | delays | checkpoints used | dropped (no credit) | ρ pooled | 95% CI (resample runs) | reading |",
-            "|---|---|---|---|---|---|---|"]
+            "| method | delays | runs with credit | checkpoints used | dropped (no credit) | ρ pooled | 95% CI (resample runs) | reading |",
+            "|---|---|---|---|---|---|---|---|"]
     summary = {}
     for alg, rs in sorted(by_alg.items()):
         for dl in (None,) + tuple(sorted({r["delay"] for r in rs})):
@@ -126,9 +132,10 @@ def main():
             rows = [x for x in rows if x]
             if not rows:
                 continue
-            p, ci = pooled_rho(rows), boot_ci(rows)
-            out.append(f"| {alg} | {'all' if dl is None else dl} | {sum(len(x) for x in rows)} | {sum(dropped)} | "
-                       f"{p:+.2f} | [{ci[0]:+.2f}, {ci[1]:+.2f}] | {label(p, ci)} |")
+            p, ci = pooled_rho(rows), boot_ci(rows, f"{alg}/{dl}")
+            reading = label(p, ci) if len(rows) >= MIN_RUNS else f"too few runs ({len(rows)})"
+            out.append(f"| {alg} | {'all' if dl is None else dl} | {len(rows)} | {sum(len(x) for x in rows)} | "
+                       f"{sum(dropped)} | {p:+.2f} | [{ci[0]:+.2f}, {ci[1]:+.2f}] | {reading} |")
             if dl is None:
                 summary[alg] = (p, ci)
     out += [""]
@@ -138,7 +145,7 @@ def main():
     for alg, rs in sorted(by_alg.items()):
         rows = [x for x in (checkpoint_rows(r, MIN_VALID)[0] for r in rs) if x]
         if rows:
-            p, ci = pooled_rho(rows), boot_ci(rows)
+            p, ci = pooled_rho(rows), boot_ci(rows, f"{alg}/min{MIN_VALID}")
             out.append(f"| {alg} | {sum(len(x) for x in rows)} | {p:+.2f} | [{ci[0]:+.2f}, {ci[1]:+.2f}] |")
     out += [""]
 
