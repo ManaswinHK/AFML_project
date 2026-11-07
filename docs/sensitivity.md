@@ -2,6 +2,8 @@
 
 Two checks on whether the Mode P findings depend on a protocol choice. Check A is a re-analysis of stored results. Check B re-scores the main grid against a closed-loop truth.
 
+> "H-fid" is the finding earlier called H5 (accuracy without fidelity); see the naming note in `docs/main_results.md`.
+
 ## A. Shapley vs leave-one-out as the credit target
 
 **Code:** `scripts/sensitivity_shapley_loo.py`. **Output:** `results/mode_p/sensitivity/shapley_loo.md`.
@@ -83,7 +85,7 @@ The pre-registered tests that score method credit against the removal target wer
 | H1a, missed enabler credit grows with delay | not supported | **supported** |
 | H2, leakage grows with bystanders | COMA, MAPPO supported; VDN, QMIX not | unchanged |
 | H2′, COMA leaks less than VDN/QMIX at d = 0 | not supported (0/8) | unchanged |
-| H5, end-to-end accuracy does not imply fidelity | supported | unchanged (cut-off L1 1.103 → 1.147) |
+| H-fid, end-to-end accuracy does not imply fidelity | supported | unchanged (cut-off L1 1.103 → 1.147) |
 
 **H1a changes through a single condition.** QMIX with 4 bystanders and a critical enabler goes from ΔM = +0.491 (Holm p = 0.074) to +0.547 (Holm p = 0.030), which clears the 0.05 line. No other condition changes status: every other QMIX condition stays below the rule, VDN's conditions still do not count because its critic did not converge, and COMA and MAPPO keep the same sign and a similar size. H1a as reported in `docs/main_results.md` should therefore be described as **sensitive to the removal protocol**: not supported under the pre-registered open-loop truth, supported by one condition under the closed-loop truth, with the same direction in both. It is not a robust positive result.
 

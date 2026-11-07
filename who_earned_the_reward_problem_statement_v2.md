@@ -265,7 +265,7 @@ Identical Shapley values, opposite coordination structure.
 - How common this is across standard learners, seeds and delays is unmeasured.
 
 **Our evidence: related but not decisive.**
-- **Accuracy without fidelity (H5, confirmatory).** 30 of the 32 best end-to-end cells have per-step fidelity r < 0.3. QMIX looks right for the wrong reason.
+- **Accuracy without fidelity (H-fid, confirmatory).** 30 of the 32 best end-to-end cells have per-step fidelity r < 0.3. QMIX looks right for the wrong reason.
 - **No method beats uniform credit (post-hoc, H3 grid).** On the overlap and partial layouts, no method's mean L1 beats giving each agent 1/n.
 - The return–faithfulness test itself is H4, in Mode T.
 
@@ -366,6 +366,20 @@ Within each method, return and $1 - L_1$ are weakly correlated. At least two met
 | H3 | F1, F2 | $L_1$ vs. dividend error; Jaccard | overlap, synergy, delay | P |
 | H4 | F5 | return vs. $L_1$ | across seeds | T |
 | H5 | F1, F2 (design contribution) | all + cost | method; coalition size vs. $k$ | P |
+
+**Status of each hypothesis (7 November 2026).** Details: `docs/results_overview.md`. "Supported" and "not supported" are the pre-registered rules applied as written.
+
+| | Status | In one line |
+|---|---|---|
+| H0 | not supported (narrow) | 16 of 120 cells (4 data configurations, all b = 4) have realised ≠ planted too often under open-loop replay; under closed-loop replay realised = planted in 100% of episodes |
+| H1a | not supported (sensitive) | VDN's critic does not converge under delay; QMIX has the right sign (Holm p = 0.074). Supported through one condition if scored against a closed-loop truth |
+| H1b | not supported | slack half holds in 24/24 cells; critical half fails because only 54% of "critical" episodes were critical |
+| H2 | supported for COMA; not for VDN, QMIX | MAPPO's 8/8 is an artefact of its shared advantage |
+| H2′ | not supported (reversed) | COMA leaks more than VDN and QMIX in all 8 comparisons |
+| H3 | not supported literally; uninformative | dividend error is 1.9993–2.0000 for every method, so it cannot rank methods |
+| H4 | **not completed** | no method earns reward under online training (QMIX and MAPPO 400k steps, QMIX 1M steps); `docs/mode_t_results.md` |
+| H5 | supported on dividend error and on beating uniform credit; not on leakage | ECE-3_mix recovers the order-3 coalition (dividend error 0.43 vs 2.0) |
+| H-fid (extra finding) | supported | 30 of the 32 best end-to-end cells have step r < 0.3 |
 
 ---
 

@@ -1,6 +1,6 @@
 # Who Earned the Reward? Results and Inferences So Far
 
-A summary of every result to date (Steps 1–7), as of 27 October 2026. Details and full tables are in the linked documents. Each result is labelled:
+A summary of every result to date (Steps 1–9), as of 7 November 2026. Details and full tables are in the linked documents. Each result is labelled:
 - **confirmatory**: a pre-registered rule, applied as written;
 - **post-hoc**: done after seeing the data; hypothesis-generating only.
 
@@ -10,9 +10,12 @@ A summary of every result to date (Steps 1–7), as of 27 October 2026. Details 
 | `docs/environment_design.md` | Planted Coalition Gridworld |
 | `docs/pilot_findings.md` | pilots 1–2, method fixes, thresholds |
 | `docs/preregistration_amendment.md`, `docs/mode_p_protocol.md` | statistics and protocol |
-| `docs/main_results.md` | main grid (120 cells): H0, H1a, H1b, H2, H2′, H5 |
+| `docs/main_results.md` | main grid (120 cells): H0, H1a, H1b, H2, H2′, H-fid |
 | `docs/step7_ports.md` | NA²Q and STAS ports |
 | `docs/h3_results.md` | H3 grid (30 cells, six methods) |
+| `docs/h5_results.md`, `docs/h5_preregistration.md` | H5 grid: the coalition estimator (30 + 10 cells) |
+| `docs/mode_t_results.md` | Mode T (H4): not completed |
+| `docs/sensitivity.md` | Shapley vs leave-one-out; open- vs closed-loop replay |
 
 ---
 
@@ -92,11 +95,13 @@ The grid is d ∈ {0, 10, 25, 50} × b ∈ {0, 2, 4} × {slack, critical} × 5 s
 | Hypothesis | Verdict | Key numbers |
 |---|---|---|
 | **H0** ground truth is protocol-stable | ✗, narrowly | 104/120 cells pass; the 16 failures are 4 b = 4 data configurations × 4 delays (worst remove-vs-noop L1 0.18; worst realised = planted 0.53) |
-| **H1a** missed enabler credit grows with delay | ✗ | VDN's critic does not converge under delay (excluded by the gate); QMIX has the right sign everywhere (best ΔM +0.49), Holm p = 0.074 |
+| **H1a** missed enabler credit grows with delay | ✗ | VDN's critic does not converge under delay (excluded by the gate); QMIX has the right sign everywhere (best ΔM +0.49), Holm p = 0.074. **Sensitive to the removal protocol**: against a closed-loop truth the same condition reaches Holm p = 0.030 (§9) |
 | **H1b** slack, not delay, removes per-step enabler credit | ✗ as written | slack half ✓ in 24/24 cells (level-2 missed 0.96–0.99, the same at every delay); critical half ✗, because only 54% of "critical" episodes were critical |
 | **H2** leakage grows with bystanders | COMA ✓ 8/8; VDN 1/8; QMIX 1/8 | COMA ΔΛ +0.12 to +0.21, Holm p ≤ 0.018 |
 | **H2′** COMA leaks less than VDN/QMIX at d = 0 | ✗, **reversed** 0/8 | COMA leaks 0.22–0.48 *more* (b = 2: COMA 0.42, VDN 0.14, QMIX 0.07) |
-| **H5** end-to-end accuracy does not imply fidelity | ✓ | 30 of the 32 best end-to-end cells have step r < 0.3; level-1 r ≤ 0.36 for every method |
+| **H-fid** end-to-end accuracy does not imply fidelity | ✓ | 30 of the 32 best end-to-end cells have step r < 0.3; level-1 r ≤ 0.36 for every method |
+
+> **Naming.** Earlier drafts called the H-fid finding "H5". The problem statement's H5 is the coalition estimator (§7), so the finding is now H-fid. The generated `hypotheses.md` files still print the old label.
 
 ### 4.2 The MAPPO artifact
 
@@ -163,17 +168,65 @@ Overlap and partial-synergy layouts × d ∈ {0, 25, 50} × 5 seeds. It ran in 8
 
 ---
 
-## 7. Overall inferences
+## 7. H5 grid: the low-order episodic coalition estimator
+
+From `docs/h5_results.md` (pre-registration: `docs/h5_preregistration.md`). Coalition, overlap and partial layouts × d ∈ {0, 50} × 5 seeds (30 cells), plus 10 coalition reference cells for plain NA²Q and STAS. Eight cells came from the laptop and the rest from the Ryzen PC; no failures.
+
+The estimator (ECE-k) fits an episode-return model with coalition terms up to size k, reads out low-order dividends and splits each equally among its members. The `_mix` variants are trained on the episodes plus open-loop replays with random agents removed.
+
+| Result | Type | Numbers |
+|---|---|---|
+| **H5a** dividend error: ECE-k_mix below NA²Q | confirmatory ✓ 8/8 | ECE-3_mix on the order-3 coalition layout: 0.43 vs 2.00; recall and precision 0.96; interaction mass 0.99 vs a true 1.0 (NA²Q 0.000–0.005) |
+| **H5a** leakage: ECE-k_mix below NA²Q | confirmatory ✗ 2/8 | every difference has the right sign, but most miss Holm narrowly |
+| **H5a′** data-matched (vs NA²Q_mix): dividend error | confirmatory ✓ 8/8 | the gain is the model, not the extra data |
+| **H5a′** data-matched: leakage | confirmatory ✗ 1/8 | the replay data alone removes most of NA²Q's leakage |
+| **H5b** individual L1 below uniform credit | confirmatory ✓ 8/8 | gain of 0.29–0.61; no method beat uniform consistently on the main or H3 grids |
+| Replay data is essential | descriptive | without it ECE reproduces uniform credit (L1 0.73 on coalition), leaks 0.40 and recovers no coalition |
+| Honesty check (ECE-2 on order-3 layouts) | descriptive | dividend error stays 2.0 on coalition and 1.77 on overlap, while individual L1 stays close to ECE-3's |
+| Delay | descriptive | ECE results are the same at d = 0 and 50 to within about one seed sd |
+
+**Caveats.**
+- **STAS device mix.** `stas_mix` ran on the laptop GPU for coalition d = 0, on CPU for the 3 laptop overlap cells and on the RTX 4060 for the rest. STAS is descriptive in H5.
+- **Cost.** On one machine ECE-3_mix is about 3.5× cheaper than NA²Q_mix and STAS_mix.
+- **Use of removal replays.** The `_mix` variants need the ability to replay episodes with agents removed, which is a stronger assumption than NA²Q makes.
+
+## 8. Mode T (H4): not completed
+
+From `docs/mode_t_results.md`.
+- QMIX and MAPPO for 400k steps and QMIX for 1M steps (delay 0, one seed) stayed at **test return 0**, and no training episode earned reward.
+- **Why:** a uniform-random policy completes the task in 0 of 20,000 episodes, so exploration never sees a reward.
+- H4 needs methods whose return varies, so it is **not tested**. The 24-run set and its evaluation were skipped, as the plan specified for this outcome.
+- Mode T also needed a Python 3.12 environment, because `sacred` does not import under 3.14.
+
+## 9. Sensitivity checks
+
+From `docs/sensitivity.md`. Both are re-analyses of stored results, with no retraining.
+
+| Check | Result |
+|---|---|
+| **A. Shapley vs leave-one-out** | targets differ by L1 ≤ 0.03 on the coalition layout, 0.06 (partial) and 0.10 (overlap); method rankings agree in 27 of 30 conditions (tau ≥ 0.94) and the best method is always the same; **H5b is supported 8/8 under both** |
+| **B. Open- vs closed-loop replay** | the closed-loop truth recovers the planted coalition in **100%** of the 3,600 test episodes (open loop 83%; 66% at b = 4); LOO shares differ by L1 0.10 on average (0 at b = 0, 0.21 at b = 4); **H2, H2′ and H-fid are unchanged; H1a becomes supported through one QMIX condition** (Holm p 0.074 → 0.030) |
+
+H0 and H1b were not re-tested under the closed-loop truth. A no-op vs removal check was dropped as a separate item.
+
+---
+
+## 10. Overall inferences
 
 1. **"Credit" from value-decomposition and actor-critic read-outs is a per-step counterfactual, and that is a different quantity from "who earned the reward".**
    - Even a perfect per-step critic gives a slack enabler zero credit (H1b slack half, level 2).
    - It cannot see coalitions whose members act at different times (H3).
    - The gap comes from slack and from team recovery after a one-step deviation, not from delay.
 2. **Critics are poor estimators even of their own per-step target.** Level-1 fidelity is r ≤ 0.36 for every method, and r ≈ 0–0.2 in the pilots.
-3. **Low end-to-end error is not evidence of correct credit assignment** (H5).
+3. **Low end-to-end error is not evidence of correct credit assignment** (H-fid).
    - QMIX's good d = 0 scores come with near-zero fidelity.
    - On the H3 layouts, **no method beats a uniform split**.
    - Any credit benchmark should therefore report a uniform-credit baseline next to L1.
+4. **Coalition credit is recoverable, but only with an episode-level read-out and counterfactual data** (H5).
+   - A low-order return model trained on episodes plus removal replays recovers the planted coalition (dividend error 0.43 vs 2.0), while per-step mixer games cannot (H3).
+   - Without the replays it is no better than uniform credit.
+5. **Mode T is infeasible as configured:** with sparse, coordination-gated reward, online methods never see reward in the budgets tried, so H4 is open.
+6. **The main conclusions are robust to the credit target and mostly to the removal protocol.** Shapley vs leave-one-out changes nothing; the closed-loop truth changes only the borderline H1a.
 4. **COMA's counterfactual baseline does not protect against bystanders; it leaks most** (H2′ reversed). The behaviour-baseline notion also under-credits a decisive enabler (post-hoc).
 5. **Delay mainly breaks methods that cannot represent it.**
    - VDN cannot see the payout countdown and fails to fit.
@@ -183,7 +236,7 @@ Overlap and partial-synergy layouts × d ∈ {0, 25, 50} × 5 seeds. It ran in 8
 7. **Return decomposition (STAS) as implemented cannot separate agents.** Its credit is near uniform by an identifiability argument.
 8. **Leakage does grow with bystanders for all value-decomposition methods.** The per-condition tests were underpowered (post-hoc sign test).
 
-## 8. Caveats that apply throughout
+## 11. Caveats that apply throughout
 
 - 5 seeds, and Holm across up to 32 conditions, give limited power.
 - Mode P trains critics on scripted data, not policies online.
@@ -192,12 +245,15 @@ Overlap and partial-synergy layouts × d ∈ {0, 25, 50} × 5 seeds. It ran in 8
 - Planted ≠ realised coalitions in a sizeable share of episodes (b = 4; the partial layout). Grading always uses the realised truth.
 - The critical-enabler manipulation is weak (54% critical).
 - STAS and NA²Q are our reimplementations; the official code was compared line by line but not executed.
+- H5 mixes STAS devices (laptop GPU, laptop CPU, RTX 4060) and two machines; STAS is descriptive there.
+- Mode T and Mode P ran under different Python versions (3.12 and 3.14); Mode P results are unaffected.
+- Closed-loop re-scoring covers the main grid only (not H0's no-op null or H1b).
 - The uniform baseline is post-hoc on both grids. On the main grid it is exact at b = 0 (true credit is equal shares there), so only b > 0 cells test it.
 
-## 9. Still to do
+## 12. Still to do
 
 | Item | What it answers |
 |---|---|
-| **H5** low-order episodic coalition estimator | whether coalition credit is recoverable at all with an episode-level read-out; includes the size k+1 honesty check |
-| **Step 8** Mode T (online training) | H4: is return a weak proxy for credit faithfulness? |
-| **Step 9** sensitivity analyses | noop vs removal, open- vs closed-loop replay, Shapley vs LOO |
+| Make Mode T feasible | seed exploration with scripted episodes, shorten the route, or shape the reward; then H4 can be tested (`docs/mode_t_results.md`) |
+| Re-test H0 and H1b against the closed-loop truth | whether those verdicts depend on the removal protocol |
+| Final report and presentation | `docs/next_steps_pc.md` Step 7 |

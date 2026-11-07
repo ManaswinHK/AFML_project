@@ -29,9 +29,13 @@ Sections 1–2 are **confirmatory**: the pre-registered rules, applied exactly a
 | H1b: slack, not delay, removes per-step enabler credit | **Not supported** | Slack half holds in 24/24 cells; critical half fails in 24/24 |
 | H2: leakage grows with bystanders | **COMA supported** (8/8); VDN 1/8, QMIX 1/8; MAPPO 8/8 **is an artifact** (§2) | |
 | H2′: COMA leaks less than VDN/QMIX at d = 0 | **Not supported, reversed** (0/8) | COMA leaks *more*, in every comparison |
-| H5: end-to-end accuracy does not imply fidelity | **Supported** | 30 of the 32 best end-to-end cells have step r < 0.3 |
+| H-fid: end-to-end accuracy does not imply fidelity | **Supported** | 30 of the 32 best end-to-end cells have step r < 0.3 |
 
-H3 (coalition level) needs NA²Q (Step 7). H4 needs Mode T (Step 8).
+H3 (coalition level) is in `docs/h3_results.md`; the coalition estimator H5 is in `docs/h5_results.md`. H4 (Mode T) was not completed (`docs/mode_t_results.md`).
+
+**Sensitivity to the removal protocol** (`docs/sensitivity.md`). Re-scoring the grid against a closed-loop truth leaves H2, H2′ and H-fid unchanged, but **H1a becomes supported through one condition** (QMIX, b = 4, critical: Holm p 0.074 → 0.030). Treat H1a as borderline, not as a robust negative. The closed-loop truth also recovers the planted coalition in 100% of test episodes (open loop: 83%, 66% at b = 4), so the H0 failures are an artefact of open-loop replay. Shapley vs leave-one-out changes no verdict.
+> **Naming.** Earlier drafts of this document called the finding "accuracy without fidelity" *H5*. The problem statement's H5 is the low-order coalition estimator (`docs/h5_results.md`), so this finding is now **H-fid**. The generated `hypotheses.md` files still print the old label.
+
 
 ### H0: ground-truth stability
 
@@ -117,7 +121,7 @@ At d = 0 with b = 2:
 
 Pilot 2 showed the same reversal. COMA's per-agent advantage is noisy: its level-1 fidelity is r = 0.04–0.32. That noise spreads |share| uniformly, and bystanders pick it up.
 
-### H5: accuracy ≠ fidelity
+### H-fid: accuracy ≠ fidelity
 
 - The best third by end-to-end L1 is 32 of 96 (method × condition) cells, with L1 ≤ 1.103.
 - **30 of them** have level-1 step r < 0.3.
@@ -229,7 +233,7 @@ Reading: across most of the main grid, the L1 values do not show that a method c
 
 1. **Per-step credit loses enablers through slack, not delay** (confirmatory, H1b slack half). Even a perfect per-step critic gives a non-critical enabler about zero credit, whatever the delay. Removal-based credit gives it a full share. Post hoc (§3.1), the noop notion gives a genuinely critical enabler nearly full credit (missed ≈ 0.12), so slack is what makes the difference. The COMA-style baseline notion under-credits the enabler even then.
 2. **COMA's counterfactual baseline does not protect against bystanders; it leaks most** (confirmatory: H2′ reversed, H2 supported for COMA).
-3. **Good end-to-end credit does not mean faithful per-step credit** (confirmatory, H5). QMIX is the best end to end at d = 0, but with step r ≈ 0.1.
+3. **Good end-to-end credit does not mean faithful per-step credit** (confirmatory, H-fid). QMIX is the best end to end at d = 0, but with step r ≈ 0.1.
 4. **Delay hurts the methods whose critic cannot represent it.**
    - VDN fails to fit with any delay (a training failure that the H1a gate excludes).
    - QMIX shows a consistent but not significant increase in missed credit.
