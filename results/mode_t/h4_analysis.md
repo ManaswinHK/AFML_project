@@ -31,6 +31,15 @@ Paired over runs (delay × seed) for qmix vs vdn; two-sided paired t-test.
 | final checkpoint | 10 | 6.47 | 3.07 | 0.013 | 0.637 | 0.747 | 0.440 | no |
 | mean of checkpoints at t ≥ 240k | 8 | 6.53 | 2.37 | 0.002 | 0.571 | 0.601 | 0.511 | no |
 
+## Post-hoc: learned credit vs uniform credit
+
+Uniform credit gives each agent 1/n, scored against the same leave-one-out truth on the same episodes as the method. Not part of H4; it places the Mode T L1 values on the scale used in Mode P (`docs/main_results.md` §3.3). Per run, the last checkpoint with defined credit; exact Wilcoxon over runs.
+
+| method | runs | L1 (method) | L1 (uniform) | runs where method < uniform | Wilcoxon p | checkpoints where method < uniform |
+|---|---|---|---|---|---|---|
+| qmix | 10 | 0.637 | 0.790 | 7/10 | 0.020 | 42/58 |
+| vdn | 10 | 0.747 | 0.683 | 4/10 | 0.432 | 33/51 |
+
 ## Reading
 
 - Return strongly predicts 1 − L1 (CI above 0.7) for: no method.

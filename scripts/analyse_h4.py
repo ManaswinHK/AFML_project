@@ -31,7 +31,7 @@ import os
 import sys
 
 import numpy as np
-from scipy.stats import spearmanr, ttest_rel
+from scipy.stats import spearmanr, ttest_rel, wilcoxon
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODE_T = os.path.join(ROOT, "results", "mode_t")
@@ -82,6 +82,13 @@ def boot_ci(runs_rows):
         if not np.isnan(v):
             stats.append(v)
     return (float(np.percentile(stats, 2.5)), float(np.percentile(stats, 97.5))) if stats else (float("nan"),) * 2
+
+
+def uniform_l1(loo):
+    """L1 between uniform shares (1/n each) and the normalised leave-one-out shares of one episode."""
+    t = np.asarray(loo, float)
+    t = t / np.abs(t).sum()
+    return float(np.abs(1.0 / len(t) - t).sum())
 
 
 def label(point, ci):
@@ -173,8 +180,34 @@ def main():
     else:
         out += ["Only one method was trained, so this clause cannot be assessed.", ""]
 
+    # ---- post-hoc: learned credit vs uniform (1/n), on the same valid episodes
+    out += ["## Post-hoc: learned credit vs uniform credit", "",
+            "Uniform credit gives each agent 1/n, scored against the same leave-one-out truth on the same episodes as "
+            "the method. Not part of H4; it places the Mode T L1 values on the scale used in Mode P "
+            "(`docs/main_results.md` §3.3). Per run, the last checkpoint with defined credit; exact Wilcoxon over runs.", "",
+            "| method | runs | L1 (method) | L1 (uniform) | runs where method < uniform | Wilcoxon p | "
+            "checkpoints where method < uniform |", "|---|---|---|---|---|---|---|"]
+    for alg, rs in sorted(by_alg.items()):
+        last, n_ck, n_win = [], 0, 0
+        for r in rs:
+            final = None
+            for c in r["checkpoints"]:
+                if c["summary"]["l1"] is None:
+                    continue
+                uni = [uniform_l1(e["loo"]) for e in c["episodes"] if e["matched"]["valid"]]
+                pair = (c["summary"]["l1"], float(np.mean(uni)))
+                n_ck, n_win = n_ck + 1, n_win + (pair[0] < pair[1])
+                final = pair
+            if final is not None:
+                last.append(final)
+        m, u = np.array([x[0] for x in last]), np.array([x[1] for x in last])
+        p = wilcoxon(m, u).pvalue if len(last) >= 2 and np.ptp(m - u) > 0 else float("nan")
+        out.append(f"| {alg} | {len(last)} | {m.mean():.3f} | {u.mean():.3f} | {int((m < u).sum())}/{len(last)} | "
+                   f"{p:.3f} | {n_win}/{n_ck} |")
+    out += [""]
+
     # ---- reading
-    strong = [a for a, (p, ci) in summary.items() if label(p, ci) == "strong"]
+    strong =[a for a, (p, ci) in summary.items() if label(p, ci) == "strong"]
     weak = [a for a, (p, ci) in summary.items() if label(p, ci) == "weak"]
     out += ["## Reading", "",
             f"- Return strongly predicts 1 − L1 (CI above 0.7) for: {', '.join(strong) or 'no method'}.",

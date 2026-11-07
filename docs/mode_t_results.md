@@ -50,6 +50,17 @@ No CI reaches 0.7, so return does **not** strongly predict credit accuracy. Spli
 
 **Two methods with indistinguishable return differing in L1: not shown.** Over the 10 paired runs (QMIX vs VDN), QMIX's return is significantly higher (6.5 vs 3.1 at the last checkpoint with defined credit; p = 0.013; and 6.5 vs 2.4 over checkpoints at t ≥ 240k, p = 0.002) while L1 hardly differs (0.64 vs 0.75, p = 0.44; 0.57 vs 0.60, p = 0.51). The pattern is the reverse of what that clause describes, so the clause is not met, although "QMIX earns far more yet assigns credit no more accurately" points the same way as H4's spirit.
 
+**Post-hoc: learned credit vs uniform credit.** This places the Mode T L1 values on the Mode P scale. It is not part of H4. Uniform credit (1/n per agent) is scored on the same valid episodes as the method, at the last checkpoint with defined credit in each run (`h4_analysis.md`, last section):
+
+| method | L1 (method) | L1 (uniform) | runs where method < uniform | exact Wilcoxon p |
+|---|---|---|---|---|
+| QMIX | 0.637 | 0.790 | 7/10 | 0.020 |
+| VDN | 0.747 | 0.683 | 4/10 | 0.43 |
+
+- QMIX's online-trained credit carries some information beyond an equal split. In Mode P, by contrast, methods beat uniform in only 5 of 96 main-grid conditions.
+- VDN's online-trained credit does not.
+- This is exploratory: one comparison per method, chosen after seeing the H4 results, and no multiplicity correction.
+
 **Verdict for H4 (descriptive, not confirmatory).** The first clause (return is a weak proxy) is consistent with the data for both methods, and its falsifying condition (return strongly predicts credit) is not met. The second clause is not demonstrated. H4 is therefore neither falsified nor confirmed; the evidence is mildly supportive of the first part.
 
 ## 4. Caveats
@@ -58,7 +69,7 @@ No CI reaches 0.7, so return does **not** strongly predict credit accuracy. Spli
 - **Many checkpoints have no defined credit** (42 of 100 for QMIX, 49 of 100 for VDN: no test episode with a non-zero true total). These are the low-return checkpoints, so the correlation is computed on a restricted range of return, which pushes ρ toward zero. The sensitivity run (at least 10 valid episodes) gives somewhat higher but still non-strong values for QMIX; for VDN it is too thin to say.
 - **L1 is noisy at low return**: a checkpoint with few rewarding episodes averages L1 over few episodes (hollow markers in Figure 4).
 - **Thresholds are our own** and were set before scoring, but they were not pre-registered.
-- **Learned credit was not compared with a uniform split** on these episodes, so the L1 values are not placed on the benchmark's earlier scale.
+- **The uniform comparison (§3) is post-hoc.** It was added after review, and the scripted demonstrations in the buffer may contribute to QMIX's advantage over uniform.
 - Mode T and Mode P ran under different Python versions (3.12 and 3.14).
 
 ## 5. What was not tried

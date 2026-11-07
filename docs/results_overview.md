@@ -194,13 +194,14 @@ The estimator (ECE-k) fits an episode-return model with coalition terms up to si
 
 From `docs/mode_t_results.md`.
 - **Plain online training earns no reward.** QMIX and MAPPO for 400k steps and QMIX for 1M steps (delay 0, one seed) stayed at test return 0. A uniform-random policy completes the task in 0 of 20,000 episodes, so exploration never sees a reward.
-- **Seeding the replay buffer with 200 scripted episodes fixes this for VDN and QMIX** (`scripts/run_epymarl_seeded.py`; COMA and MAPPO are on-policy and cannot use it). 20 runs (delay 0 and 25, 5 seeds, 400k steps) took 27 minutes on 8 workers. Final test return: QMIX 8.5 (d = 0) and 4.4 (d = 25); VDN 3.7 and 2.4; three runs never leave 0.
+- **Seeding the replay buffer with 200 scripted episodes fixes this for VDN and QMIX** (`scripts/run_epymarl_seeded.py`; COMA and MAPPO are on-policy and cannot use it). 20 runs (delay 0 and 25, 5 seeds, 400k steps) took 27 minutes on 8 workers. Final test return: QMIX 8.5 (d = 0) and 4.4 (d = 25); VDN 3.7 and 2.4. Four runs never leave 0 in EPyMARL's own test episodes (QMIX d = 25 seeds 1 and 3; VDN d = 0 seed 1, d = 25 seed 0).
 - **H4, descriptive** (our own thresholds, set before scoring):
 
 | Result | Numbers |
 |---|---|
 | Within-method Spearman ρ(return, 1 − L1) | QMIX +0.20 (95% CI [−0.12, +0.47]); VDN +0.15 ([−0.18, +0.34]) → weak; no CI reaches 0.7 |
 | Similar return, different L1? | not shown: QMIX's return is significantly higher (6.5 vs 3.1, p = 0.013) while L1 barely differs (0.64 vs 0.75, p = 0.44) |
+| Post-hoc: learned credit vs uniform (last checkpoint per run) | QMIX 0.64 vs uniform 0.79, better in 7/10 runs (Wilcoxon p = 0.020); VDN 0.75 vs 0.68, 4/10 (p = 0.43) |
 
 - **Reading:** the "return is a weak proxy" clause is consistent with the data and its falsifier (strong correlation) is not met; the second clause is not demonstrated. 42–49% of checkpoints have no defined credit, which restricts the range of return and pushes ρ toward zero.
 - Mode T also needed a Python 3.12 environment, because `sacred` does not import under 3.14.

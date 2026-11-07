@@ -227,7 +227,7 @@ Uniform credit gives 1/n to every agent. It needs no training. It is scored agai
   - MAPPO at d = 50, critical, b = 2, by 0.01. This is the ±1/n artifact landing near uniform, not information.
 - **No method beats uniform at d ≥ 25.** COMA never beats it.
 
-Reading: across most of the main grid, the L1 values do not show that a method carries information about who earned the reward beyond "share equally". The wins are confined to QMIX and VDN at short delay, which is where the H5 result (§1) already shows QMIX is accurate for the wrong reason. This reinforces the H3-grid finding and makes a uniform row a required reference for any L1 table in this benchmark.
+Reading: across most of the main grid, the L1 values do not show that a method carries information about who earned the reward beyond "share equally". The wins are confined to QMIX and VDN at short delay, which is where the H-fid result (§1) already shows QMIX is accurate for the wrong reason. This reinforces the H3-grid finding and makes a uniform row a required reference for any L1 table in this benchmark.
 
 ## 4. What the results support, in plain terms
 

@@ -62,6 +62,7 @@ Plain online training never earned reward: QMIX and MAPPO for 400k steps and QMI
 
 - **Return is only weakly correlated with credit accuracy within each method:** Spearman ρ = +0.20 for QMIX (95% CI [−0.12, +0.47]) and +0.15 for VDN ([−0.18, +0.34]). No interval reaches the 0.7 we set in advance for "strong", so the clause "return is a weak proxy" is consistent with the data and its falsifying condition is not met.
 - **Not shown:** that two methods with indistinguishable return differ in L1. QMIX earns significantly more than VDN (6.5 vs 3.1, p = 0.013) while their L1 barely differs (0.64 vs 0.75, p = 0.44).
+- **Post-hoc: against uniform credit.** At the last checkpoint of each run, QMIX's credit beats an equal split: L1 0.64 vs 0.79, in 7 of 10 runs (exact Wilcoxon p = 0.020). VDN's does not: 0.75 vs 0.68, in 4 of 10 runs. So online-trained QMIX carries some information about who earned the reward, unlike most Mode P read-outs (5 of 96 conditions beat uniform there).
 - **Descriptive only.** The thresholds are ours (set before scoring), 42–49% of checkpoints have no defined credit (restricting the range of return), and the seeded protocol is not standard online training.
 
 ## 8. Limitations
