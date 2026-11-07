@@ -194,7 +194,7 @@ The estimator (ECE-k) fits an episode-return model with coalition terms up to si
 
 From `docs/mode_t_results.md`.
 - **Plain online training earns no reward.** QMIX and MAPPO for 400k steps and QMIX for 1M steps (delay 0, one seed) stayed at test return 0. A uniform-random policy completes the task in 0 of 20,000 episodes, so exploration never sees a reward.
-- **Seeding the replay buffer with 200 scripted episodes fixes this for VDN and QMIX** (`scripts/run_epymarl_seeded.py`; COMA and MAPPO are on-policy and cannot use it). 20 runs (delay 0 and 25, 5 seeds, 400k steps) took 27 minutes on 8 workers. Final test return: QMIX 8.5 (d = 0) and 4.4 (d = 25); VDN 3.7 and 2.4. Four runs never leave 0 in EPyMARL's own test episodes (QMIX d = 25 seeds 1 and 3; VDN d = 0 seed 1, d = 25 seed 0).
+- **Seeding the replay buffer with 200 scripted episodes fixes this for VDN and QMIX** (`scripts/run_epymarl_seeded.py`; COMA and MAPPO are on-policy and cannot use it). 20 runs (delay 0 and 25, 5 seeds, 400k steps) took 27 minutes on 8 workers. Final test return: QMIX 8.5 (d = 0) and 4.4 (d = 25); VDN 3.7 and 2.4. Four runs never leave 0 in EPyMARL's own test episodes (QMIX d = 25 seeds 1 and 3; VDN d = 0 seed 1, d = 25 seed 0). For COMA and MAPPO, behavioural-cloning pretraining on 400 scripted episodes (`scripts/run_epymarl_bc.py`, 20 runs) gives a start at return about 10, but online training collapses them (COMA 0 in 10 of 10 runs; MAPPO 0 in 7 of 10), and credit is defined at only 7 and 19 of 100 checkpoints, so H4 cannot be assessed for them (`docs/mode_t_results.md` §3b).
 - **H4, descriptive** (our own thresholds, set before scoring):
 
 | Result | Numbers |
@@ -233,7 +233,7 @@ H0 and H1b were re-tested under the closed-loop truth (`docs/sensitivity.md` §B
 4. **Coalition credit is recoverable, but only with an episode-level read-out and counterfactual data** (H5).
    - A low-order return model trained on episodes plus removal replays recovers the planted coalition (dividend error 0.43 vs 2.0), while per-step mixer games cannot (H3).
    - Without the replays it is no better than uniform credit.
-5. **Return is a weak proxy for credit accuracy where it can be tested** (H4, descriptive, VDN and QMIX with a seeded buffer): within-method ρ ≈ +0.15 to +0.20, and the higher-return method (QMIX) does not assign credit more accurately. Plain online training never learns the task, and COMA and MAPPO could not be tested.
+5. **Return is a weak proxy for credit accuracy where it can be tested** (H4, descriptive, VDN and QMIX with a seeded buffer): within-method ρ ≈ +0.15 to +0.20, and the higher-return method (QMIX) does not assign credit more accurately. Plain online training never learns the task, and COMA and MAPPO could not be tested. COMA and MAPPO could not be tested even with behavioural-cloning pretraining.
 6. **The main conclusions are robust to the credit target and mostly to the removal protocol.** Shapley vs leave-one-out changes nothing; the closed-loop truth changes only the borderline H1a and H0 (whose open-loop failure was an artefact of replay).
 4. **COMA's counterfactual baseline does not protect against bystanders; it leaks most** (H2′ reversed). The behaviour-baseline notion also under-credits a decisive enabler (post-hoc).
 5. **Delay mainly breaks methods that cannot represent it.**
@@ -253,7 +253,7 @@ H0 and H1b were re-tested under the closed-loop truth (`docs/sensitivity.md` §B
 - Planted ≠ realised coalitions in a sizeable share of episodes (b = 4; the partial layout). Grading always uses the realised truth.
 - The critical-enabler manipulation is weak (54% critical).
 - STAS and NA²Q are our reimplementations; the official code was compared line by line but not executed.
-- Mode T covers only VDN and QMIX, trained with a seeded replay buffer; its thresholds are our own.
+- Mode T assesses only VDN and QMIX, trained with a seeded replay buffer; COMA and MAPPO collapse after behavioural-cloning pretraining. Its thresholds are our own.
 - H5 mixes STAS devices (laptop GPU, laptop CPU, RTX 4060) and two machines; STAS is descriptive there.
 - Mode T and Mode P ran under different Python versions (3.12 and 3.14); Mode P results are unaffected.
 - Closed-loop re-scoring covers the main grid only (not H0's no-op null or H1b).
@@ -263,5 +263,5 @@ H0 and H1b were re-tested under the closed-loop truth (`docs/sensitivity.md` §B
 
 | Item | What it answers |
 |---|---|
-| Extend H4 to COMA and MAPPO | pre-train on demonstrations or use behavioural cloning so the on-policy learners earn reward (`docs/mode_t_results.md` §5) |
+| Make COMA and MAPPO hold a rewarding policy | behavioural cloning was tried and collapsed online (`docs/mode_t_results.md` §3b); a lower actor learning rate, a KL penalty towards the cloned policy or noisier demonstrations are untried |
 | Final report and presentation | `docs/next_steps_pc.md` Step 7 |

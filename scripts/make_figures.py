@@ -160,12 +160,13 @@ def fig3():
 
 
 def fig4():
-    """H4: return vs 1 - L1 per checkpoint, one panel per method (VDN, QMIX with a seeded buffer)."""
+    """H4: return vs 1 - L1 per checkpoint, one panel per method (VDN, QMIX seeded; COMA, MAPPO behaviourally cloned)."""
     runs = [json.load(open(f)) for f in sorted(glob.glob(os.path.join(ROOT, "results", "mode_t", "*_d*_s*.json")))]
     if not runs:
         return False
-    methods = [("qmix", "QMIX", SERIES[0]), ("vdn", "VDN", SERIES[1])]
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4.0), sharex=True, sharey=True)
+    methods = [("qmix", "QMIX", SERIES[0]), ("vdn", "VDN", SERIES[1]), ("coma", "COMA", SERIES[2]), ("mappo", "MAPPO", SERIES[3])]
+    fig, axes = plt.subplots(2, 2, figsize=(10, 7.4), sharex=True, sharey=True)
+    axes = axes.ravel()
     for ax, (alg, label, col) in zip(axes, methods):
         used = dropped = 0
         xs_all, ys_all = [], []
@@ -184,21 +185,23 @@ def fig4():
                            facecolor=col if solid else SURFACE, edgecolor=col, linewidth=1.4)
         if len(xs_all) > 3:
             from scipy.stats import spearmanr
-            rho = spearmanr(xs_all, ys_all).statistic
-            ax.text(0.97, 0.04, f"Spearman ρ = {rho:+.2f}  ({used} checkpoints)", transform=ax.transAxes,
-                    fontsize=9, color=INK2, ha="right")
+            note = ("ρ undefined (return is constant)" if np.ptp(xs_all) == 0
+                    else f"Spearman ρ = {spearmanr(xs_all, ys_all).statistic:+.2f}  ({used} checkpoints)")
+            ax.text(0.97, 0.04, note, transform=ax.transAxes, fontsize=9, color=INK2, ha="right")
         ax.axhline(0, color=GRID, lw=1.2, zorder=1)
-        ax.set_title(f"{label}  ({dropped} checkpoints with no defined credit not shown)", loc="left", fontsize=9.5)
-        ax.set_xlabel("mean return of the test episodes")
-    axes[0].set_ylabel("credit accuracy 1 − L1 (higher is better)")
+        ax.set_title(f"{label}  ({used} shown, {dropped} with no defined credit not shown)", loc="left", fontsize=9.5)
+        if ax in axes[2:]:
+            ax.set_xlabel("mean return of the test episodes")
+    for ax in axes[::2]:
+        ax.set_ylabel("credit accuracy 1 − L1")
     from matplotlib.lines import Line2D
     handles = [Line2D([], [], marker="o", ls="", color=INK2, label="d = 0"),
                Line2D([], [], marker="s", ls="", color=INK2, label="d = 25"),
                Line2D([], [], marker="o", ls="", mfc=SURFACE, color=INK2, label="< 10 of 30 episodes with defined credit")]
     fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=8.5, bbox_to_anchor=(0.5, -0.01))
-    fig.suptitle("Return barely predicts credit accuracy (Mode T, seeded VDN and QMIX; each point is a checkpoint)",
+    fig.suptitle("Return vs credit accuracy (Mode T; each point is a checkpoint, only those with defined credit)",
                  x=0.01, ha="left", fontsize=11)
-    fig.tight_layout(rect=(0, 0.05, 1, 0.94))
+    fig.tight_layout(rect=(0, 0.04, 1, 0.95))
     fig.savefig(os.path.join(OUT, "fig4_return_vs_credit.png"), dpi=170)
     return True
 

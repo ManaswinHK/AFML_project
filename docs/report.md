@@ -54,7 +54,7 @@ The episodic coalition estimator (ECE-k) fits an episode-return model with coali
 
 ## 7. Mode T and H4 (return vs credit faithfulness)
 
-Plain online training never earned reward: QMIX and MAPPO for 400k steps and QMIX for 1M steps stayed at return 0, because a uniform-random policy completes the task in 0 of 20,000 episodes. Seeding the replay buffer with 200 scripted episodes lets the off-policy learners (VDN and QMIX) learn, so H4 was assessed for those two (`docs/mode_t_results.md`): 20 runs (delay 0 and 25, 5 seeds), credit scored at every checkpoint. COMA and MAPPO clear their buffers after each update, so seeding does not help them and they are not covered.
+Plain online training never earned reward: QMIX and MAPPO for 400k steps and QMIX for 1M steps stayed at return 0, because a uniform-random policy completes the task in 0 of 20,000 episodes. Seeding the replay buffer with 200 scripted episodes lets the off-policy learners (VDN and QMIX) learn, so H4 was assessed for those two (`docs/mode_t_results.md`): 20 runs (delay 0 and 25, 5 seeds), credit scored at every checkpoint. COMA and MAPPO clear their buffers after each update, so seeding does not help them. COMA and MAPPO were also tried, after behavioural-cloning pretraining on scripted episodes; they start at return about 10 but online training collapses them, so credit is defined at only 7 (COMA) and 19 (MAPPO) of 100 checkpoints and H4 cannot be assessed for them. 20 more runs, `docs/mode_t_results.md` §3b.
 
 ![Return vs credit accuracy](figures/fig4_return_vs_credit.png)
 
@@ -67,7 +67,7 @@ Plain online training never earned reward: QMIX and MAPPO for 400k steps and QMI
 
 ## 8. Limitations
 
-- Mode T covers only VDN and QMIX under a seeded replay buffer.
+- Mode T assesses only VDN and QMIX, under a seeded replay buffer; COMA and MAPPO could not be assessed.
 - One environment family, scripted behaviour data, at most 7 agents and 5 seeds per cell; power is limited, and the pre-registered rules are strict (a family is supported only if every condition passes).
 - VDN and QMIX learn Q*; COMA, MAPPO and NA²Q (SARSA) learn the behaviour policy's value.
 - ECE with replay data needs the ability to replay episodes with agents removed, a stronger assumption than any compared method makes.

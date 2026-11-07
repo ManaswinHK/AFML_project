@@ -1,0 +1,469 @@
+C:\AFML_project\.venv312\Lib\site-packages\sacred\dependencies.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+C:\AFML_project\external\epymarl\src\envs\gymma.py:16: UserWarning: PettingZoo is not installed, so these environments will not be available! To install, run `pip install pettingzoo`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\envs\gymma.py:23: UserWarning: VMAS is not installed, so these environments will not be available! To install, run `pip install 'vmas[gymnasium]'`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\utils\timehelper.py:11: SyntaxWarning: invalid escape sequence '\A'
+  last_reward = "N\A"
+[DEBUG 22:20:29] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:29] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:29] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:29] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:29] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:29] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:29] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:29] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:29] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:29] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:29] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:29] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:29] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:29] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:29] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:29] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:29] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:31] pymarl Using capture mode "sys"
+[INFO 22:20:31] pymarl Running command 'my_main'
+[INFO 22:20:31] pymarl Started run with ID "3"
+[DEBUG 22:20:31] pymarl Starting Heartbeat
+[DEBUG 22:20:31] my_main Started
+[INFO 22:20:31] my_main Experiment Parameters:
+[INFO 22:20:31] my_main 
+
+{   'action_selector': 'soft_policies',
+    'add_value_last_step': True,
+    'agent': 'rnn',
+    'agent_output_type': 'pi_logits',
+    'batch_size': 10,
+    'batch_size_run': 10,
+    'buffer_cpu_only': True,
+    'buffer_size': 10,
+    'checkpoint_path': '',
+    'common_reward': True,
+    'critic_baseline_fn': 'coma',
+    'critic_q_fn': 'coma',
+    'critic_train_mode': 'seq',
+    'critic_train_reps': 1,
+    'critic_type': 'coma_critic',
+    'entropy_coef': 0.001,
+    'env': 'planted',
+    'env_args': {   'layout_kwargs': {   'delay': 0,
+                                         'horizon': 60,
+                                         'n_bystanders': 2},
+                    'map_name': 'coalition_layout',
+                    'present': None,
+                    'seed': 0},
+    'evaluate': False,
+    'gamma': 0.99,
+    'grad_norm_clip': 10,
+    'hidden_dim': 64,
+    'hypergroup': None,
+    'label': 'default_label',
+    'learner': 'coma_learner',
+    'learner_log_interval': 10000,
+    'load_step': 0,
+    'local_results_path': 'results/mode_t/bc_smoke/coma_e0',
+    'log_interval': 6000,
+    'lr': 0.0003,
+    'mac': 'basic_mac',
+    'mask_before_softmax': True,
+    'name': 'coma',
+    'obs_agent_id': True,
+    'obs_individual_obs': False,
+    'obs_last_action': False,
+    'optim_alpha': 0.99,
+    'optim_eps': 1e-05,
+    'q_nstep': 10,
+    'render': False,
+    'repeat_id': 1,
+    'reward_scalarisation': 'sum',
+    'runner': 'parallel',
+    'runner_log_interval': 10000,
+    'save_model': False,
+    'save_model_interval': 50000,
+    'save_replay': False,
+    'seed': 0,
+    'standardise_returns': False,
+    'standardise_rewards': True,
+    't_max': 60000,
+    'target_update_interval_or_tau': 200,
+    'test_greedy': True,
+    'test_interval': 6000,
+    'test_nepisode': 20,
+    'use_cuda': False,
+    'use_rnn': True,
+    'use_tensorboard': False,
+    'use_wandb': False,
+    'wandb_mode': 'offline',
+    'wandb_project': None,
+    'wandb_save_model': False,
+    'wandb_team': None}
+
+C:\AFML_project\.venv312\Lib\site-packages\sacred\dependencies.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+C:\AFML_project\.venv312\Lib\site-packages\sacred\dependencies.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+C:\AFML_project\.venv312\Lib\site-packages\sacred\dependencies.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+C:\AFML_project\.venv312\Lib\site-packages\sacred\dependencies.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+C:\AFML_project\.venv312\Lib\site-packages\sacred\dependencies.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+C:\AFML_project\.venv312\Lib\site-packages\sacred\dependencies.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+C:\AFML_project\.venv312\Lib\site-packages\sacred\dependencies.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+C:\AFML_project\.venv312\Lib\site-packages\sacred\dependencies.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+C:\AFML_project\.venv312\Lib\site-packages\sacred\dependencies.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+C:\AFML_project\.venv312\Lib\site-packages\sacred\dependencies.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+C:\AFML_project\external\epymarl\src\envs\gymma.py:16: UserWarning: PettingZoo is not installed, so these environments will not be available! To install, run `pip install pettingzoo`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\envs\gymma.py:23: UserWarning: VMAS is not installed, so these environments will not be available! To install, run `pip install 'vmas[gymnasium]'`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\utils\timehelper.py:11: SyntaxWarning: invalid escape sequence '\A'
+  last_reward = "N\A"
+[DEBUG 22:20:37] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:37] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\envs\gymma.py:16: UserWarning: PettingZoo is not installed, so these environments will not be available! To install, run `pip install pettingzoo`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\envs\gymma.py:23: UserWarning: VMAS is not installed, so these environments will not be available! To install, run `pip install 'vmas[gymnasium]'`
+  warnings.warn(
+[DEBUG 22:20:37] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:37] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:37] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\utils\timehelper.py:11: SyntaxWarning: invalid escape sequence '\A'
+  last_reward = "N\A"
+[DEBUG 22:20:37] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\envs\gymma.py:16: UserWarning: PettingZoo is not installed, so these environments will not be available! To install, run `pip install pettingzoo`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\envs\gymma.py:23: UserWarning: VMAS is not installed, so these environments will not be available! To install, run `pip install 'vmas[gymnasium]'`
+  warnings.warn(
+[DEBUG 22:20:37] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:37] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:37] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:37] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\utils\timehelper.py:11: SyntaxWarning: invalid escape sequence '\A'
+  last_reward = "N\A"
+[DEBUG 22:20:37] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\envs\gymma.py:16: UserWarning: PettingZoo is not installed, so these environments will not be available! To install, run `pip install pettingzoo`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\envs\gymma.py:23: UserWarning: VMAS is not installed, so these environments will not be available! To install, run `pip install 'vmas[gymnasium]'`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\utils\timehelper.py:11: SyntaxWarning: invalid escape sequence '\A'
+  last_reward = "N\A"
+[DEBUG 22:20:37] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\envs\gymma.py:16: UserWarning: PettingZoo is not installed, so these environments will not be available! To install, run `pip install pettingzoo`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\envs\gymma.py:23: UserWarning: VMAS is not installed, so these environments will not be available! To install, run `pip install 'vmas[gymnasium]'`
+  warnings.warn(
+[DEBUG 22:20:37] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:37] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:37] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\utils\timehelper.py:11: SyntaxWarning: invalid escape sequence '\A'
+  last_reward = "N\A"
+[DEBUG 22:20:37] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:37] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:37] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:37] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:37] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:37] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\envs\gymma.py:16: UserWarning: PettingZoo is not installed, so these environments will not be available! To install, run `pip install pettingzoo`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\envs\gymma.py:23: UserWarning: VMAS is not installed, so these environments will not be available! To install, run `pip install 'vmas[gymnasium]'`
+  warnings.warn(
+[DEBUG 22:20:37] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:37] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:37] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:37] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:37] git.util sys.platform='win32', git_executable='git'
+C:\AFML_project\external\epymarl\src\utils\timehelper.py:11: SyntaxWarning: invalid escape sequence '\A'
+  last_reward = "N\A"
+[DEBUG 22:20:37] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:37] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\envs\gymma.py:16: UserWarning: PettingZoo is not installed, so these environments will not be available! To install, run `pip install pettingzoo`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\envs\gymma.py:23: UserWarning: VMAS is not installed, so these environments will not be available! To install, run `pip install 'vmas[gymnasium]'`
+  warnings.warn(
+[DEBUG 22:20:37] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:37] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\utils\timehelper.py:11: SyntaxWarning: invalid escape sequence '\A'
+  last_reward = "N\A"
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\envs\gymma.py:16: UserWarning: PettingZoo is not installed, so these environments will not be available! To install, run `pip install pettingzoo`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\envs\gymma.py:23: UserWarning: VMAS is not installed, so these environments will not be available! To install, run `pip install 'vmas[gymnasium]'`
+  warnings.warn(
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\envs\gymma.py:16: UserWarning: PettingZoo is not installed, so these environments will not be available! To install, run `pip install pettingzoo`
+  warnings.warn(
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+C:\AFML_project\external\epymarl\src\envs\gymma.py:23: UserWarning: VMAS is not installed, so these environments will not be available! To install, run `pip install 'vmas[gymnasium]'`
+  warnings.warn(
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\envs\gymma.py:16: UserWarning: PettingZoo is not installed, so these environments will not be available! To install, run `pip install pettingzoo`
+  warnings.warn(
+C:\AFML_project\external\epymarl\src\envs\gymma.py:23: UserWarning: VMAS is not installed, so these environments will not be available! To install, run `pip install 'vmas[gymnasium]'`
+  warnings.warn(
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\utils\timehelper.py:11: SyntaxWarning: invalid escape sequence '\A'
+  last_reward = "N\A"
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\utils\timehelper.py:11: SyntaxWarning: invalid escape sequence '\A'
+  last_reward = "N\A"
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\utils\timehelper.py:11: SyntaxWarning: invalid escape sequence '\A'
+  last_reward = "N\A"
+[DEBUG 22:20:38] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.util sys.platform='win32', git_executable='git'
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:38] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:39] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:39] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:39] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 22:20:39] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:39] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 22:20:39] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+C:\AFML_project\external\epymarl\src\components\episode_buffer.py:93: UserWarning: Using a non-tuple sequence for multidimensional indexing is deprecated and will be changed in pytorch 2.9; use x[tuple(seq)] instead of x[seq]. In pytorch 2.9 this will be interpreted as tensor index, x[torch.tensor(seq)], which will result either in an error or a different result (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\torch\csrc\autograd\python_variable_indexing.cpp:381.)
+  target["filled"][slices] = 1
+C:\AFML_project\external\epymarl\src\components\episode_buffer.py:105: UserWarning: Using a non-tuple sequence for multidimensional indexing is deprecated and will be changed in pytorch 2.9; use x[tuple(seq)] instead of x[seq]. In pytorch 2.9 this will be interpreted as tensor index, x[torch.tensor(seq)], which will result either in an error or a different result (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\torch\csrc\autograd\python_variable_indexing.cpp:381.)
+  self._check_safe_view(v, target[k][_slices])
+C:\AFML_project\external\epymarl\src\components\episode_buffer.py:106: UserWarning: Using a non-tuple sequence for multidimensional indexing is deprecated and will be changed in pytorch 2.9; use x[tuple(seq)] instead of x[seq]. In pytorch 2.9 this will be interpreted as tensor index, x[torch.tensor(seq)], which will result either in an error or a different result (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\torch\csrc\autograd\python_variable_indexing.cpp:381.)
+  target[k][_slices] = v.view_as(target[k][_slices])
+C:\AFML_project\external\epymarl\src\components\episode_buffer.py:110: UserWarning: Using a non-tuple sequence for multidimensional indexing is deprecated and will be changed in pytorch 2.9; use x[tuple(seq)] instead of x[seq]. In pytorch 2.9 this will be interpreted as tensor index, x[torch.tensor(seq)], which will result either in an error or a different result (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\torch\csrc\autograd\python_variable_indexing.cpp:381.)
+  v = target[k][_slices]
+C:\AFML_project\external\epymarl\src\components\episode_buffer.py:113: UserWarning: Using a non-tuple sequence for multidimensional indexing is deprecated and will be changed in pytorch 2.9; use x[tuple(seq)] instead of x[seq]. In pytorch 2.9 this will be interpreted as tensor index, x[torch.tensor(seq)], which will result either in an error or a different result (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\torch\csrc\autograd\python_variable_indexing.cpp:381.)
+  target[new_k][_slices] = v.view_as(target[new_k][_slices])
+pretraining on 400 scripted episodes (mean return 10.00)
+C:\AFML_project\external\epymarl\src\components\episode_buffer.py:152: UserWarning: Using a non-tuple sequence for multidimensional indexing is deprecated and will be changed in pytorch 2.9; use x[tuple(seq)] instead of x[seq]. In pytorch 2.9 this will be interpreted as tensor index, x[torch.tensor(seq)], which will result either in an error or a different result (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\torch\csrc\autograd\python_variable_indexing.cpp:381.)
+  new_data.transition_data[k] = v[item]
+BC epoch 0: action NLL 1.476
+BC epoch 20: action NLL 0.559
+BC epoch 40: action NLL 0.551
+BC epoch 60: action NLL 0.548
+BC epoch 80: action NLL 0.548
+BC epoch 100: action NLL 0.547
+BC epoch 120: action NLL 0.546
+BC epoch 140: action NLL 0.544
+BC epoch 160: action NLL 0.543
+BC epoch 180: action NLL 0.541
+BC epoch 199: action NLL 0.543
+pretraining done
+[INFO 22:23:48] my_main Beginning training for 60000 timesteps
+[INFO 22:23:48] my_main t_env: 600 / 60000
+[INFO 22:23:48] my_main Estimated time left: 1 seconds. Time passed: 0 seconds
+[INFO 22:23:50] my_main Recent Stats | t_env:       6000 | Episode:      100
+advantage_mean:           -0.0002	agent_grad_norm:           0.0552	coma_loss:                -0.0035	critic_grad_norm:         10.5225
+critic_loss:              35.6027	ep_length_mean:           60.0000	events_completed_mean:     1.0000	pi_max:                    0.7541
+q_taken_mean:              0.1462	return_mean:              10.0000	return_std:                0.0000	target_mean:               0.0217
+td_error_abs:              9.5685	test_ep_length_mean:      60.0000	test_events_completed_mean:  1.0000	test_return_mean:         10.0000
+test_return_std:           0.0000	
+[INFO 22:23:50] my_main t_env: 6600 / 60000
+[INFO 22:23:50] my_main Estimated time left: 16 seconds. Time passed: 2 seconds
+[INFO 22:23:52] my_main Recent Stats | t_env:      12000 | Episode:      200
+advantage_mean:           -0.0001	agent_grad_norm:           0.0423	coma_loss:                -0.0026	critic_grad_norm:         11.4034
+critic_loss:              17.9304	ep_length_mean:           60.0000	events_completed_mean:     0.9912	pi_max:                    0.7337
+q_taken_mean:            -10.8482	return_mean:               9.9118	return_std:                0.6583	target_mean:             -10.6380
+td_error_abs:              5.1744	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.9750	test_return_mean:          9.7500
+test_return_std:           1.0897	
+[INFO 22:23:52] my_main t_env: 12600 / 60000
+[INFO 22:23:52] my_main Estimated time left: 14 seconds. Time passed: 3 seconds
+[INFO 22:23:54] my_main Recent Stats | t_env:      18000 | Episode:      300
+advantage_mean:           -0.0001	agent_grad_norm:           0.0423	coma_loss:                -0.0026	critic_grad_norm:         11.4034
+critic_loss:              17.9304	ep_length_mean:           60.0000	events_completed_mean:     0.9912	pi_max:                    0.7337
+q_taken_mean:            -10.8482	return_mean:               9.9118	return_std:                0.6583	target_mean:             -10.6380
+td_error_abs:              5.1744	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.9333	test_return_mean:          9.3333
+test_return_std:           1.9167	
+[INFO 22:23:54] my_main t_env: 18600 / 60000
+[INFO 22:23:54] my_main Estimated time left: 12 seconds. Time passed: 5 seconds
+[INFO 22:23:55] my_main Recent Stats | t_env:      24000 | Episode:      400
+advantage_mean:            0.0001	agent_grad_norm:           0.1258	coma_loss:                -0.0032	critic_grad_norm:         19.2994
+critic_loss:              17.8305	ep_length_mean:           60.0000	events_completed_mean:     0.8608	pi_max:                    0.7285
+q_taken_mean:            -12.8670	return_mean:               8.6078	return_std:                2.0719	target_mean:             -13.5122
+td_error_abs:              5.0422	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.7875	test_return_mean:          7.8750
+test_return_std:           2.6300	
+[INFO 22:23:56] my_main t_env: 24600 / 60000
+[INFO 22:23:56] my_main Estimated time left: 10 seconds. Time passed: 7 seconds
+[INFO 22:23:57] my_main Recent Stats | t_env:      30000 | Episode:      500
+advantage_mean:            0.0001	agent_grad_norm:           0.1258	coma_loss:                -0.0032	critic_grad_norm:         19.2994
+critic_loss:              17.8305	ep_length_mean:           60.0000	events_completed_mean:     0.8608	pi_max:                    0.7285
+q_taken_mean:            -12.8670	return_mean:               8.6078	return_std:                2.0719	target_mean:             -13.5122
+td_error_abs:              5.0422	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.6300	test_return_mean:          6.3000
+test_return_std:           2.1040	
+[INFO 22:23:57] my_main t_env: 30600 / 60000
+[INFO 22:23:57] my_main Estimated time left: 8 seconds. Time passed: 9 seconds
+[INFO 22:23:59] my_main Recent Stats | t_env:      36000 | Episode:      600
+advantage_mean:            0.0006	agent_grad_norm:           0.1970	coma_loss:                -0.0170	critic_grad_norm:         18.8204
+critic_loss:              14.9846	ep_length_mean:           60.0000	events_completed_mean:     0.6471	pi_max:                    0.7434
+q_taken_mean:            -14.1680	return_mean:               6.4706	return_std:                1.7451	target_mean:             -14.8003
+td_error_abs:              4.6328	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.4300	test_return_mean:          4.3000
+test_return_std:           2.1040	
+[INFO 22:23:59] my_main t_env: 36600 / 60000
+[INFO 22:23:59] my_main Estimated time left: 6 seconds. Time passed: 10 seconds
+[INFO 22:24:01] my_main Recent Stats | t_env:      42000 | Episode:      700
+advantage_mean:            0.0012	agent_grad_norm:           0.2119	coma_loss:                -0.0278	critic_grad_norm:         16.3714
+critic_loss:              12.4200	ep_length_mean:           60.0000	events_completed_mean:     0.5212	pi_max:                    0.7734
+q_taken_mean:            -14.9735	return_mean:               5.2118	return_std:                1.6594	target_mean:             -15.5118
+td_error_abs:              4.1137	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.2400	test_return_mean:          2.4000
+test_return_std:           1.6681	
+[INFO 22:24:01] my_main t_env: 42600 / 60000
+[INFO 22:24:01] my_main Estimated time left: 5 seconds. Time passed: 12 seconds
+[INFO 22:24:03] my_main Recent Stats | t_env:      48000 | Episode:      800
+advantage_mean:            0.0012	agent_grad_norm:           0.2119	coma_loss:                -0.0278	critic_grad_norm:         16.3714
+critic_loss:              12.4200	ep_length_mean:           60.0000	events_completed_mean:     0.5212	pi_max:                    0.7734
+q_taken_mean:            -14.9735	return_mean:               5.2118	return_std:                1.6594	target_mean:             -15.5118
+td_error_abs:              4.1137	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.0700	test_return_mean:          0.7000
+test_return_std:           0.9539	
+[INFO 22:24:03] my_main t_env: 48600 / 60000
+[INFO 22:24:03] my_main Estimated time left: 3 seconds. Time passed: 14 seconds
+[INFO 22:24:04] my_main Recent Stats | t_env:      54000 | Episode:      900
+advantage_mean:            0.0016	agent_grad_norm:           0.2384	coma_loss:                -0.0335	critic_grad_norm:         14.9996
+critic_loss:               5.4574	ep_length_mean:           60.0000	events_completed_mean:     0.3235	pi_max:                    0.8132
+q_taken_mean:            -18.5851	return_mean:               3.2353	return_std:                1.8750	target_mean:             -19.1499
+td_error_abs:              2.4427	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.0000	test_return_mean:          0.0000
+test_return_std:           0.0000	
+[INFO 22:24:04] my_main t_env: 54600 / 60000
+[INFO 22:24:04] my_main Estimated time left: 1 seconds. Time passed: 16 seconds
+[INFO 22:24:06] my_main Recent Stats | t_env:      60000 | Episode:     1000
+advantage_mean:            0.0016	agent_grad_norm:           0.2384	coma_loss:                -0.0335	critic_grad_norm:         14.9996
+critic_loss:               5.4574	ep_length_mean:           60.0000	events_completed_mean:     0.3235	pi_max:                    0.8132
+q_taken_mean:            -18.5851	return_mean:               3.2353	return_std:                1.8750	target_mean:             -19.1499
+td_error_abs:              2.4427	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.0000	test_return_mean:          0.0000
+test_return_std:           0.0000	
+[INFO 22:24:06] my_main t_env: 60600 / 60000
+[INFO 22:24:06] my_main Estimated time left: -. Time passed: 17 seconds
+[INFO 22:24:06] my_main Finished Training
+[DEBUG 22:24:07] my_main Finished after 0:03:36.
+[INFO 22:24:07] pymarl Completed after 0:03:36
+Exiting Main
+Stopping all threads
+Thread Thread-19 is alive! Is daemon: False
+Thread joined
+Exiting script
+[DEBUG 22:24:07] pymarl Stopping Heartbeat

@@ -96,7 +96,7 @@ Remaining "H5" mentions must refer to the coalition estimator. The old fidelity 
 
 ## Optional (only with time to spare; not recommended before submission)
 
-**Mode T for COMA and MAPPO.** They cannot use the seeded buffer because they are on-policy. Behavioural cloning on the 200 scripted episodes, followed by online training, would let them learn and extend H4 to four methods. This is a protocol change and new code in `scripts/run_epymarl_seeded.py`, so it would need its own write-up section. The report already names it as not tried (`docs/mode_t_results.md` §5). Leaving it as future work is fine.
+**Mode T for COMA and MAPPO: done (8 November 2026).** Behavioural cloning plus critic warm-up was implemented (`scripts/run_epymarl_bc.py`) and run on 20 runs. Both start at return about 10 and collapse online, so H4 could not be assessed for them (`docs/mode_t_results.md` §3b).
 
 ## Later: submission (not part of this list)
 

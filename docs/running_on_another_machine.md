@@ -148,6 +148,8 @@ py -3.12 -m venv .venv312
 
 Plain online training never earns reward (random play completes the task in 0 of 20,000 episodes). Seeding the replay buffer with scripted episodes lets VDN and QMIX learn; COMA and MAPPO cannot use it. Train, evaluate and analyse (about 30 minutes for the 20 runs on 8 workers, then a couple of minutes):
 
+For COMA and MAPPO (on-policy, so the seeded buffer does not help), `run_mode_t.py train --algs=coma,mappo --bc-episodes 400` runs `scripts/run_epymarl_bc.py` (behavioural cloning plus critic warm-up; 57 minutes for 20 runs on 4 workers). They collapse online, so H4 cannot be assessed for them (`docs/mode_t_results.md` §3b).
+
 ```bash
 .venv312/Scripts/python scripts/run_mode_t.py train --algs vdn,qmix --delays 0,25 --seeds 0,1,2,3,4 --t-max 400000 --seed-episodes 200 --workers 8
 ```

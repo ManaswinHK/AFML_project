@@ -1,6 +1,6 @@
 # Mode T (H4): Return vs Credit Faithfulness
 
-**Status: H4 assessed descriptively for two methods (VDN and QMIX) under a seeded protocol; COMA and MAPPO could not be assessed.** Plain online training never earned reward (§1). Seeding the replay buffer with scripted episodes fixed that for the two off-policy learners (§2), which allowed a return-versus-credit analysis (§3).
+**Status: H4 assessed descriptively for two methods (VDN and QMIX) under a seeded protocol; COMA and MAPPO were tried with behavioural-cloning pretraining but collapse online, so they could not be assessed (§3b).** Plain online training never earned reward (§1). Seeding the replay buffer with scripted episodes fixed that for the two off-policy learners (§2), which allowed a return-versus-credit analysis (§3).
 
 ## 1. Plain online training earns no reward
 
@@ -18,7 +18,7 @@ No training or test episode completed the event. The cause is exploration: a uni
 
 `scripts/run_epymarl_seeded.py` reuses `run_epymarl.py` and swaps in a replay buffer that starts with **200 scripted full-team episodes** (ε = 0.2, mean return 10; seeds disjoint from Mode P's), converted by `whoearned.epymarl_bridge.episodes_to_batch`. EPyMARL is unmodified. The buffer holds 20,000 episodes so the seeded ones are not overwritten. Training then proceeds online as usual (ε annealed from 1.0 to 0.05 over 50k steps).
 
-**This only works for VDN and QMIX.** COMA and MAPPO are on-policy and clear their buffer after each update, so seeding does nothing for them; they stay at return 0 and cannot be assessed.
+**This only works for VDN and QMIX.** COMA and MAPPO are on-policy and clear their buffer after each update, so seeding does nothing for them; they are handled separately in §3b.
 
 **Design.** VDN and QMIX × delay ∈ {0, 25} × 5 seeds = 20 runs, 400,000 steps each, a checkpoint every 40,000 steps (the last saved is at t = 360,240). The 19 new runs took 27 minutes on 8 workers; each run alone takes about 7 minutes. Evaluation of all checkpoints took under two minutes.
 
@@ -63,9 +63,38 @@ No CI reaches 0.7, so return does **not** strongly predict credit accuracy. Spli
 
 **Verdict for H4 (descriptive, not confirmatory).** The first clause (return is a weak proxy) is consistent with the data for both methods, and its falsifying condition (return strongly predicts credit) is not met. The second clause is not demonstrated. H4 is therefore neither falsified nor confirmed; the evidence is mildly supportive of the first part.
 
+## 3b. COMA and MAPPO: behavioural-cloning pretraining
+
+Code: `scripts/run_epymarl_bc.py` (EPyMARL stays unmodified; it patches the learner registry and replay buffer). Before the first online step the learner is initialised from **400 scripted full-team episodes** (ε = 0, so the cloned actor is near-deterministic):
+1. the shared actor is cloned with cross-entropy (200 epochs, Adam lr 1e-3; the action NLL falls from 1.5 to 0.54);
+2. the critic is warmed up by running the learner's own `train` 1,000 times with the actor's learning rate set to 0, so only the critic, its target and the reward normaliser learn;
+3. online training then runs with EPyMARL's default hyperparameters, 400,000 steps, as for VDN and QMIX.
+
+Design: COMA and MAPPO × delay ∈ {0, 25} × 5 seeds = 20 runs (`scripts/run_mode_t.py train --algs=coma,mappo --bc-episodes 400`; 57 minutes on 4 workers). The BC settings were chosen from four 60k-step smoke runs (three COMA, one MAPPO; delay 0, seed 0, which is also a grid run; `results/mode_t/bc_smoke/*.log`): ε = 0.2 with 200 episodes gave COMA a start of only 1.5 (MAPPO with it went 7 → 9.4), ε = 0 with 400 episodes gave 10, and lowering the learning rate to 1e-4 only slowed COMA's collapse. They were chosen on return, not on credit.
+
+**Pretraining works; online training then undoes it.** Mean test return in the training logs (the policy's own sampling, no added noise, every 20k steps):
+
+| method | first evaluation (t = 20k) | final (t = 400k) |
+|---|---|---|
+| COMA | 9–10 in 10 of 10 runs | 0 in 10 of 10 runs; below 1 from 120–200k steps |
+| MAPPO | 9.5–10 in 9 of 10 runs | at least 9.8 in 2 runs, 2.0 in 1, 0 in 7 |
+
+The cause was not diagnosed. A critic that is poor early on feeding noisy advantages into the actor is a plausible mechanism, but no run isolates it.
+
+**Scoring is on the ε = 0.2 behaviour, as for every other method, and the cloned policies are brittle to that noise.** At the saved checkpoints (every 40k steps, the first at t ≈ 40k) only 7 of 100 COMA and 16 of 100 MAPPO checkpoints have a non-zero mean return, and credit is defined at 7 (COMA) and 19 (MAPPO). Result of `scripts/analyse_h4.py`:
+
+| method | checkpoints with credit | Spearman ρ | 95% CI | L1 vs uniform |
+|---|---|---|---|---|
+| COMA | 7 | undefined (return is constant at 0.33) | – | 1.44 vs 0.70 (better than uniform in 0 of 4 runs) |
+| MAPPO | 19 | +0.40 | [−0.73, +0.82] | 0.81 vs 0.84 (better in 2 of 5 runs) |
+
+MAPPO's estimate rests on a handful of runs (+0.85 at delay 0 from 8 checkpoints, −0.36 at delay 25 from 11) and is uninformative. In the all-pairs comparison "COMA vs VDN" is flagged "return indistinguishable and L1 different", but only on 4 pairs with returns 0.33 vs 5.0 (p = 0.079): that is an underpowered test, not equivalence, and it should not be read as support for H4's second clause.
+
+**Verdict.** The extension to COMA and MAPPO **did not yield an H4 test**: the pretraining is sound, but the learners do not hold a rewarding policy long enough, or under the ε = 0.2 scoring noise, to give a usable range of return with defined credit. H4 therefore remains descriptive for VDN and QMIX only. Denser checkpoints (every 10k steps) would sample the collapse window more finely but would not change what the learners do; this was not run.
+
 ## 4. Caveats
 
-- **Two methods, one environment, a seeded protocol.** VDN and QMIX trained with scripted demonstrations in the buffer is not standard online training, and the demonstrations help return in a way unrelated to credit. COMA and MAPPO are not covered at all.
+- **Two methods, one environment, a seeded protocol.** VDN and QMIX trained with scripted demonstrations in the buffer is not standard online training, and the demonstrations help return in a way unrelated to credit. COMA and MAPPO were tried under a different protocol (behavioural cloning) and could not be assessed (§3b).
 - **Many checkpoints have no defined credit** (42 of 100 for QMIX, 49 of 100 for VDN: no test episode with a non-zero true total). These are the low-return checkpoints, so the correlation is computed on a restricted range of return, which pushes ρ toward zero. The sensitivity run (at least 10 valid episodes) gives somewhat higher but still non-strong values for QMIX; for VDN it is too thin to say.
 - **L1 is noisy at low return**: a checkpoint with few rewarding episodes averages L1 over few episodes (hollow markers in Figure 4).
 - **Thresholds are our own** and were set before scoring, but they were not pre-registered.
@@ -74,4 +103,4 @@ No CI reaches 0.7, so return does **not** strongly predict credit accuracy. Spli
 
 ## 5. What was not tried
 
-Reward shaping, a shorter route, or a curriculum would also make plain online training learn, but each changes the benchmark (shaping also changes the credit target). Pre-training on demonstrations before online learning, or behavioural cloning for COMA and MAPPO, would extend H4 to the on-policy learners; neither was attempted.
+Reward shaping, a shorter route, or a curriculum would also make plain online training learn, but each changes the benchmark (shaping also changes the credit target). Behavioural cloning for COMA and MAPPO was tried (§3b) and collapsed online. Not tried: a lower actor learning rate or a KL penalty towards the cloned policy, a longer critic warm-up, noisier demonstrations (so the cloned policy is robust to the ε = 0.2 scoring noise), and denser checkpoints.
