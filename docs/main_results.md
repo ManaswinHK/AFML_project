@@ -31,7 +31,7 @@ Sections 1–2 are **confirmatory**: the pre-registered rules, applied exactly a
 | H2′: COMA leaks less than VDN/QMIX at d = 0 | **Not supported, reversed** (0/8) | COMA leaks *more*, in every comparison |
 | H-fid: end-to-end accuracy does not imply fidelity | **Supported** | 30 of the 32 best end-to-end cells have step r < 0.3 |
 
-H3 (coalition level) is in `docs/h3_results.md`; the coalition estimator H5 is in `docs/h5_results.md`. H4 (Mode T) was not completed (`docs/mode_t_results.md`).
+H3 (coalition level) is in `docs/h3_results.md`; the coalition estimator H5 is in `docs/h5_results.md`. H4 (Mode T) was assessed descriptively for VDN and QMIX only (`docs/mode_t_results.md`).
 
 **Sensitivity to the removal protocol** (`docs/sensitivity.md`). Re-scoring the grid against a closed-loop truth leaves H2, H2′ and H-fid unchanged, but **H1a becomes supported through one condition** (QMIX, b = 4, critical: Holm p 0.074 → 0.030). Treat H1a as borderline, not as a robust negative. The closed-loop truth also recovers the planted coalition in 100% of test episodes (open loop: 83%, 66% at b = 4), so the H0 failures are an artefact of open-loop replay. Shapley vs leave-one-out changes no verdict.
 > **Naming.** Earlier drafts of this document called the finding "accuracy without fidelity" *H5*. The problem statement's H5 is the low-order coalition estimator (`docs/h5_results.md`), so this finding is now **H-fid**. The generated `hypotheses.md` files still print the old label.

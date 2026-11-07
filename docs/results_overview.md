@@ -14,7 +14,7 @@ A summary of every result to date (Steps 1–9), as of 7 November 2026. Details 
 | `docs/step7_ports.md` | NA²Q and STAS ports |
 | `docs/h3_results.md` | H3 grid (30 cells, six methods) |
 | `docs/h5_results.md`, `docs/h5_preregistration.md` | H5 grid: the coalition estimator (30 + 10 cells) |
-| `docs/mode_t_results.md` | Mode T (H4): not completed |
+| `docs/mode_t_results.md` | Mode T (H4): seeded VDN and QMIX, return vs credit |
 | `docs/sensitivity.md` | Shapley vs leave-one-out; open- vs closed-loop replay |
 
 ---
@@ -190,12 +190,19 @@ The estimator (ECE-k) fits an episode-return model with coalition terms up to si
 - **Cost.** On one machine ECE-3_mix is about 3.5× cheaper than NA²Q_mix and STAS_mix.
 - **Use of removal replays.** The `_mix` variants need the ability to replay episodes with agents removed, which is a stronger assumption than NA²Q makes.
 
-## 8. Mode T (H4): not completed
+## 8. Mode T (H4): return vs credit faithfulness
 
 From `docs/mode_t_results.md`.
-- QMIX and MAPPO for 400k steps and QMIX for 1M steps (delay 0, one seed) stayed at **test return 0**, and no training episode earned reward.
-- **Why:** a uniform-random policy completes the task in 0 of 20,000 episodes, so exploration never sees a reward.
-- H4 needs methods whose return varies, so it is **not tested**. The 24-run set and its evaluation were skipped, as the plan specified for this outcome.
+- **Plain online training earns no reward.** QMIX and MAPPO for 400k steps and QMIX for 1M steps (delay 0, one seed) stayed at test return 0. A uniform-random policy completes the task in 0 of 20,000 episodes, so exploration never sees a reward.
+- **Seeding the replay buffer with 200 scripted episodes fixes this for VDN and QMIX** (`scripts/run_epymarl_seeded.py`; COMA and MAPPO are on-policy and cannot use it). 20 runs (delay 0 and 25, 5 seeds, 400k steps) took 27 minutes on 8 workers. Final test return: QMIX 8.5 (d = 0) and 4.4 (d = 25); VDN 3.7 and 2.4; three runs never leave 0.
+- **H4, descriptive** (our own thresholds, set before scoring):
+
+| Result | Numbers |
+|---|---|
+| Within-method Spearman ρ(return, 1 − L1) | QMIX +0.20 (95% CI [−0.12, +0.47]); VDN +0.15 ([−0.18, +0.34]) → weak; no CI reaches 0.7 |
+| Similar return, different L1? | not shown: QMIX's return is significantly higher (6.5 vs 3.1, p = 0.013) while L1 barely differs (0.64 vs 0.75, p = 0.44) |
+
+- **Reading:** the "return is a weak proxy" clause is consistent with the data and its falsifier (strong correlation) is not met; the second clause is not demonstrated. 42–49% of checkpoints have no defined credit, which restricts the range of return and pushes ρ toward zero.
 - Mode T also needed a Python 3.12 environment, because `sacred` does not import under 3.14.
 
 ## 9. Sensitivity checks
@@ -225,7 +232,7 @@ H0 and H1b were not re-tested under the closed-loop truth. A no-op vs removal ch
 4. **Coalition credit is recoverable, but only with an episode-level read-out and counterfactual data** (H5).
    - A low-order return model trained on episodes plus removal replays recovers the planted coalition (dividend error 0.43 vs 2.0), while per-step mixer games cannot (H3).
    - Without the replays it is no better than uniform credit.
-5. **Mode T is infeasible as configured:** with sparse, coordination-gated reward, online methods never see reward in the budgets tried, so H4 is open.
+5. **Return is a weak proxy for credit accuracy where it can be tested** (H4, descriptive, VDN and QMIX with a seeded buffer): within-method ρ ≈ +0.15 to +0.20, and the higher-return method (QMIX) does not assign credit more accurately. Plain online training never learns the task, and COMA and MAPPO could not be tested.
 6. **The main conclusions are robust to the credit target and mostly to the removal protocol.** Shapley vs leave-one-out changes nothing; the closed-loop truth changes only the borderline H1a.
 4. **COMA's counterfactual baseline does not protect against bystanders; it leaks most** (H2′ reversed). The behaviour-baseline notion also under-credits a decisive enabler (post-hoc).
 5. **Delay mainly breaks methods that cannot represent it.**
@@ -245,6 +252,7 @@ H0 and H1b were not re-tested under the closed-loop truth. A no-op vs removal ch
 - Planted ≠ realised coalitions in a sizeable share of episodes (b = 4; the partial layout). Grading always uses the realised truth.
 - The critical-enabler manipulation is weak (54% critical).
 - STAS and NA²Q are our reimplementations; the official code was compared line by line but not executed.
+- Mode T covers only VDN and QMIX, trained with a seeded replay buffer; its thresholds are our own.
 - H5 mixes STAS devices (laptop GPU, laptop CPU, RTX 4060) and two machines; STAS is descriptive there.
 - Mode T and Mode P ran under different Python versions (3.12 and 3.14); Mode P results are unaffected.
 - Closed-loop re-scoring covers the main grid only (not H0's no-op null or H1b).
@@ -254,6 +262,6 @@ H0 and H1b were not re-tested under the closed-loop truth. A no-op vs removal ch
 
 | Item | What it answers |
 |---|---|
-| Make Mode T feasible | seed exploration with scripted episodes, shorten the route, or shape the reward; then H4 can be tested (`docs/mode_t_results.md`) |
+| Extend H4 to COMA and MAPPO | pre-train on demonstrations or use behavioural cloning so the on-policy learners earn reward (`docs/mode_t_results.md` §5) |
 | Re-test H0 and H1b against the closed-loop truth | whether those verdicts depend on the removal protocol |
 | Final report and presentation | `docs/next_steps_pc.md` Step 7 |

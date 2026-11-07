@@ -1,44 +1,66 @@
-# Mode T (H4): Not Completed
+# Mode T (H4): Return vs Credit Faithfulness
 
-**Status: H4 not tested.** Online training with EPyMARL never produced a method that earns reward on the planted coalition task, so there is no return to correlate with credit faithfulness. This follows the decision rule in `docs/next_steps_pc.md` Step 1: both 400k-step checks stayed at return 0, and so did the one 1M-step QMIX run. Steps 2–3 (the 24 full runs, evaluation and `analyse_h4.py`) were therefore not carried out.
+**Status: H4 assessed descriptively for two methods (VDN and QMIX) under a seeded protocol; COMA and MAPPO could not be assessed.** Plain online training never earned reward (§1). Seeding the replay buffer with scripted episodes fixed that for the two off-policy learners (§2), which allowed a return-versus-credit analysis (§3).
 
-## What was run
+## 1. Plain online training earns no reward
 
-Code: `scripts/run_mode_t.py train` (one EPyMARL run per method, delay and seed on `coalition_layout`, b = 2, horizon 60), on the Ryzen 5 7600, CPU only (`use_cuda=False`). Delay 0, seed 0 throughout.
+`scripts/run_mode_t.py train` runs one EPyMARL run per method, delay and seed on `coalition_layout` (b = 2, horizon 60), CPU only. Delay 0, seed 0 throughout:
 
-| run | steps | wall time | test evaluations | test return | training-episode return |
-|---|---|---|---|---|---|
-| MAPPO | 400,000 | 3.6 min | 19 | 0 at every evaluation | 0 |
-| QMIX | 400,000 | 7 min | 19 | 0 at every evaluation | 0 |
-| QMIX | 1,000,000 | 16 min | 19 | 0 at every evaluation | 0 |
+| run | steps | wall time | test return |
+|---|---|---|---|
+| MAPPO | 400,000 | 3.6 min | 0 at all 19 evaluations |
+| QMIX | 400,000 | 7 min | 0 at all 19 evaluations |
+| QMIX | 1,000,000 | 16 min | 0 at all 19 evaluations |
 
-- Evaluations occur every t_max / 20 steps (greedy, ε = 0). The maximum episode return is 10.
-- No training or test episode completed the event (`events_completed_mean` = 0 throughout).
-- The runs completed normally; training losses and gradients were finite (QMIX grad norm about 0.03 at the end). This is a failure to find reward, not a crash.
-- Logs: `results/mode_t/check_400k/{qmix,mappo}_d0_s0/train.log` and `results/mode_t/check_1M/qmix_d0_s0/train.log`. Model checkpoints are not committed.
+No training or test episode completed the event. The cause is exploration: a uniform-random policy earned reward in **0 of 20,000 episodes** (upper 95% bound about 1.5 × 10⁻⁴ per episode), so the critics never see a reward. This does not depend on the credit question. Logs: `results/mode_t/check_400k/`, `results/mode_t/check_1M/`. The runs needed a Python 3.12 environment (`.venv312`): `sacred 0.8.7` does not import under 3.14, which the Mode P, H3 and H5 runs used. Mode P results are unaffected.
 
-The wall times are far below the "about 1 hour" planned for the check. They are for these single-seed runs; the 24-run set was not timed.
+## 2. Seeding the replay buffer
 
-## Why: reward is never seen
+`scripts/run_epymarl_seeded.py` reuses `run_epymarl.py` and swaps in a replay buffer that starts with **200 scripted full-team episodes** (ε = 0.2, mean return 10; seeds disjoint from Mode P's), converted by `whoearned.epymarl_bridge.episodes_to_batch`. EPyMARL is unmodified. The buffer holds 20,000 episodes so the seeded ones are not overwritten. Training then proceeds online as usual (ε annealed from 1.0 to 0.05 over 50k steps).
 
-The task needs a lever pull by A, then B and C pushing together. A uniform-random policy on this configuration (d = 0, b = 2, horizon 60) earned reward in **0 of 20,000 episodes** (37 s, `whoearned.envs.gridworld` directly). By the rule of three, the per-episode success probability is below about 1.5 × 10⁻⁴.
+**This only works for VDN and QMIX.** COMA and MAPPO are on-policy and clear their buffer after each update, so seeding does nothing for them; they stay at return 0 and cannot be assessed.
 
-With ε annealed from 1.0 to 0.05 over the first 50k steps, QMIX's exploration is close to uniform-random for as long as that matters, so over 1M steps (about 17,000 episodes) it would expect to see a handful of rewards at best, and in practice saw none. MAPPO's policy starts near uniform and has the same problem. With no reward, the value targets are all zero, and the logged MAPPO TD error is correspondingly tiny (about 0.0015–0.0044).
+**Design.** VDN and QMIX × delay ∈ {0, 25} × 5 seeds = 20 runs, 400,000 steps each, a checkpoint every 40,000 steps (the last saved is at t = 360,240). The 19 new runs took 27 minutes on 8 workers; each run alone takes about 7 minutes. Evaluation of all checkpoints took under two minutes.
 
-This is the same reason the roadmap notes for the 3k-step smoke test, and it does not depend on the credit-assignment question. It means that, as configured, Mode T cannot separate methods by return: every method would sit at 0.
+**Learning.** Seeding makes the task learnable but unevenly. Mean test return at the final checkpoint, under the ε = 0.2 behaviour used to score credit (30 episodes; the maximum is 10):
 
-## What this means for H4
+| method | d = 0 | d = 25 | seeds that never leave 0 |
+|---|---|---|---|
+| QMIX | 8.5 | 4.4 | 2 of 10 (both d = 25) |
+| VDN | 3.7 | 2.4 | 2 of 10 (one at each delay) |
 
-H4 ("return is a weak proxy for credit faithfulness") needs methods whose return varies. Here return is constant at 0 for all of them, so the correlation is undefined and the "two methods with indistinguishable return" comparison is vacuous. **No verdict on H4.** The evaluation half of Mode T (`run_mode_t.py eval`, `whoearned.mode_t`) was therefore not exercised on real checkpoints; only its unit tests (`tests/test_mode_t.py`) were run.
+Return varies widely across runs and checkpoints, and for VDN it sometimes falls after rising (one run reached 10 and later returned to 0). That variation is what H4 needs.
 
-## What would unblock it (not tried)
+## 3. H4 analysis (descriptive)
 
-Each of these changes the benchmark rather than checking it, so none was done without a decision:
+Code: `scripts/analyse_h4.py` → `results/mode_t/h4_analysis.md`. The problem statement gives no thresholds for "weakly", "strongly" or "statistically indistinguishable", so we fixed them **before scoring any checkpoint**; they are our own choices, not pre-registered: correlation is *strong* if the 95% CI of Spearman ρ lies above 0.7 and *weak* if the point estimate is below 0.3; "indistinguishable return" means a two-sided paired t-test over runs with p > 0.05; "differ in L1" means p < 0.05. The unit is a checkpoint; confidence intervals resample whole runs (delay × seed), because checkpoints within a run are dependent.
 
-- **Seed the exploration** with scripted-team episodes in the replay buffer (as Mode P does), then train online. This keeps the sparse reward but removes the cold-start problem.
-- **Shorten the route or relax coordination** (a smaller grid, or a looser finishing condition), so random play succeeds occasionally.
-- **Reward shaping or a curriculum** (for example a partial reward for the lever pull). This changes the credit target, so ground truth would have to be recomputed.
+Credit is scored as in Mode P: the method's own read-out on 30 test episodes (the trained policy with ε = 0.2 noise), against leave-one-out from open-loop removal. It is undefined for an episode whose true values sum to zero, so a checkpoint with no such episode has no L1 and is excluded.
 
-## Environment note
+![Return vs credit accuracy](figures/fig4_return_vs_credit.png)
 
-EPyMARL's `sacred 0.8.7` does not import under Python 3.14, the interpreter used for the Mode P, H3 and H5 runs. Mode T was run in a separate Python 3.12.10 venv (`.venv312`, `requirements.txt` plus `setuptools<81`). Mode P results are unaffected.
+**Within each method, return is only weakly correlated with credit accuracy (1 − L1).**
+
+| method | checkpoints used (of 100) | Spearman ρ | 95% CI | reading |
+|---|---|---|---|---|
+| QMIX | 58 | +0.20 | [−0.12, +0.47] | weak |
+| VDN | 51 | +0.15 | [−0.18, +0.34] | weak |
+
+No CI reaches 0.7, so return does **not** strongly predict credit accuracy. Split by delay the estimates are −0.05 to +0.20, with wide intervals. Keeping only checkpoints with at least 10 of 30 episodes with defined credit gives QMIX ρ = +0.29 (CI [+0.03, +0.59], 32 checkpoints) and VDN ρ = +0.30 (CI [−0.42, +0.96], only 11 checkpoints, so uninformative).
+
+**Two methods with indistinguishable return differing in L1: not shown.** Over the 10 paired runs (QMIX vs VDN), QMIX's return is significantly higher (6.5 vs 3.1 at the last checkpoint with defined credit; p = 0.013; and 6.5 vs 2.4 over checkpoints at t ≥ 240k, p = 0.002) while L1 hardly differs (0.64 vs 0.75, p = 0.44; 0.57 vs 0.60, p = 0.51). The pattern is the reverse of what that clause describes, so the clause is not met, although "QMIX earns far more yet assigns credit no more accurately" points the same way as H4's spirit.
+
+**Verdict for H4 (descriptive, not confirmatory).** The first clause (return is a weak proxy) is consistent with the data for both methods, and its falsifying condition (return strongly predicts credit) is not met. The second clause is not demonstrated. H4 is therefore neither falsified nor confirmed; the evidence is mildly supportive of the first part.
+
+## 4. Caveats
+
+- **Two methods, one environment, a seeded protocol.** VDN and QMIX trained with scripted demonstrations in the buffer is not standard online training, and the demonstrations help return in a way unrelated to credit. COMA and MAPPO are not covered at all.
+- **Many checkpoints have no defined credit** (42 of 100 for QMIX, 49 of 100 for VDN: no test episode with a non-zero true total). These are the low-return checkpoints, so the correlation is computed on a restricted range of return, which pushes ρ toward zero. The sensitivity run (at least 10 valid episodes) gives somewhat higher but still non-strong values for QMIX; for VDN it is too thin to say.
+- **L1 is noisy at low return**: a checkpoint with few rewarding episodes averages L1 over few episodes (hollow markers in Figure 4).
+- **Thresholds are our own** and were set before scoring, but they were not pre-registered.
+- **Learned credit was not compared with a uniform split** on these episodes, so the L1 values are not placed on the benchmark's earlier scale.
+- Mode T and Mode P ran under different Python versions (3.12 and 3.14).
+
+## 5. What was not tried
+
+Reward shaping, a shorter route, or a curriculum would also make plain online training learn, but each changes the benchmark (shaping also changes the credit target). Pre-training on demonstrations before online learning, or behavioural cloning for COMA and MAPPO, would extend H4 to the on-policy learners; neither was attempted.

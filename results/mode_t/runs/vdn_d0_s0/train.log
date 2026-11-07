@@ -1,0 +1,248 @@
+[DEBUG 17:07:14] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:07:14] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:07:14] git.util sys.platform='win32', git_executable='git'
+[DEBUG 17:07:14] git.util sys.platform='win32', git_executable='git'
+[DEBUG 17:07:14] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:07:14] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:07:14] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 17:07:14] git.util sys.platform='win32', git_executable='git'
+[DEBUG 17:07:14] git.util sys.platform='win32', git_executable='git'
+[DEBUG 17:07:14] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:07:14] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:07:14] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 17:07:14] git.util sys.platform='win32', git_executable='git'
+[DEBUG 17:07:14] git.util sys.platform='win32', git_executable='git'
+[DEBUG 17:07:14] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:07:14] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:07:14] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 17:07:16] pymarl Using capture mode "sys"
+[INFO 17:07:16] pymarl Running command 'my_main'
+[INFO 17:07:16] pymarl Started run with ID "2"
+[DEBUG 17:07:16] pymarl Starting Heartbeat
+[DEBUG 17:07:16] my_main Started
+[INFO 17:07:16] my_main Experiment Parameters:
+[INFO 17:07:16] my_main 
+
+{   'action_selector': 'epsilon_greedy',
+    'add_value_last_step': True,
+    'agent': 'rnn',
+    'agent_output_type': 'q',
+    'batch_size': 32,
+    'batch_size_run': 1,
+    'buffer_cpu_only': True,
+    'buffer_size': 20000,
+    'checkpoint_path': '',
+    'common_reward': True,
+    'double_q': True,
+    'env': 'planted',
+    'env_args': {   'layout_kwargs': {   'delay': 0,
+                                         'horizon': 60,
+                                         'n_bystanders': 2},
+                    'map_name': 'coalition_layout',
+                    'present': None,
+                    'seed': 0},
+    'epsilon_anneal_time': 50000,
+    'epsilon_finish': 0.05,
+    'epsilon_start': 1.0,
+    'evaluate': False,
+    'evaluation_epsilon': 0.0,
+    'gamma': 0.99,
+    'grad_norm_clip': 10,
+    'hidden_dim': 64,
+    'hypergroup': None,
+    'label': 'default_label',
+    'learner': 'q_learner',
+    'learner_log_interval': 10000,
+    'load_step': 0,
+    'local_results_path': 'C:\\AFML_project\\results\\mode_t\\runs\\vdn_d0_s0',
+    'log_interval': 20000,
+    'lr': 0.0005,
+    'mac': 'basic_mac',
+    'mixer': 'vdn',
+    'name': 'vdn',
+    'obs_agent_id': True,
+    'obs_individual_obs': False,
+    'obs_last_action': False,
+    'optim_alpha': 0.99,
+    'optim_eps': 1e-05,
+    'render': False,
+    'repeat_id': 1,
+    'reward_scalarisation': 'sum',
+    'runner': 'episode',
+    'runner_log_interval': 10000,
+    'save_model': True,
+    'save_model_interval': 40000,
+    'save_replay': False,
+    'seed': 0,
+    'standardise_returns': False,
+    'standardise_rewards': True,
+    't_max': 400000,
+    'target_update_interval_or_tau': 200,
+    'test_greedy': True,
+    'test_interval': 20000,
+    'test_nepisode': 20,
+    'use_cuda': False,
+    'use_rnn': False,
+    'use_tensorboard': False,
+    'use_wandb': False,
+    'wandb_mode': 'offline',
+    'wandb_project': None,
+    'wandb_save_model': False,
+    'wandb_team': None}
+
+seeded the replay buffer with 200 scripted episodes (mean return 10.00)
+[INFO 17:07:25] my_main Beginning training for 400000 timesteps
+[INFO 17:07:25] my_main t_env: 60 / 400000
+[INFO 17:07:25] my_main Estimated time left: 1 seconds. Time passed: 0 seconds
+[INFO 17:07:26] my_main Saving models to C:\AFML_project\results\mode_t\runs\vdn_d0_s0\models\vdn_seed0_coalition_layout_2026-11-07_17-07-16\60
+[INFO 17:07:52] my_main Recent Stats | t_env:      20040 | Episode:      334
+ep_length_mean:           60.0000	epsilon:                   0.8096	events_completed_mean:     0.0000	grad_norm:                 3.4547
+loss:                      0.9668	q_taken_mean:             -0.0874	return_mean:               0.0000	return_std:                0.0000
+target_mean:              -0.0175	td_error_abs:              0.4751	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.0000
+test_return_mean:          0.0000	test_return_std:           0.0000	
+[INFO 17:07:53] my_main t_env: 20100 / 400000
+[INFO 17:07:53] my_main Estimated time left: 8 minutes, 38 seconds. Time passed: 27 seconds
+[INFO 17:08:20] my_main Saving models to C:\AFML_project\results\mode_t\runs\vdn_d0_s0\models\vdn_seed0_coalition_layout_2026-11-07_17-07-16\40080
+[INFO 17:08:20] my_main Recent Stats | t_env:      40080 | Episode:      668
+ep_length_mean:           60.0000	epsilon:                   0.4289	events_completed_mean:     0.0000	grad_norm:                 2.1778
+loss:                      0.5909	q_taken_mean:             -0.0043	return_mean:               0.0000	return_std:                0.0000
+target_mean:               0.0302	td_error_abs:              0.3744	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.0000
+test_return_mean:          0.0000	test_return_std:           0.0000	
+[INFO 17:08:20] my_main t_env: 40140 / 400000
+[INFO 17:08:20] my_main Estimated time left: 8 minutes, 10 seconds. Time passed: 54 seconds
+[INFO 17:08:47] my_main Recent Stats | t_env:      60120 | Episode:     1002
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.0048	grad_norm:                 0.8939
+loss:                      0.2775	q_taken_mean:              0.1363	return_mean:               0.0479	return_std:                0.4351
+target_mean:               0.1392	td_error_abs:              0.2573	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.0000
+test_return_mean:          0.0000	test_return_std:           0.0000	
+[INFO 17:08:47] my_main t_env: 60180 / 400000
+[INFO 17:08:47] my_main Estimated time left: 7 minutes, 45 seconds. Time passed: 1 minutes, 22 seconds
+[INFO 17:09:14] my_main Saving models to C:\AFML_project\results\mode_t\runs\vdn_d0_s0\models\vdn_seed0_coalition_layout_2026-11-07_17-07-16\80100
+[INFO 17:09:14] my_main Recent Stats | t_env:      80160 | Episode:     1336
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.1198	grad_norm:                 2.0897
+loss:                      0.3384	q_taken_mean:              0.4261	return_mean:               1.1976	return_std:                1.5799
+target_mean:               0.4296	td_error_abs:              0.2758	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.0000
+test_return_mean:          0.0000	test_return_std:           0.0000	
+[INFO 17:09:14] my_main t_env: 80220 / 400000
+[INFO 17:09:14] my_main Estimated time left: 7 minutes, 14 seconds. Time passed: 1 minutes, 49 seconds
+[INFO 17:09:42] my_main Recent Stats | t_env:     100200 | Episode:     1670
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.3509	grad_norm:                 2.4468
+loss:                      0.4352	q_taken_mean:              0.7340	return_mean:               3.5090	return_std:                3.3065
+target_mean:               0.7360	td_error_abs:              0.3079	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.2000
+test_return_mean:          2.0000	test_return_std:           0.0000	
+[INFO 17:09:42] my_main t_env: 100260 / 400000
+[INFO 17:09:42] my_main Estimated time left: 6 minutes, 48 seconds. Time passed: 2 minutes, 16 seconds
+[INFO 17:10:09] my_main Saving models to C:\AFML_project\results\mode_t\runs\vdn_d0_s0\models\vdn_seed0_coalition_layout_2026-11-07_17-07-16\120120
+[INFO 17:10:09] my_main Recent Stats | t_env:     120240 | Episode:     2004
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.6132	grad_norm:                 1.6146
+loss:                      0.4250	q_taken_mean:              0.9372	return_mean:               6.1317	return_std:                4.8169
+target_mean:               0.9410	td_error_abs:              0.2915	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.4000
+test_return_mean:          4.0000	test_return_std:           0.0000	
+[INFO 17:10:09] my_main t_env: 120300 / 400000
+[INFO 17:10:09] my_main Estimated time left: 6 minutes, 21 seconds. Time passed: 2 minutes, 44 seconds
+[INFO 17:10:36] my_main Recent Stats | t_env:     140280 | Episode:     2338
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.6838	grad_norm:                 3.1491
+loss:                      0.3517	q_taken_mean:              1.1039	return_mean:               6.8383	return_std:                4.6319
+target_mean:               1.0989	td_error_abs:              0.2921	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.6000
+test_return_mean:          6.0000	test_return_std:           0.0000	
+[INFO 17:10:36] my_main t_env: 140340 / 400000
+[INFO 17:10:36] my_main Estimated time left: 5 minutes, 54 seconds. Time passed: 3 minutes, 11 seconds
+[INFO 17:11:04] my_main Saving models to C:\AFML_project\results\mode_t\runs\vdn_d0_s0\models\vdn_seed0_coalition_layout_2026-11-07_17-07-16\160140
+[INFO 17:11:04] my_main Recent Stats | t_env:     160320 | Episode:     2672
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.4982	grad_norm:                 4.0987
+loss:                      0.2624	q_taken_mean:              1.2273	return_mean:               4.9820	return_std:                3.6844
+target_mean:               1.2273	td_error_abs:              0.2698	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.6000
+test_return_mean:          6.0000	test_return_std:           0.0000	
+[INFO 17:11:05] my_main t_env: 160380 / 400000
+[INFO 17:11:05] my_main Estimated time left: 5 minutes, 36 seconds. Time passed: 3 minutes, 39 seconds
+[INFO 17:11:32] my_main Recent Stats | t_env:     180360 | Episode:     3006
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.2731	grad_norm:                 3.1947
+loss:                      0.1850	q_taken_mean:              1.2725	return_mean:               2.7305	return_std:                3.1770
+target_mean:               1.2727	td_error_abs:              0.2297	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.6000
+test_return_mean:          6.0000	test_return_std:           0.0000	
+[INFO 17:11:33] my_main t_env: 180420 / 400000
+[INFO 17:11:33] my_main Estimated time left: 5 minutes, 6 seconds. Time passed: 4 minutes, 7 seconds
+[INFO 17:12:00] my_main Saving models to C:\AFML_project\results\mode_t\runs\vdn_d0_s0\models\vdn_seed0_coalition_layout_2026-11-07_17-07-16\200160
+[INFO 17:12:00] my_main Recent Stats | t_env:     200400 | Episode:     3340
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.1521	grad_norm:                 3.0648
+loss:                      0.1484	q_taken_mean:              1.3210	return_mean:               1.5210	return_std:                2.9375
+target_mean:               1.3217	td_error_abs:              0.2107	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.6000
+test_return_mean:          6.0000	test_return_std:           0.0000	
+[INFO 17:12:00] my_main t_env: 200460 / 400000
+[INFO 17:12:00] my_main Estimated time left: 4 minutes, 33 seconds. Time passed: 4 minutes, 34 seconds
+[INFO 17:12:27] my_main Recent Stats | t_env:     220440 | Episode:     3674
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.1449	grad_norm:                 1.6419
+loss:                      0.1332	q_taken_mean:              1.3478	return_mean:               1.4491	return_std:                3.1135
+target_mean:               1.3443	td_error_abs:              0.1981	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.4000
+test_return_mean:          4.0000	test_return_std:           0.0000	
+[INFO 17:12:27] my_main t_env: 220500 / 400000
+[INFO 17:12:27] my_main Estimated time left: 4 minutes, 6 seconds. Time passed: 5 minutes, 2 seconds
+[INFO 17:12:55] my_main Saving models to C:\AFML_project\results\mode_t\runs\vdn_d0_s0\models\vdn_seed0_coalition_layout_2026-11-07_17-07-16\240180
+[INFO 17:12:55] my_main Recent Stats | t_env:     240480 | Episode:     4008
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.0575	grad_norm:                 1.9941
+loss:                      0.1130	q_taken_mean:              1.3445	return_mean:               0.5749	return_std:                2.2720
+target_mean:               1.3388	td_error_abs:              0.1813	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.2000
+test_return_mean:          2.0000	test_return_std:           0.0000	
+[INFO 17:12:55] my_main t_env: 240540 / 400000
+[INFO 17:12:55] my_main Estimated time left: 3 minutes, 39 seconds. Time passed: 5 minutes, 30 seconds
+[INFO 17:13:23] my_main Recent Stats | t_env:     260520 | Episode:     4342
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.0251	grad_norm:                 4.5080
+loss:                      0.1128	q_taken_mean:              1.3964	return_mean:               0.2515	return_std:                1.2001
+target_mean:               1.4005	td_error_abs:              0.1792	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.2000
+test_return_mean:          2.0000	test_return_std:           0.0000	
+[INFO 17:13:23] my_main t_env: 260580 / 400000
+[INFO 17:13:23] my_main Estimated time left: 3 minutes, 11 seconds. Time passed: 5 minutes, 57 seconds
+[INFO 17:13:50] my_main Saving models to C:\AFML_project\results\mode_t\runs\vdn_d0_s0\models\vdn_seed0_coalition_layout_2026-11-07_17-07-16\280200
+[INFO 17:13:51] my_main Recent Stats | t_env:     280560 | Episode:     4676
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.0072	grad_norm:                 4.9568
+loss:                      0.1149	q_taken_mean:              1.3859	return_mean:               0.0719	return_std:                0.3722
+target_mean:               1.3944	td_error_abs:              0.1721	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.2000
+test_return_mean:          2.0000	test_return_std:           0.0000	
+[INFO 17:13:51] my_main t_env: 280620 / 400000
+[INFO 17:13:51] my_main Estimated time left: 2 minutes, 47 seconds. Time passed: 6 minutes, 25 seconds
+[INFO 17:14:18] my_main Recent Stats | t_env:     300600 | Episode:     5010
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.1018	grad_norm:                 3.6441
+loss:                      0.0883	q_taken_mean:              1.3877	return_mean:               1.0180	return_std:                1.5874
+target_mean:               1.3846	td_error_abs:              0.1550	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.2000
+test_return_mean:          2.0000	test_return_std:           0.0000	
+[INFO 17:14:19] my_main t_env: 300660 / 400000
+[INFO 17:14:19] my_main Estimated time left: 2 minutes, 17 seconds. Time passed: 6 minutes, 53 seconds
+[INFO 17:14:45] my_main Saving models to C:\AFML_project\results\mode_t\runs\vdn_d0_s0\models\vdn_seed0_coalition_layout_2026-11-07_17-07-16\320220
+[INFO 17:14:46] my_main Recent Stats | t_env:     320640 | Episode:     5344
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.3653	grad_norm:                 3.5857
+loss:                      0.0812	q_taken_mean:              1.3672	return_mean:               3.6527	return_std:                3.3551
+target_mean:               1.3588	td_error_abs:              0.1551	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.4000
+test_return_mean:          4.0000	test_return_std:           0.0000	
+[INFO 17:14:46] my_main t_env: 320700 / 400000
+[INFO 17:14:46] my_main Estimated time left: 1 minutes, 49 seconds. Time passed: 7 minutes, 21 seconds
+[INFO 17:15:14] my_main Recent Stats | t_env:     340680 | Episode:     5678
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.6419	grad_norm:                 2.3958
+loss:                      0.0648	q_taken_mean:              1.3398	return_mean:               6.4192	return_std:                4.4974
+target_mean:               1.3354	td_error_abs:              0.1399	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.6000
+test_return_mean:          6.0000	test_return_std:           0.0000	
+[INFO 17:15:14] my_main t_env: 340740 / 400000
+[INFO 17:15:14] my_main Estimated time left: 1 minutes, 21 seconds. Time passed: 7 minutes, 48 seconds
+[INFO 17:15:41] my_main Saving models to C:\AFML_project\results\mode_t\runs\vdn_d0_s0\models\vdn_seed0_coalition_layout_2026-11-07_17-07-16\360240
+[INFO 17:15:41] my_main Recent Stats | t_env:     360720 | Episode:     6012
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.7629	grad_norm:                 2.2632
+loss:                      0.0579	q_taken_mean:              1.3025	return_mean:               7.6287	return_std:                4.2283
+target_mean:               1.2992	td_error_abs:              0.1284	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.8000
+test_return_mean:          8.0000	test_return_std:           0.0000	
+[INFO 17:15:41] my_main t_env: 360780 / 400000
+[INFO 17:15:41] my_main Estimated time left: 54 seconds. Time passed: 8 minutes, 16 seconds
+[INFO 17:16:10] my_main Recent Stats | t_env:     380760 | Episode:     6346
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.8024	grad_norm:                 1.6408
+loss:                      0.0560	q_taken_mean:              1.2498	return_mean:               8.0240	return_std:                3.8443
+target_mean:               1.2498	td_error_abs:              0.1205	test_ep_length_mean:      60.0000	test_events_completed_mean:  1.0000
+test_return_mean:         10.0000	test_return_std:           0.0000	
+[INFO 17:16:10] my_main t_env: 380820 / 400000
+[INFO 17:16:10] my_main Estimated time left: 27 seconds. Time passed: 8 minutes, 44 seconds
+[INFO 17:16:36] my_main Finished Training
+[DEBUG 17:16:37] my_main Finished after 0:09:21.
+[INFO 17:16:37] pymarl Completed after 0:09:21
+Exiting Main
+Stopping all threads
+Thread Thread-19 is alive! Is daemon: False
+Thread joined
+Exiting script
+[DEBUG 17:16:37] pymarl Stopping Heartbeat

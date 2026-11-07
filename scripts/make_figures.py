@@ -2,8 +2,8 @@
 
     .venv/Scripts/python scripts/make_figures.py
 
-Writes docs/figures/fig1_l1_vs_uniform.png, fig2_interaction_mass.png, fig3_dividend_error.png.
-There is no return-vs-L1 figure for H4: Mode T produced no returns (docs/mode_t_results.md).
+Writes docs/figures/fig1_l1_vs_uniform.png, fig2_interaction_mass.png, fig3_dividend_error.png and, when
+the Mode T evaluations exist (results/mode_t/*.json), fig4_return_vs_credit.png.
 """
 
 import collections
@@ -159,11 +159,56 @@ def fig3():
     fig.savefig(os.path.join(OUT, "fig3_dividend_error.png"), dpi=170)
 
 
+def fig4():
+    """H4: return vs 1 - L1 per checkpoint, one panel per method (VDN, QMIX with a seeded buffer)."""
+    runs = [json.load(open(f)) for f in sorted(glob.glob(os.path.join(ROOT, "results", "mode_t", "*_d*_s*.json")))]
+    if not runs:
+        return False
+    methods = [("qmix", "QMIX", SERIES[0]), ("vdn", "VDN", SERIES[1])]
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.0), sharex=True, sharey=True)
+    for ax, (alg, label, col) in zip(axes, methods):
+        used = dropped = 0
+        xs_all, ys_all = [], []
+        for r in (r for r in runs if r["alg"] == alg):
+            for c in r["checkpoints"]:
+                sm = c["summary"]
+                if sm["l1"] is None:
+                    dropped += 1
+                    continue
+                used += 1
+                x, y = c["return_mean"], 1.0 - sm["l1"]
+                xs_all.append(x)
+                ys_all.append(y)
+                solid = sm["n_valid"] >= 10
+                ax.scatter(x, y, s=34, marker="o" if r["delay"] == 0 else "s", zorder=3,
+                           facecolor=col if solid else SURFACE, edgecolor=col, linewidth=1.4)
+        if len(xs_all) > 3:
+            from scipy.stats import spearmanr
+            rho = spearmanr(xs_all, ys_all).statistic
+            ax.text(0.97, 0.04, f"Spearman ρ = {rho:+.2f}  ({used} checkpoints)", transform=ax.transAxes,
+                    fontsize=9, color=INK2, ha="right")
+        ax.axhline(0, color=GRID, lw=1.2, zorder=1)
+        ax.set_title(f"{label}  ({dropped} checkpoints with no defined credit not shown)", loc="left", fontsize=9.5)
+        ax.set_xlabel("mean return of the test episodes")
+    axes[0].set_ylabel("credit accuracy 1 − L1 (higher is better)")
+    from matplotlib.lines import Line2D
+    handles = [Line2D([], [], marker="o", ls="", color=INK2, label="d = 0"),
+               Line2D([], [], marker="s", ls="", color=INK2, label="d = 25"),
+               Line2D([], [], marker="o", ls="", mfc=SURFACE, color=INK2, label="< 10 of 30 episodes with defined credit")]
+    fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=8.5, bbox_to_anchor=(0.5, -0.01))
+    fig.suptitle("Return barely predicts credit accuracy (Mode T, seeded VDN and QMIX; each point is a checkpoint)",
+                 x=0.01, ha="left", fontsize=11)
+    fig.tight_layout(rect=(0, 0.05, 1, 0.94))
+    fig.savefig(os.path.join(OUT, "fig4_return_vs_credit.png"), dpi=170)
+    return True
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     fig1()
     fig2()
     fig3()
+    fig4()
     print("wrote", sorted(os.listdir(OUT)))
 
 

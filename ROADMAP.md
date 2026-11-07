@@ -40,7 +40,7 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
   - [x] STAS (`stas.py`): STAS_ML return decomposition.
   - [x] Mixer-game Harsanyi dividends for VDN, QMIX and NA²Q (coalition level, H3); `run_mode_p.py --algs`.
   - [x] H3 grid: overlap and partial-synergy layouts × delay; run all six methods. Results: `docs/h3_results.md` (`scripts/analyse_h3.py`).
-- [x] **Step 8 (not completed).** Mode T (full training); H4. QMIX and MAPPO (400k steps) and QMIX (1M steps) never earn reward, because a random policy completes the task in 0 of 20,000 episodes. H4 is untested; the 24-run set and evaluation were skipped. `docs/mode_t_results.md`.
+- [x] **Step 8.** Mode T; H4 (descriptive). QMIX and MAPPO (400k steps) and QMIX (1M steps) earned no reward from plain online training, because a random policy completes the task in 0 of 20,000 episodes. With a replay buffer seeded with scripted episodes, VDN and QMIX learn, and H4 was assessed descriptively for those two. 20 runs (VDN, QMIX × d ∈ {0, 25} × 5 seeds) scored at every checkpoint: within-method ρ(return, 1 − L1) = +0.20 (QMIX) and +0.15 (VDN). COMA and MAPPO are not covered. `docs/mode_t_results.md`.
 - [x] **Step 9.** Sensitivity analyses (`docs/sensitivity.md`).
   - [x] Shapley vs leave-one-out (`scripts/sensitivity_shapley_loo.py`): no ranking or verdict changes.
   - [x] Open- vs closed-loop replay (`scripts/sensitivity_loop.py`): H2, H2′, H-fid unchanged; H1a becomes supported through one condition.
@@ -99,7 +99,7 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
   - **Post-hoc STAS delay invariance:** d = 0 and d = 25 agree to within 4e-6 per episode. STAS sees only observations, actions and the total return, and none of these change with delay inside the horizon.
   - H0: the partial layout realises its planted structure in only 40–50% of test episodes (return 8.2–8.8).
 - **H5 grid** (30 cells + 10 `h5_ref`; `docs/h5_results.md`). The episodic coalition estimator trained on episodes plus open-loop replays with agents removed (ECE-k_mix) beats NA²Q on dividend error in 8/8 conditions (ECE-3_mix on the order-3 layout: 0.43 vs 2.0; recall and precision 0.96) and beats uniform credit on individual L1 in 8/8. Leakage is not significantly lower (2/8 vs NA²Q, 1/8 vs data-matched NA²Q_mix). Without the replay data, ECE only reproduces uniform credit. STAS ran on a mix of devices (see the write-up).
-- **Mode T** (`docs/mode_t_results.md`): not completed. No method earns reward online. Training needed a Python 3.12 environment (`sacred` does not import under 3.14).
+- **Mode T** (`docs/mode_t_results.md`): plain online training never earns reward (random play completes the task in 0 of 20,000 episodes). Seeding the replay buffer with 200 scripted episodes lets VDN and QMIX learn (`scripts/run_epymarl_seeded.py`). H4, descriptive: return is only weakly correlated with credit accuracy (ρ = +0.20 QMIX, +0.15 VDN, CIs below 0.7); QMIX earns more than VDN without assigning credit more accurately. Needed a Python 3.12 environment (`sacred` does not import under 3.14).
 - **Sensitivity** (`docs/sensitivity.md`): Shapley vs LOO changes nothing; the closed-loop truth always recovers the planted coalition and flips H1a to supported through one QMIX condition.
 
 ## Conventions

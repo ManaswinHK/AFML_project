@@ -11,7 +11,7 @@ In cooperative multi-agent RL a team often receives one delayed reward for somet
 - **Planted Coalition Gridworld** (`docs/environment_design.md`). Events have enablers and finishers (A pulls a lever, then B and C push together); the reward is paid d steps after completion; bystanders may wander; layouts include overlapping events and partial synergy.
 - **Exact truth by true removal.** For each test episode we remove any subset of agents (replaying the episode, or re-running the scripted team), read off the coalition value v(S) for all 2^n subsets, and compute Harsanyi dividends, Shapley values and leave-one-out credit.
 - **Metrics.** Individual credit error L1, leakage Λ to bystanders, missed enabler credit M, and, at the coalition level, dividend error, recall/precision and interaction mass.
-- **Mode P.** Critics are trained on scripted episodes, so credit can be separated from exploration. Mode T (online training) was planned but could not be completed (§7).
+- **Mode P.** Critics are trained on scripted episodes, so credit can be separated from exploration. Mode T (online training) is covered in §7.
 
 ## 3. Per-step credit read-outs (main grid, H0–H2)
 
@@ -52,12 +52,21 @@ The episodic coalition estimator (ECE-k) fits an episode-return model with coali
 - **Shapley vs leave-one-out.** The two targets differ by L1 ≤ 0.03 on the coalition layout (0.06 on partial, 0.10 on overlap); rankings agree in 27 of 30 conditions and the best method is always the same. No verdict changes.
 - **Open- vs closed-loop removal.** The closed-loop truth recovers the planted coalition in 100% of 3,600 test episodes (open loop: 83%; 66% at 4 bystanders), so the H0 failures are an artefact of open-loop replay. H2, H2′ and H-fid are unchanged, but **H1a becomes supported through one QMIX condition** (Holm p 0.074 → 0.030). H1a is therefore borderline, not a robust negative.
 
-## 7. Mode T and H4: not completed
+## 7. Mode T and H4 (return vs credit faithfulness)
 
-QMIX and MAPPO for 400k steps and QMIX for 1M steps never earned reward (a uniform-random policy completes the task in 0 of 20,000 episodes), so return is constant and H4 (return is a weak proxy for credit faithfulness) is **untested** (`docs/mode_t_results.md`). There is no return-versus-L1 figure for the same reason.
+Plain online training never earned reward: QMIX and MAPPO for 400k steps and QMIX for 1M steps stayed at return 0, because a uniform-random policy completes the task in 0 of 20,000 episodes. Seeding the replay buffer with 200 scripted episodes lets the off-policy learners (VDN and QMIX) learn, so H4 was assessed for those two (`docs/mode_t_results.md`): 20 runs (delay 0 and 25, 5 seeds), credit scored at every checkpoint. COMA and MAPPO clear their buffers after each update, so seeding does not help them and they are not covered.
+
+![Return vs credit accuracy](figures/fig4_return_vs_credit.png)
+
+*Figure 4. Each point is a checkpoint. Hollow markers have fewer than 10 of 30 test episodes with defined credit.*
+
+- **Return is only weakly correlated with credit accuracy within each method:** Spearman ρ = +0.20 for QMIX (95% CI [−0.12, +0.47]) and +0.15 for VDN ([−0.18, +0.34]). No interval reaches the 0.7 we set in advance for "strong", so the clause "return is a weak proxy" is consistent with the data and its falsifying condition is not met.
+- **Not shown:** that two methods with indistinguishable return differ in L1. QMIX earns significantly more than VDN (6.5 vs 3.1, p = 0.013) while their L1 barely differs (0.64 vs 0.75, p = 0.44).
+- **Descriptive only.** The thresholds are ours (set before scoring), 42–49% of checkpoints have no defined credit (restricting the range of return), and the seeded protocol is not standard online training.
 
 ## 8. Limitations
 
+- Mode T covers only VDN and QMIX under a seeded replay buffer.
 - One environment family, scripted behaviour data, at most 7 agents and 5 seeds per cell; power is limited, and the pre-registered rules are strict (a family is supported only if every condition passes).
 - VDN and QMIX learn Q*; COMA, MAPPO and NA²Q (SARSA) learn the behaviour policy's value.
 - ECE with replay data needs the ability to replay episodes with agents removed, a stronger assumption than any compared method makes.

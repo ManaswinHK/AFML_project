@@ -43,19 +43,27 @@ def model_dir(alg, delay, seed) -> str | None:
     return sorted(hits)[-1] if hits else None
 
 
-def train_one(alg, delay, seed, t_max) -> str:
+def train_one(alg, delay, seed, t_max, seed_episodes=0) -> str:
+    """One EPyMARL run. With seed_episodes > 0 the replay buffer starts with that many scripted episodes
+    (scripts/run_epymarl_seeded.py); that only matters for the off-policy learners (VDN, QMIX)."""
     run_dir = os.path.join(OUT, "runs", run_name(alg, delay, seed))
     os.makedirs(run_dir, exist_ok=True)
-    cmd = [sys.executable, os.path.join(ROOT, "scripts", "run_epymarl.py"), f"--config={alg}",
-           "--env-config=planted_coalition", "with", f"seed={seed}", f"t_max={t_max}", "use_cuda=False",
-           f"env_args.layout_kwargs.delay={delay}", "save_model=True", f"save_model_interval={t_max // 10}",
-           f"test_interval={t_max // 20}", f"log_interval={t_max // 20}", f"local_results_path={run_dir}"]
+    launcher = "run_epymarl_seeded.py" if seed_episodes else "run_epymarl.py"
+    cmd = [sys.executable, os.path.join(ROOT, "scripts", launcher), f"--config={alg}",
+           "--env-config=planted_coalition"]
+    if seed_episodes:
+        cmd.append(f"--seed-episodes={seed_episodes}")
+    cmd += ["with", f"seed={seed}", f"t_max={t_max}", "use_cuda=False",
+            f"env_args.layout_kwargs.delay={delay}", "save_model=True", f"save_model_interval={t_max // 10}",
+            f"test_interval={t_max // 20}", f"log_interval={t_max // 20}", f"local_results_path={run_dir}"]
+    if seed_episodes:
+        cmd.append("buffer_size=20000")  # room, so the seeded episodes are not overwritten
     with open(os.path.join(run_dir, "train.log"), "w") as log:
         subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, check=True)
     return run_name(alg, delay, seed)
 
 
-def eval_one(alg, delay, seed, n_test) -> str:
+def eval_one(alg, delay, seed, n_test, seed_episodes=0) -> str:
     import torch as th
 
     from whoearned.mode_t import checkpoints, evaluate_checkpoint
@@ -67,7 +75,7 @@ def eval_one(alg, delay, seed, n_test) -> str:
         rows.append({"t_env": t_env, **r})
     out = os.path.join(OUT, f"{run_name(alg, delay, seed)}.json")
     with open(out, "w") as f:
-        json.dump({"alg": alg, "delay": delay, "seed": seed, "checkpoints": rows}, f)
+        json.dump({"alg": alg, "delay": delay, "seed": seed, "seed_episodes": seed_episodes, "checkpoints": rows}, f)
     return out
 
 
@@ -80,14 +88,16 @@ def main():
     p.add_argument("--delays", default=",".join(map(str, DELAYS)))
     p.add_argument("--seeds", default=",".join(map(str, SEEDS)))
     p.add_argument("--n-test", type=int, default=30)
+    p.add_argument("--seed-episodes", type=int, default=0,
+                   help="scripted episodes to seed the replay buffer with (VDN/QMIX only); 0 = plain online training")
     a = p.parse_args()
     runs = list(itertools.product(a.algs.split(","), map(int, a.delays.split(",")), map(int, a.seeds.split(","))))
     if a.stage == "train":
         todo = [r for r in runs if model_dir(*r) is None]
-        jobs = [(train_one, (*r, a.t_max)) for r in todo]
+        jobs = [(train_one, (*r, a.t_max, a.seed_episodes)) for r in todo]
     else:
         todo = [r for r in runs if model_dir(*r) and not os.path.exists(os.path.join(OUT, f"{run_name(*r)}.json"))]
-        jobs = [(eval_one, (*r, a.n_test)) for r in todo]
+        jobs = [(eval_one, (*r, a.n_test, a.seed_episodes)) for r in todo]
     print(f"{len(jobs)} {a.stage} jobs with {a.workers} workers", flush=True)
     t0 = time.time()
     with ProcessPoolExecutor(max_workers=a.workers) as pool:

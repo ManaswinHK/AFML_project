@@ -133,3 +133,31 @@ This writes `results/mode_p/h5/h5_analysis.md`.
 ## 8. Bring results back (optional)
 
 To analyse on the original PC, copy the folder `results/mode_p/main/` to the same path there. It is git-ignored, so copy it directly rather than through git.
+
+## 8. Mode T with a seeded replay buffer (H4)
+
+Mode T needs **Python 3.12**: `sacred 0.8.7` does not import under 3.14. Build a separate environment (the Mode P environment can stay as it is):
+
+```bash
+py -3.12 -m venv .venv312
+```
+
+```bash
+.venv312/Scripts/python -m pip install -r requirements.txt "setuptools<81" torch
+```
+
+Plain online training never earns reward (random play completes the task in 0 of 20,000 episodes). Seeding the replay buffer with scripted episodes lets VDN and QMIX learn; COMA and MAPPO cannot use it. Train, evaluate and analyse (about 30 minutes for the 20 runs on 8 workers, then a couple of minutes):
+
+```bash
+.venv312/Scripts/python scripts/run_mode_t.py train --algs vdn,qmix --delays 0,25 --seeds 0,1,2,3,4 --t-max 400000 --seed-episodes 200 --workers 8
+```
+
+```bash
+.venv312/Scripts/python scripts/run_mode_t.py eval --algs vdn,qmix --delays 0,25 --seeds 0,1,2,3,4 --seed-episodes 200 --workers 10
+```
+
+```bash
+.venv/Scripts/python scripts/analyse_h4.py
+```
+
+Results: `results/mode_t/` (one JSON per run, `h4_analysis.md`). Do not commit `results/mode_t/runs/*/models/` (about 2 MB per checkpoint).

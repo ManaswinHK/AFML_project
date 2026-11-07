@@ -267,9 +267,9 @@ Identical Shapley values, opposite coordination structure.
 **Our evidence: related but not decisive.**
 - **Accuracy without fidelity (H-fid, confirmatory).** 30 of the 32 best end-to-end cells have per-step fidelity r < 0.3. QMIX looks right for the wrong reason.
 - **No method beats uniform credit (post-hoc, H3 grid).** On the overlap and partial layouts, no method's mean L1 beats giving each agent 1/n.
-- The return–faithfulness test itself is H4, in Mode T.
+- The return–faithfulness test itself is H4, in Mode T. Descriptively, for VDN and QMIX with a seeded replay buffer, return is only weakly correlated with credit accuracy (ρ ≈ +0.15 to +0.20).
 
-**Status: open (H4, Mode T, not yet run).**
+**Status: partly addressed. H4 was run descriptively for VDN and QMIX (seeded replay buffer); open for COMA and MAPPO.**
 
 ### F6. Credit read-outs from implicit learners have not been validated (new)
 
@@ -377,7 +377,7 @@ Within each method, return and $1 - L_1$ are weakly correlated. At least two met
 | H2 | supported for COMA; not for VDN, QMIX | MAPPO's 8/8 is an artefact of its shared advantage |
 | H2′ | not supported (reversed) | COMA leaks more than VDN and QMIX in all 8 comparisons |
 | H3 | not supported literally; uninformative | dividend error is 1.9993–2.0000 for every method, so it cannot rank methods |
-| H4 | **not completed** | no method earns reward under online training (QMIX and MAPPO 400k steps, QMIX 1M steps); `docs/mode_t_results.md` |
+| H4 | descriptive only: first clause consistent, second not shown | VDN and QMIX with a seeded replay buffer (plain online training never earns reward): Spearman ρ(return, 1 − L1) = +0.20 and +0.15, no CI reaching 0.7; QMIX earns more than VDN without assigning credit more accurately; COMA and MAPPO not assessed; `docs/mode_t_results.md` |
 | H5 | supported on dividend error and on beating uniform credit; not on leakage | ECE-3_mix recovers the order-3 coalition (dividend error 0.43 vs 2.0) |
 | H-fid (extra finding) | supported | 30 of the 32 best end-to-end cells have step r < 0.3 |
 

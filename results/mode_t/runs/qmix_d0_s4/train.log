@@ -1,0 +1,251 @@
+[DEBUG 17:16:40] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:16:40] git.cmd Popen(['git', 'version'], cwd=C:\AFML_project, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:16:40] git.util sys.platform='win32', git_executable='git'
+[DEBUG 17:16:40] git.util sys.platform='win32', git_executable='git'
+[DEBUG 17:16:40] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:16:40] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:16:40] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 17:16:40] git.util sys.platform='win32', git_executable='git'
+[DEBUG 17:16:40] git.util sys.platform='win32', git_executable='git'
+[DEBUG 17:16:40] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:16:40] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:16:40] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 17:16:40] git.util sys.platform='win32', git_executable='git'
+[DEBUG 17:16:40] git.util sys.platform='win32', git_executable='git'
+[DEBUG 17:16:40] git.cmd Popen(['git', 'diff', '--cached', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:16:41] git.cmd Popen(['git', 'diff', '--abbrev=40', '--full-index', '--raw'], cwd=C:\AFML_project\external\epymarl, stdin=None, shell=False, universal_newlines=False)
+[DEBUG 17:16:41] git.cmd Popen(['git', 'cat-file', '--batch-check'], cwd=C:\AFML_project\external\epymarl, stdin=<valid stream>, shell=False, universal_newlines=False)
+[DEBUG 17:16:42] pymarl Using capture mode "sys"
+[INFO 17:16:42] pymarl Running command 'my_main'
+[INFO 17:16:42] pymarl Started run with ID "8"
+[DEBUG 17:16:42] pymarl Starting Heartbeat
+[DEBUG 17:16:42] my_main Started
+[INFO 17:16:42] my_main Experiment Parameters:
+[INFO 17:16:42] my_main 
+
+{   'action_selector': 'epsilon_greedy',
+    'add_value_last_step': True,
+    'agent': 'rnn',
+    'agent_output_type': 'q',
+    'batch_size': 32,
+    'batch_size_run': 1,
+    'buffer_cpu_only': True,
+    'buffer_size': 20000,
+    'checkpoint_path': '',
+    'common_reward': True,
+    'double_q': True,
+    'env': 'planted',
+    'env_args': {   'layout_kwargs': {   'delay': 0,
+                                         'horizon': 60,
+                                         'n_bystanders': 2},
+                    'map_name': 'coalition_layout',
+                    'present': None,
+                    'seed': 4},
+    'epsilon_anneal_time': 50000,
+    'epsilon_finish': 0.05,
+    'epsilon_start': 1.0,
+    'evaluate': False,
+    'evaluation_epsilon': 0.0,
+    'gamma': 0.99,
+    'grad_norm_clip': 10,
+    'hidden_dim': 64,
+    'hypergroup': None,
+    'hypernet_embed': 64,
+    'hypernet_layers': 2,
+    'label': 'default_label',
+    'learner': 'q_learner',
+    'learner_log_interval': 10000,
+    'load_step': 0,
+    'local_results_path': 'C:\\AFML_project\\results\\mode_t\\runs\\qmix_d0_s4',
+    'log_interval': 20000,
+    'lr': 0.0005,
+    'mac': 'basic_mac',
+    'mixer': 'qmix',
+    'mixing_embed_dim': 32,
+    'name': 'qmix',
+    'obs_agent_id': True,
+    'obs_individual_obs': False,
+    'obs_last_action': False,
+    'optim_alpha': 0.99,
+    'optim_eps': 1e-05,
+    'render': False,
+    'repeat_id': 1,
+    'reward_scalarisation': 'sum',
+    'runner': 'episode',
+    'runner_log_interval': 10000,
+    'save_model': True,
+    'save_model_interval': 40000,
+    'save_replay': False,
+    'seed': 4,
+    'standardise_returns': False,
+    'standardise_rewards': True,
+    't_max': 400000,
+    'target_update_interval_or_tau': 200,
+    'test_greedy': True,
+    'test_interval': 20000,
+    'test_nepisode': 20,
+    'use_cuda': False,
+    'use_rnn': False,
+    'use_tensorboard': False,
+    'use_wandb': False,
+    'wandb_mode': 'offline',
+    'wandb_project': None,
+    'wandb_save_model': False,
+    'wandb_team': None}
+
+seeded the replay buffer with 200 scripted episodes (mean return 10.00)
+[INFO 17:16:50] my_main Beginning training for 400000 timesteps
+[INFO 17:16:51] my_main t_env: 60 / 400000
+[INFO 17:16:51] my_main Estimated time left: 1 seconds. Time passed: 0 seconds
+[INFO 17:16:52] my_main Saving models to C:\AFML_project\results\mode_t\runs\qmix_d0_s4\models\qmix_seed4_coalition_layout_2026-11-07_17-16-42\60
+[INFO 17:17:23] my_main Recent Stats | t_env:      20040 | Episode:      334
+ep_length_mean:           60.0000	epsilon:                   0.8096	events_completed_mean:     0.0000	grad_norm:                 2.4064
+loss:                      0.5900	q_taken_mean:             -0.0605	return_mean:               0.0000	return_std:                0.0000
+target_mean:              -0.0304	td_error_abs:              0.2093	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.0000
+test_return_mean:          0.0000	test_return_std:           0.0000	
+[INFO 17:17:23] my_main t_env: 20100 / 400000
+[INFO 17:17:23] my_main Estimated time left: 10 minutes, 8 seconds. Time passed: 32 seconds
+[INFO 17:17:54] my_main Saving models to C:\AFML_project\results\mode_t\runs\qmix_d0_s4\models\qmix_seed4_coalition_layout_2026-11-07_17-16-42\40080
+[INFO 17:17:54] my_main Recent Stats | t_env:      40080 | Episode:      668
+ep_length_mean:           60.0000	epsilon:                   0.4289	events_completed_mean:     0.0000	grad_norm:                 3.4255
+loss:                      0.5433	q_taken_mean:             -0.0427	return_mean:               0.0000	return_std:                0.0000
+target_mean:              -0.0091	td_error_abs:              0.2326	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.0000
+test_return_mean:          0.0000	test_return_std:           0.0000	
+[INFO 17:17:54] my_main t_env: 40140 / 400000
+[INFO 17:17:54] my_main Estimated time left: 9 minutes, 22 seconds. Time passed: 1 minutes, 3 seconds
+[INFO 17:18:23] my_main Recent Stats | t_env:      60120 | Episode:     1002
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.0012	grad_norm:                 2.7021
+loss:                      0.2992	q_taken_mean:              0.0845	return_mean:               0.0120	return_std:                0.1543
+target_mean:               0.1011	td_error_abs:              0.1945	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.0000
+test_return_mean:          0.0000	test_return_std:           0.0000	
+[INFO 17:18:24] my_main t_env: 60180 / 400000
+[INFO 17:18:24] my_main Estimated time left: 8 minutes, 20 seconds. Time passed: 1 minutes, 33 seconds
+[INFO 17:18:52] my_main Saving models to C:\AFML_project\results\mode_t\runs\qmix_d0_s4\models\qmix_seed4_coalition_layout_2026-11-07_17-16-42\80100
+[INFO 17:18:52] my_main Recent Stats | t_env:      80160 | Episode:     1336
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.0192	grad_norm:                 2.4941
+loss:                      0.2133	q_taken_mean:              0.3725	return_mean:               0.1916	return_std:                0.9822
+target_mean:               0.3743	td_error_abs:              0.1929	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.0000
+test_return_mean:          0.0000	test_return_std:           0.0000	
+[INFO 17:18:52] my_main t_env: 80220 / 400000
+[INFO 17:18:52] my_main Estimated time left: 7 minutes, 32 seconds. Time passed: 2 minutes, 1 seconds
+[INFO 17:19:21] my_main Recent Stats | t_env:     100200 | Episode:     1670
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.0539	grad_norm:                 5.5189
+loss:                      0.2636	q_taken_mean:              0.6904	return_mean:               0.5389	return_std:                2.1083
+target_mean:               0.6876	td_error_abs:              0.2332	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.2000
+test_return_mean:          2.0000	test_return_std:           0.0000	
+[INFO 17:19:21] my_main t_env: 100260 / 400000
+[INFO 17:19:21] my_main Estimated time left: 7 minutes, 9 seconds. Time passed: 2 minutes, 30 seconds
+[INFO 17:19:49] my_main Saving models to C:\AFML_project\results\mode_t\runs\qmix_d0_s4\models\qmix_seed4_coalition_layout_2026-11-07_17-16-42\120120
+[INFO 17:19:49] my_main Recent Stats | t_env:     120240 | Episode:     2004
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.0467	grad_norm:                 5.5465
+loss:                      0.1789	q_taken_mean:              0.9317	return_mean:               0.4671	return_std:                1.7708
+target_mean:               0.9238	td_error_abs:              0.2152	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.2000
+test_return_mean:          2.0000	test_return_std:           0.0000	
+[INFO 17:19:49] my_main t_env: 120300 / 400000
+[INFO 17:19:49] my_main Estimated time left: 6 minutes, 41 seconds. Time passed: 2 minutes, 58 seconds
+[INFO 17:20:18] my_main Recent Stats | t_env:     140280 | Episode:     2338
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.0216	grad_norm:                 4.0669
+loss:                      0.1314	q_taken_mean:              1.0751	return_mean:               0.2156	return_std:                0.9437
+target_mean:               1.0730	td_error_abs:              0.2080	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.2000
+test_return_mean:          2.0000	test_return_std:           0.0000	
+[INFO 17:20:18] my_main t_env: 140340 / 400000
+[INFO 17:20:18] my_main Estimated time left: 6 minutes, 14 seconds. Time passed: 3 minutes, 27 seconds
+[INFO 17:20:46] my_main Saving models to C:\AFML_project\results\mode_t\runs\qmix_d0_s4\models\qmix_seed4_coalition_layout_2026-11-07_17-16-42\160140
+[INFO 17:20:46] my_main Recent Stats | t_env:     160320 | Episode:     2672
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.0527	grad_norm:                 3.0275
+loss:                      0.1021	q_taken_mean:              1.2446	return_mean:               0.5269	return_std:                1.4252
+target_mean:               1.2445	td_error_abs:              0.1869	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.2000
+test_return_mean:          2.0000	test_return_std:           0.0000	
+[INFO 17:20:46] my_main t_env: 160380 / 400000
+[INFO 17:20:46] my_main Estimated time left: 5 minutes, 37 seconds. Time passed: 3 minutes, 55 seconds
+[INFO 17:21:15] my_main Recent Stats | t_env:     180360 | Episode:     3006
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.1234	grad_norm:                 4.5896
+loss:                      0.0808	q_taken_mean:              1.3242	return_mean:               1.2335	return_std:                2.9207
+target_mean:               1.3251	td_error_abs:              0.1564	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.2000
+test_return_mean:          2.0000	test_return_std:           0.0000	
+[INFO 17:21:15] my_main t_env: 180420 / 400000
+[INFO 17:21:15] my_main Estimated time left: 5 minutes, 13 seconds. Time passed: 4 minutes, 24 seconds
+[INFO 17:21:43] my_main Saving models to C:\AFML_project\results\mode_t\runs\qmix_d0_s4\models\qmix_seed4_coalition_layout_2026-11-07_17-16-42\200160
+[INFO 17:21:43] my_main Recent Stats | t_env:     200400 | Episode:     3340
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.1760	grad_norm:                11.2129
+loss:                      0.1092	q_taken_mean:              1.3266	return_mean:               1.7605	return_std:                3.7553
+target_mean:               1.3346	td_error_abs:              0.1935	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.2000
+test_return_mean:          2.0000	test_return_std:           0.0000	
+[INFO 17:21:43] my_main t_env: 200460 / 400000
+[INFO 17:21:43] my_main Estimated time left: 4 minutes, 39 seconds. Time passed: 4 minutes, 52 seconds
+[INFO 17:22:12] my_main Recent Stats | t_env:     220440 | Episode:     3674
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.2240	grad_norm:                12.9314
+loss:                      0.1075	q_taken_mean:              1.3370	return_mean:               2.2395	return_std:                3.9950
+target_mean:               1.3513	td_error_abs:              0.1896	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.4000
+test_return_mean:          4.0000	test_return_std:           0.0000	
+[INFO 17:22:12] my_main t_env: 220500 / 400000
+[INFO 17:22:12] my_main Estimated time left: 4 minutes, 19 seconds. Time passed: 5 minutes, 21 seconds
+[INFO 17:22:40] my_main Saving models to C:\AFML_project\results\mode_t\runs\qmix_d0_s4\models\qmix_seed4_coalition_layout_2026-11-07_17-16-42\240180
+[INFO 17:22:41] my_main Recent Stats | t_env:     240480 | Episode:     4008
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.3269	grad_norm:                 6.4104
+loss:                      0.0785	q_taken_mean:              1.3367	return_mean:               3.2695	return_std:                4.5569
+target_mean:               1.3383	td_error_abs:              0.1474	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.6000
+test_return_mean:          6.0000	test_return_std:           0.0000	
+[INFO 17:22:41] my_main t_env: 240540 / 400000
+[INFO 17:22:41] my_main Estimated time left: 3 minutes, 48 seconds. Time passed: 5 minutes, 50 seconds
+[INFO 17:23:09] my_main Recent Stats | t_env:     260520 | Episode:     4342
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.4515	grad_norm:                 5.5711
+loss:                      0.0889	q_taken_mean:              1.2927	return_mean:               4.5150	return_std:                4.7401
+target_mean:               1.2917	td_error_abs:              0.1497	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.6000
+test_return_mean:          6.0000	test_return_std:           0.0000	
+[INFO 17:23:09] my_main t_env: 260580 / 400000
+[INFO 17:23:09] my_main Estimated time left: 3 minutes, 19 seconds. Time passed: 6 minutes, 18 seconds
+[INFO 17:23:38] my_main Saving models to C:\AFML_project\results\mode_t\runs\qmix_d0_s4\models\qmix_seed4_coalition_layout_2026-11-07_17-16-42\280200
+[INFO 17:23:39] my_main Recent Stats | t_env:     280560 | Episode:     4676
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.6120	grad_norm:                 4.8301
+loss:                      0.1490	q_taken_mean:              1.2560	return_mean:               6.1198	return_std:                4.7250
+target_mean:               1.2520	td_error_abs:              0.1638	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.8000
+test_return_mean:          8.0000	test_return_std:           0.0000	
+[INFO 17:23:39] my_main t_env: 280620 / 400000
+[INFO 17:23:39] my_main Estimated time left: 2 minutes, 53 seconds. Time passed: 6 minutes, 48 seconds
+[INFO 17:24:07] my_main Recent Stats | t_env:     300600 | Episode:     5010
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.7581	grad_norm:                10.0889
+loss:                      0.2018	q_taken_mean:              1.2230	return_mean:               7.5808	return_std:                4.1878
+target_mean:               1.2344	td_error_abs:              0.1861	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.8000
+test_return_mean:          8.0000	test_return_std:           0.0000	
+[INFO 17:24:07] my_main t_env: 300660 / 400000
+[INFO 17:24:07] my_main Estimated time left: 2 minutes, 20 seconds. Time passed: 7 minutes, 16 seconds
+[INFO 17:24:35] my_main Saving models to C:\AFML_project\results\mode_t\runs\qmix_d0_s4\models\qmix_seed4_coalition_layout_2026-11-07_17-16-42\320220
+[INFO 17:24:36] my_main Recent Stats | t_env:     320640 | Episode:     5344
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.8251	grad_norm:                 8.8943
+loss:                      0.1707	q_taken_mean:              1.1754	return_mean:               8.2515	return_std:                3.6700
+target_mean:               1.1860	td_error_abs:              0.1833	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.8000
+test_return_mean:          8.0000	test_return_std:           0.0000	
+[INFO 17:24:36] my_main t_env: 320700 / 400000
+[INFO 17:24:36] my_main Estimated time left: 1 minutes, 53 seconds. Time passed: 7 minutes, 45 seconds
+[INFO 17:25:04] my_main Recent Stats | t_env:     340680 | Episode:     5678
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.8826	grad_norm:                 8.3382
+loss:                      0.1499	q_taken_mean:              1.1997	return_mean:               8.8263	return_std:                3.1770
+target_mean:               1.2082	td_error_abs:              0.1836	test_ep_length_mean:      60.0000	test_events_completed_mean:  0.8000
+test_return_mean:          8.0000	test_return_std:           0.0000	
+[INFO 17:25:04] my_main t_env: 340740 / 400000
+[INFO 17:25:04] my_main Estimated time left: 1 minutes, 24 seconds. Time passed: 8 minutes, 13 seconds
+[INFO 17:25:32] my_main Saving models to C:\AFML_project\results\mode_t\runs\qmix_d0_s4\models\qmix_seed4_coalition_layout_2026-11-07_17-16-42\360240
+[INFO 17:25:33] my_main Recent Stats | t_env:     360720 | Episode:     6012
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.9186	grad_norm:                 6.5553
+loss:                      0.1618	q_taken_mean:              1.2014	return_mean:               9.1856	return_std:                2.5305
+target_mean:               1.1980	td_error_abs:              0.1800	test_ep_length_mean:      60.0000	test_events_completed_mean:  1.0000
+test_return_mean:         10.0000	test_return_std:           0.0000	
+[INFO 17:25:33] my_main t_env: 360780 / 400000
+[INFO 17:25:33] my_main Estimated time left: 56 seconds. Time passed: 8 minutes, 42 seconds
+[INFO 17:26:02] my_main Recent Stats | t_env:     380760 | Episode:     6346
+ep_length_mean:           60.0000	epsilon:                   0.0500	events_completed_mean:     0.9605	grad_norm:                 6.7241
+loss:                      0.1332	q_taken_mean:              1.2225	return_mean:               9.6048	return_std:                1.9070
+target_mean:               1.2112	td_error_abs:              0.1795	test_ep_length_mean:      60.0000	test_events_completed_mean:  1.0000
+test_return_mean:         10.0000	test_return_std:           0.0000	
+[INFO 17:26:02] my_main t_env: 380820 / 400000
+[INFO 17:26:02] my_main Estimated time left: 27 seconds. Time passed: 9 minutes, 11 seconds
+[INFO 17:26:29] my_main Finished Training
+[DEBUG 17:26:30] my_main Finished after 0:09:48.
+[INFO 17:26:30] pymarl Completed after 0:09:48
+Exiting Main
+Stopping all threads
+Thread Thread-19 is alive! Is daemon: False
+Thread joined
+Exiting script
+[DEBUG 17:26:30] pymarl Stopping Heartbeat
