@@ -150,9 +150,11 @@ def report():
     out += ["## B2. Do the Mode P verdicts change?", "",
             "The pre-registered tests that score method credit against the removal target were re-run on the "
             "re-scored cells (`scripts/analyse_hypotheses.py results/mode_p/main_closed_loop`): H1a, H2, H2′ and H5's "
-            "end-to-end side. **H0 and H1b are not re-tested**: H0 compares two *open-loop* nulls, and H1b scores "
-            "per-step counterfactuals that would need to be regenerated; the file `hypotheses.md` in the re-scored "
-            "folder repeats their open-loop values.", ""]
+            "end-to-end side. H0 and H1b need quantities this script does not compute (a closed-loop no-op null and "
+            "regenerated per-step counterfactuals); `scripts/sensitivity_loop_h0_h1b.py` adds them to the same cells. "
+            + ("They have been added, so the lines below include H0 and H1b under the closed-loop truth."
+               if all(r.get("h0_h1b_closed_loop") for r in recs) else
+               "Until it has run, `hypotheses.md` in the re-scored folder repeats their open-loop values."), ""]
     if changed is None:
         out += ["(the verdict lines of the two files do not line up; compare `hypotheses.md` in both folders by hand)"]
     elif not changed:
