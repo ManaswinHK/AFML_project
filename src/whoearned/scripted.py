@@ -81,6 +81,15 @@ class ScriptedTeam:
     def reset(self, env: PlantedCoalitionGridworld):
         self.rngs = [np.random.default_rng([self.seed, i]) for i in range(self.config.n_agents)]
 
+    def get_rng_state(self) -> list:
+        """Per-agent random-stream states: with ``env.clone()`` this snapshots the whole team-env
+        system, so a counterfactual continuation can branch with common random numbers."""
+        return [r.bit_generator.state for r in self.rngs]
+
+    def set_rng_state(self, states: list) -> None:
+        for r, st in zip(self.rngs, states):
+            r.bit_generator.state = st
+
     def act(self, env: PlantedCoalitionGridworld) -> list[int]:
         """Actions for all agents. Also sets ``last_probs`` (n, N_ACTIONS): the exact
         probability the team assigned to each action this step (the behaviour policy)."""
@@ -131,8 +140,12 @@ class ScriptedTeam:
         return None
 
     def _finish_feasible(self, env, k) -> bool:
+        """Can event k still complete? Every enabler must be present *or have already pulled*
+        (a pulled lever stays pulled after its enabler leaves, v3 Phase 0.3), and for an
+        all-or-nothing event every co-finisher must be present. Agents stopped under the no-op
+        null still count as present: teammates are not told."""
         ev = self.config.events[k]
-        if not all(env.present[e] for e in ev.enablers):
+        if not all(env.present[e] or env.pulled[k][e] for e in ev.enablers):
             return False
         return ev.partial or all(env.present[f] for f in ev.finishers)
 
