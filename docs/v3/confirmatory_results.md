@@ -409,8 +409,18 @@ Pre-registration: `docs/v3/preregistration_v3.md` (frozen at a08b267). Seeds 5-9
 
 ## P11a: size transfer: the transferred set critic keeps exactly the coalition (top-k above P11a_topk)
 
-**ERROR**: FileNotFoundError(2, 'No such file or directory')
+**SUPPORTED** (2/2 conditions)
+
+| condition | n | estimate | test | p (Holm) | Wilcoxon p | supported |
+|---|---|---|---|---|---|---|
+| b2->b4 | 5 | 1.000 (sd 0.000) | mean vs 0.9 | 0.0000 | 0.031 | yes |
+| b4->b2 | 5 | 1.000 (sd 0.000) | mean vs 0.9 | 0.0000 | 0.031 | yes |
 
 ## P11b: size transfer: transferred critic below the equal split by more than P11b_gap
 
-**ERROR**: FileNotFoundError(2, 'No such file or directory')
+**SUPPORTED** (2/2 conditions)
+
+| condition | n | estimate | test | p (Holm) | Wilcoxon p | supported |
+|---|---|---|---|---|---|---|
+| b2->b4 | 5 | 0.602 vs 1.143 (diff 0.541) | diff > 0.3 | 0.0001 | 0.031 | yes |
+| b4->b2 | 5 | 0.285 vs 0.800 (diff 0.515) | diff > 0.3 | 0.0000 | 0.031 | yes |
