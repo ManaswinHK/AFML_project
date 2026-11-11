@@ -1,0 +1,24 @@
+
+out_main: learned critic with interventions; mean over seeds
+layout d b es seeds | pathwise vs open: L1 leak missed | expected vs open: L1 leak missed | expected vs closed: L1 leak | no-int expected vs open L1
+coalition  0 2  0 5 | 0.097 0.009 0.010 | 0.114 0.019 0.018 | 0.040 0.019 | 0.995
+coalition  0 2 12 5 | 0.113 0.007 0.009 | 0.169 0.043 0.037 | 0.086 0.043 | 0.975
+coalition  0 4  0 3 | 0.192 0.020 0.015 | 0.190 0.017 0.013 | 0.034 0.017 | 1.193
+coalition  0 4 12 3 | 0.265 0.056 0.039 | 0.276 0.061 0.043 | 0.122 0.061 | 1.138
+coalition 25 2  0 5 | 0.100 0.010 0.008 | 0.117 0.020 0.018 | 0.043 0.020 | 0.922
+coalition 25 2 12 5 | 0.113 0.007 0.008 | 0.164 0.040 0.033 | 0.081 0.040 | 0.920
+coalition 25 4  0 3 | 0.202 0.027 0.020 | 0.189 0.016 0.012 | 0.032 0.016 | 1.426
+coalition 25 4 12 3 | 0.211 0.016 0.011 | 0.255 0.047 0.033 | 0.093 0.047 | 1.396
+coalition 50 2  0 5 | 0.092 0.006 0.005 | 0.107 0.015 0.012 | 0.031 0.015 | 0.980
+coalition 50 2 12 5 | 0.116 0.010 0.011 | 0.156 0.035 0.031 | 0.070 0.035 | 0.862
+coalition 50 4  0 3 | 0.185 0.014 0.003 | 0.201 0.025 0.011 | 0.051 0.025 | 1.364
+coalition 50 4 12 3 | 0.219 0.024 0.011 | 0.256 0.047 0.028 | 0.095 0.047 | 1.362
+
+out_h3: learned critic with interventions; mean over seeds
+layout d b es seeds | pathwise vs open: L1 leak missed | expected vs open: L1 leak missed | expected vs closed: L1 leak | no-int expected vs open L1
+overlap    0 1  0 5 | 0.108 0.005 0.033 | 0.114 0.010 0.040 | 0.027 0.010 | 0.532
+overlap   25 1  0 5 | 0.106 0.005 0.035 | 0.116 0.012 0.046 | 0.029 0.012 | 0.638
+overlap   50 1  0 5 | 0.102 0.003 0.036 | 0.112 0.008 0.048 | 0.027 0.008 | 0.543
+partial    0 2  0 5 | 0.589 0.276 0.135 | 0.421 0.090 0.035 | 0.472 0.090 | 1.161
+partial   25 2  0 5 | 0.585 0.277 0.132 | 0.414 0.090 0.035 | 0.472 0.090 | 1.301
+partial   50 2  0 5 | 0.588 0.277 0.134 | 0.431 0.110 0.037 | 0.490 0.110 | 1.323

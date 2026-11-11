@@ -1,0 +1,110 @@
+{
+ "K1_b0_team": {
+  "final_mean": 0.9997999999999999,
+  "final_sd": 0.0002666666666666484,
+  "solved": 20,
+  "median_rounds": 215
+ },
+ "K1_b0_loo": {
+  "final_mean": 0.9997999999999999,
+  "final_sd": 0.0002666666666666484,
+  "solved": 20,
+  "median_rounds": 215
+ },
+ "K1_b0_shapley": {
+  "final_mean": 0.9995833333333334,
+  "final_sd": 0.00039264063297965153,
+  "solved": 20,
+  "median_rounds": 266
+ },
+ "K1_b4_team": {
+  "final_mean": 0.9997666666666667,
+  "final_sd": 0.00023804761428475408,
+  "solved": 20,
+  "median_rounds": 216
+ },
+ "K1_b4_loo": {
+  "final_mean": 0.9997666666666667,
+  "final_sd": 0.00023804761428475408,
+  "solved": 20,
+  "median_rounds": 216
+ },
+ "K1_b4_shapley": {
+  "final_mean": 0.9995499999999999,
+  "final_sd": 0.0003210226714042773,
+  "solved": 20,
+  "median_rounds": 277
+ },
+ "K2_b0_team": {
+  "final_mean": 0.9997416666666666,
+  "final_sd": 0.00023258809561589762,
+  "solved": 20,
+  "median_rounds": 260
+ },
+ "K2_b0_loo": {
+  "final_mean": 0.9997416666666668,
+  "final_sd": 0.00023258809561589762,
+  "solved": 20,
+  "median_rounds": 258
+ },
+ "K2_b0_shapley": {
+  "final_mean": 0.9995,
+  "final_sd": 0.00026352313834733943,
+  "solved": 20,
+  "median_rounds": 364
+ },
+ "K4_b0_team": {
+  "final_mean": 0.9997333333333334,
+  "final_sd": 0.00012247448713918846,
+  "solved": 20,
+  "median_rounds": 405
+ },
+ "K4_b0_loo": {
+  "final_mean": 0.9997291666666666,
+  "final_sd": 0.00011141451630936831,
+  "solved": 20,
+  "median_rounds": 358
+ },
+ "K4_b0_shapley": {
+  "final_mean": 0.9993875000000001,
+  "final_sd": 0.00015651366642492444,
+  "solved": 20,
+  "median_rounds": 550
+ },
+ "K8_b0_team": {
+  "final_mean": 0.9871645833333332,
+  "final_sd": 0.037471705703084966,
+  "solved": 18,
+  "median_rounds": 1961
+ },
+ "K8_b0_loo": {
+  "final_mean": 0.9996875,
+  "final_sd": 0.00010663736576724358,
+  "solved": 20,
+  "median_rounds": 648
+ },
+ "K8_b0_shapley": {
+  "final_mean": 0.9993479166666667,
+  "final_sd": 0.00012657000149232948,
+  "solved": 20,
+  "median_rounds": 1009
+ },
+ "K4_b4_team": {
+  "final_mean": 0.9996583333333333,
+  "final_sd": 0.00016645820296201262,
+  "solved": 20,
+  "median_rounds": 427
+ },
+ "K4_b4_loo": {
+  "final_mean": 0.9996708333333333,
+  "final_sd": 0.00017965050947761098,
+  "solved": 20,
+  "median_rounds": 352
+ },
+ "K4_b4_shapley": {
+  "final_mean": 0.9994083333333335,
+  "final_sd": 0.00021392496088323712,
+  "solved": 20,
+  "median_rounds": 544
+ }
+}
