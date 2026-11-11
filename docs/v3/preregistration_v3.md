@@ -1,6 +1,6 @@
 # Pre-registration v3: credit by intervention
 
-**Status: DRAFT until the commit titled "Freeze pre-registration v3". No confirmatory Mode P cell (seeds 5–9) is run before that commit.** Phase 3 (the headroom gate) has its own frozen pre-registration: `docs/v3/preregistration_v3_phase3.md`.
+**Status: FROZEN** by the commit titled "Freeze pre-registration v3". No confirmatory Mode P cell (seeds 5–9) existed before it. Phase 3 (the headroom gate) has its own frozen pre-registration: `docs/v3/preregistration_v3_phase3.md`.
 
 Authors: team Aporia. Date: 11–12 Nov 2026. Supersedes nothing: it pre-registers new hypotheses on fresh seeds. The earlier pre-registrations (`docs/h5_preregistration.md`, `docs/preregistration_amendment.md`) and their results stand, as qualified in `docs/v3/errata.md`.
 
@@ -75,7 +75,7 @@ Notation:
 | P8b | … and beats the MLP | perm | paired, atd − atd_set > 0.25 | 0.45, 0.86 |
 | P8c-a | … recovers coalition structure | perm | dividend error (own null) of `atd_set` < 0.40 | 0.06, 0.33 |
 | P8c-b | … better than ECE-3_mix | perm | paired, ece3 − set dividend error > 0 | 0.21 vs 0.06; 0.68 vs 0.33 |
-| P8d | The set critic's advantage does not depend on role flags | perm | paired, atd_noroles − atd_set_noroles > {{P8D}} | {{P8D_PILOT}} |
+| P8d | The set critic's advantage does not depend on role flags | perm | paired, atd_noroles − atd_set_noroles > 0.25 | 0.59, 0.88 |
 | **E. Better data or better read-out (V2)** | | | | |
 | P9a | MAPPO trained on stops: the masked read-out beats its standard read-out | main | paired, standard − masked > 0.50 | 1.5 |
 | P9b | QMIX trained on stops: masked vs standard | main, d > 0 | **two-sided, descriptive** (the pilot contradicted the plan's direction) | 0.78 vs 0.70 |

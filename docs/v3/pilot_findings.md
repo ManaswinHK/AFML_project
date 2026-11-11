@@ -93,9 +93,14 @@ The transferred critic always picks exactly the right coalition and gets the tim
 - Pre-registered: only the robust part (top-3 ≥ 90%, and clearly below the equal split).
 - Mixed-size training is the natural fix and is left as follow-up.
 
-## 7. Role flags hidden (`pilot_roles`)
+## 7. Role flags hidden (`pilot_roles`, shuffled roles, seeds 0–2)
 
-Pending at the time of writing; filled in before the pre-registration is frozen.
+| | MLP | MLP, roles hidden | Set | Set, roles hidden |
+|---|---|---|---|---|
+| b = 2: L1 / step r / top-3 | 0.46 / 0.76 / 62% | 0.60 / 0.64 / 44% | 0.002 / 0.999 / 100% | **0.003** / 0.86 / 100% |
+| b = 4 | 0.86 / 0.48 / 26% | 0.90 / 0.35 / 12% | 0.006 / 0.993 / 100% | **0.015** / 0.81 / 100% |
+
+**The set critic's advantage does not depend on role flags.** With roles hidden, it must infer roles from positions (as in round 2's Test E), and its episode credit stays near exact. Only per-step timing degrades (r 0.81–0.86): before the lever is pulled, the enabler is identifiable only by where it is heading. The MLP is worse without flags, as expected.
 
 ## 8. Decisions taken from these pilots
 
