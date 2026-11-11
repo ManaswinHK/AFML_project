@@ -35,12 +35,12 @@ GRIDS = {
     "feasibility_k8": dict(algs=("ippo",), Ks=(8,), arms=("team", "difference"), seeds=(0,), t_max=2_000_000),
     # 3.4 / 3.5 the gate (pre-registered in docs/v3/preregistration_v3.md): seeds 5-9.
     "gate": dict(algs=("ippo",), Ks=(1, 2, 4, 8), arms=("team", "team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
-                 t_max={1: 400_000, 2: 800_000, 4: 1_600_000, 8: 3_000_000}),
+                 t_max={1: 400_000, 2: 800_000, 4: 1_200_000, 8: 2_000_000}),
     # Phase 4.1: MAPPO with random persistent stops during training (dropout p), checkpoints for 4.2
     "phase4": dict(algs=("mappo",), Ks=(4,), arms=("team",), seeds=(5, 6, 7), t_max=1_600_000,
                    dropout=(0.0, 0.25), save_models=True),
     "gate_mappo": dict(algs=("mappo",), Ks=(1, 8), arms=("team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
-                       t_max={1: 400_000, 8: 3_000_000}),
+                       t_max={1: 400_000, 8: 2_000_000}),
 }
 
 
