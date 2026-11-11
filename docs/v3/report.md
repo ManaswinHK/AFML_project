@@ -74,7 +74,36 @@ All are covered by tests (`tests/test_v3_phase0.py`, 23 tests).
 
 ## 5. Does credit change learning? (Phase 3)
 
-{{PHASE3}}
+Pre-registration: `preregistration_v3_phase3.md` (frozen before any gate run). Full tables: `phase3_results.md`. Figure: `figures/gate_curves.png`.
+
+**Setting.** K walled lanes (one enabler + one finisher each, reward 10), IPPO from EPyMARL with default hyperparameters (shared parameters), seeds 5–9. Three arms:
+- **team reward**;
+- **team_vector**: the team reward delivered per agent, a control for the per-agent-reward code path;
+- **difference**: exact difference rewards from lockstep shadow copies, r − r^(−i).
+
+Metric: episodes to 90% greedy test success.
+
+| K | team | difference | ratio (diff/team) | team_vector / team |
+|---|---|---|---|---|
+| 1 | 2,730 | 2,730 | **1.00** | 1.00 |
+| 2 | 13,846 (2 runs stuck at 0.5) | 7,208 (1 stuck) | 0.52 | 1.00 |
+| 4 | 1,370 | 810 | 0.59 | 1.00 |
+| 8 | 1,370 | 570 | **0.42** (per seed 0.25–0.67) | 1.00 |
+
+| Hypothesis | Verdict |
+|---|---|
+| H3.1: no headroom with one event (ratio in [0.8, 1.25] at K = 1) | **Supported** (1.00) |
+| H3.2: headroom with many events (K = 8, log ratio < log 0.67) | **Supported** (mean ratio 0.40, p = 0.018) |
+| H3.3: the per-agent-reward control is inert | **Supported** (1.00 at every K) |
+| H3.4: headroom grows monotonically with K | Not monotone (ρ = −0.40; K = 2 is the exception) |
+
+**Reading.**
+- **The gate opens.** Exact *realised* credit speeds up learning about 2.5× at K = 8, and not at all with one event, exactly as `theory.md` §7 predicts. It is the classical difference-rewards effect, now measured against the same benchmark's ground truth.
+- It also says **where** the project's original learning claim ("wrong credit trains wrong behaviour") can live: in tasks where the team reward mixes many unrelated events. The single-coalition layout (H4) could never show it.
+- **K = 2 is an exploration pathology, not a credit effect.** Stuck runs plateau at exactly 0.5 success: one lane solved, the other never. It hits both arms (2/5 team, 1/5 difference), so it does not favour either.
+- **Caveat on resolution.** With shared parameters, K = 8 learns *faster* per environment step than K = 1 (one policy gets 2K agents' experience), so episodes-to-90% falls on 2–4 test points of the pre-registered 10k-step test interval. Ratios are therefore coarse (multiples of about 1/3). Addendum A (post-hoc) re-runs at 5× resolution, and without parameter sharing, below.
+
+{{PHASE3_ADDENDUM}}
 
 ## 6. Credit for free from robustness training? (Phase 4)
 
