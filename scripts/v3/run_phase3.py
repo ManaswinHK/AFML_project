@@ -36,6 +36,11 @@ GRIDS = {
     # 3.4 / 3.5 the gate (pre-registered in docs/v3/preregistration_v3.md): seeds 5-9.
     "gate": dict(algs=("ippo",), Ks=(1, 2, 4, 8), arms=("team", "team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
                  t_max={1: 400_000, 2: 800_000, 4: 1_200_000, 8: 2_000_000}),
+    # Addendum A (post-hoc): finer test resolution, and no parameter sharing
+    "gate_fine": dict(algs=("ippo",), Ks=(1, 2, 4, 8), arms=("team", "team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
+                      t_max={1: 400_000, 2: 800_000, 4: 1_200_000, 8: 2_000_000}, test_interval=2000),
+    "gate_ns": dict(algs=("ippo_ns",), Ks=(1, 2, 4, 8), arms=("team", "team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
+                    t_max={1: 400_000, 2: 800_000, 4: 1_200_000, 8: 2_000_000}, test_interval=2000),
     # Phase 4.1: MAPPO with random persistent stops during training (dropout p), checkpoints for 4.2
     "phase4": dict(algs=("mappo",), Ks=(4,), arms=("team",), seeds=(5, 6, 7), t_max=1_600_000,
                    dropout=(0.0, 0.25), save_models=True),
@@ -48,7 +53,7 @@ def run_name(alg, K, arm, seed, p=0.0):
     return f"{alg}_K{K}_{arm}_s{seed}" + (f"_drop{p}" if p else "")
 
 
-def train_one(grid, alg, K, arm, seed, t_max, p=0.0, save_models=False):
+def train_one(grid, alg, K, arm, seed, t_max, p=0.0, save_models=False, test_interval=None):
     run_dir = os.path.join(OUT, grid, run_name(alg, K, arm, seed, p))
     if os.path.exists(os.path.join(run_dir, "run_info.json")):
         return f"skip {run_dir}"
@@ -58,6 +63,8 @@ def train_one(grid, alg, K, arm, seed, t_max, p=0.0, save_models=False):
            "--env-config=planted_lanes", "with", f"seed={seed}", f"t_max={t_max}", "use_cuda=False",
            f"env_args.layout_kwargs.n_events={K}", f"common_reward={common}", f"env_args.reward_mode={mode}",
            f"env_args.dropout_p={p}", f"env_args.dropout_seed={seed}"]
+    if test_interval:
+        cmd += [f"test_interval={test_interval}"]
     cmd += ([f"save_model=True", f"save_model_interval={t_max // 10}", f"local_results_path={run_dir}"]
             if save_models else ["save_model=False"])
     env = dict(os.environ, WHOEARNED_SACRED_DIR=run_dir, OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
@@ -101,13 +108,16 @@ def curve(run_dir):
     return np.array(m[key]["steps"]), np.array(m[key]["values"])
 
 
-def episodes_to(run_dir, level=0.9):
+def episodes_to(run_dir, level=0.9, t_max=None):
+    """Episodes to the first test point >= level; censored runs return t_max / HORIZON (flag in the summary)."""
     c = curve(run_dir)
     if c is None:
         return None
     steps, vals = c
     hit = np.flatnonzero(vals >= level)
-    return float(steps[hit[0]] / HORIZON) if len(hit) else None
+    if len(hit):
+        return float(steps[hit[0]] / HORIZON)
+    return None if t_max is None else float(t_max / HORIZON)
 
 
 def main():
@@ -128,7 +138,8 @@ def main():
         tmax = lambda K: g["t_max"][K] if isinstance(g["t_max"], dict) else g["t_max"]
         # longest runs first, so the pool is not left waiting on one big run at the end
         jobs.sort(key=lambda j: -tmax(j[1]))
-        futs = [ex.submit(train_one, a.grid, alg, K, arm, s, tmax(K), p, g.get("save_models", False))
+        futs = [ex.submit(train_one, a.grid, alg, K, arm, s, tmax(K), p, g.get("save_models", False),
+                          g.get("test_interval"))
                 for alg, K, arm, s, p in jobs]
         for f in as_completed(futs):
             print(f.result(), flush=True)

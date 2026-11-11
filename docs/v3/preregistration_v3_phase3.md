@@ -40,3 +40,18 @@ The plan's arm (c), ablation-TD credit from a critic trained alongside, is not r
 - The second launch ran for about one minute (at most about 20k steps per run, 3 runs) and was then stopped to add the early stop below. Its partial logs were deleted without any success value being read. All gate runs restart from scratch.
 - The third launch ran for about 5 minutes (at most about 60k steps per K = 8 run) and was killed by an operator error: a process clean-up pattern also matched the gate's reparented processes. No run had finished, no success value was read, and the partial logs were deleted. The gate was restarted from scratch at 00:12 on 12 Nov.
 - **Early stop:** a run is stopped once its last 5 consecutive test points (50k steps) are ≥ 0.9. This changes no pre-registered quantity: episodes-to-90% is the *first* test point ≥ 0.9, which is fixed by then. Runs that never stabilise run to their budget. Each run records `stopped_early` in `run_info.json`.
+
+## Addendum A (post-hoc; written at 00:20 on 12 Nov, after seeing the first K = 8 curves of seed 5, team and difference)
+
+**What was seen.** With parameter sharing (EPyMARL's default `ippo`), K = 8 learns *faster* per environment step than K = 1: one shared policy receives 2K agents' experience per step. Seed 5 reached test success 0.99 (difference) by 20k steps and 0.94 (team) by 30k. The pre-registered test interval (10k steps = 400 episodes) is therefore too coarse: episodes-to-90% falls on 2–4 test points.
+
+**What stays as pre-registered.** H3.1–H3.4 are analysed exactly as written above and reported first, with this caveat.
+
+**Supplementary analyses (post-hoc, labelled as such wherever reported):**
+- **A1, resolution:** the same grid (`gate_fine`) with `test_interval` = 2,000 steps (80 episodes) and 32 test episodes. Same hypotheses, same thresholds.
+- **A2, no parameter sharing:** the same grid with `ippo_ns` (EPyMARL's non-shared IPPO; `gate_ns`), `test_interval` = 2,000. Rationale (theory §7):
+  - with shared parameters, a lane's team-reward noise is averaged over 2K agents' samples of one policy;
+  - without sharing, each agent learns only from its own samples, so the other lanes' rewards are pure noise in its signal;
+  - this is the setting of the round-1 toy and of Wolpert & Tumer.
+
+  **Prediction:** the difference/team ratio at K = 8 is smaller (more headroom) without sharing than with it.
