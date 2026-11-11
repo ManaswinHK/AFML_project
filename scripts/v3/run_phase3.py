@@ -50,7 +50,7 @@ def run_name(alg, K, arm, seed, p=0.0):
 
 def train_one(grid, alg, K, arm, seed, t_max, p=0.0, save_models=False):
     run_dir = os.path.join(OUT, grid, run_name(alg, K, arm, seed, p))
-    if glob.glob(os.path.join(run_dir, "*", "metrics.json")):
+    if os.path.exists(os.path.join(run_dir, "run_info.json")):
         return f"skip {run_dir}"
     os.makedirs(run_dir, exist_ok=True)
     common, mode = ARMS[arm]
@@ -62,9 +62,31 @@ def train_one(grid, alg, K, arm, seed, t_max, p=0.0, save_models=False):
             if save_models else ["save_model=False"])
     env = dict(os.environ, WHOEARNED_SACRED_DIR=run_dir, OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
     t0 = time.time()
+    stopped_early = False
     with open(os.path.join(run_dir, "stdout.log"), "w") as log:
-        rc = subprocess.run(cmd, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT).returncode
-    return f"{run_name(alg, K, arm, seed, p)} rc={rc} {time.time() - t0:.0f}s"
+        proc = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
+        while proc.poll() is None:
+            time.sleep(20)
+            # Early stop (does not change any pre-registered quantity): episodes-to-90% is fixed at the first
+            # test point >= 0.9; once 5 consecutive test points are >= 0.9 the crossing is also shown stable.
+            if not save_models and stable_success(run_dir, EARLY_STOP_LEVEL, EARLY_STOP_RUN):
+                proc.terminate()
+                proc.wait(timeout=60)
+                stopped_early = True
+        rc = proc.returncode
+    with open(os.path.join(run_dir, "run_info.json"), "w") as f:
+        json.dump({"rc": rc, "seconds": time.time() - t0, "stopped_early": stopped_early, "t_max": t_max}, f)
+    return f"{run_name(alg, K, arm, seed, p)} rc={rc} early={stopped_early} {time.time() - t0:.0f}s"
+
+
+EARLY_STOP_LEVEL, EARLY_STOP_RUN = 0.9, 5
+
+
+def stable_success(run_dir, level, run_length):
+    c = curve(run_dir)
+    if c is None or len(c[1]) < run_length:
+        return False
+    return bool(np.all(c[1][-run_length:] >= level))
 
 
 def curve(run_dir):

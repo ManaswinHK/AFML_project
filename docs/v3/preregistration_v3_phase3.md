@@ -33,3 +33,8 @@ Does exact credit change how fast a team learns, and when? `docs/v3/theory.md` �
 ## Not run, and why
 
 The plan's arm (c), ablation-TD credit from a critic trained alongside, is not run. With exact critics its per-agent advantage *equals* the team TD error (`theory.md` §7), so it can only differ from the team arm through critic error. `team_vector` controls the per-agent-reward code path instead.
+
+## Implementation notes (added before any gate data existed)
+
+- The first launch failed in 2 s per run: sacred rejects env keys not declared in `configs/envs/planted_lanes.yaml`, and `dropout_p` was not declared. No run produced data. The keys were declared and the gate relaunched.
+- **Early stop:** a run is stopped once its last 5 consecutive test points (50k steps) are ≥ 0.9. This changes no pre-registered quantity: episodes-to-90% is the *first* test point ≥ 0.9, which is fixed by then. Runs that never stabilise run to their budget. Each run records `stopped_early` in `run_info.json`.
