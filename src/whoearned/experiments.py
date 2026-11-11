@@ -156,6 +156,9 @@ class DataCell:
 
     def env_args(self) -> dict:
         """EPyMARL env_args that build the same configuration as :meth:`config`."""
+        if self.layout == "double":
+            return {"map_name": "double_enabler_layout",
+                    "layout_kwargs": {"n_bystanders": self.n_bystanders, "delay": self.delay, "horizon": self.horizon}}
         if self.layout == "overlap":
             return {"map_name": "overlap_example", "layout_kwargs": {"delay": self.delay, "horizon": self.horizon}}
         return {"map_name": "coalition_layout",
@@ -181,6 +184,9 @@ class DataCell:
     def config(self):
         if self.layout == "overlap":
             return overlap_example(delay=self.delay, horizon=self.horizon)
+        if self.layout == "double":
+            from whoearned.envs.layouts import double_enabler_layout
+            return double_enabler_layout(self.n_bystanders, delay=self.delay, horizon=self.horizon)
         if self.layout not in ("coalition", "partial"):
             raise ValueError(f"unknown layout {self.layout!r}")
         return coalition_layout(self.n_bystanders, delay=self.delay, horizon=self.horizon,

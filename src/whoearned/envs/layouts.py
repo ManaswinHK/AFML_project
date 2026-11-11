@@ -148,3 +148,22 @@ def multi_event_layout(n_events: int = 2, delay: int = 0, horizon: int = 25, lan
     starts += [(3 * n_events, c) for c in range(n_bystanders)]
     return GridConfig(n_agents=2 * n_events + n_bystanders, height=height, width=lane_length, horizon=horizon, delay=delay,
                       start_cells=tuple(starts), events=tuple(events), walls=walls)
+
+
+def double_enabler_layout(n_bystanders: int = 2, delay: int = 15, horizon: int = 60) -> GridConfig:
+    """Order-4 coalition (v3 Phase 2.4, the "size k + 1" honesty check): two enablers must both pull before
+    two finishers can complete. The only non-zero Harsanyi dividend is on all four, so a coalition model
+    limited to order 3 cannot represent it.
+
+        A1..l.....      A1 (agent 0) pulls (0, 4)
+        A2..l.....      A2 (agent 1) pulls (1, 4)
+        B.......g.      B (agent 2) and C (agent 3) finish together on (2, 8), (3, 8)
+        C.......g.
+        ....D.E...      bystanders (agents 4..)
+    """
+    if not 0 <= n_bystanders <= len(BYSTANDER_SLOTS):
+        raise ValueError(f"n_bystanders must be in 0..{len(BYSTANDER_SLOTS)}")
+    event = EventSpec(enablers=(0, 1), finishers=(2, 3), reward=10.0,
+                      lever_cells={0: (0, 4), 1: (1, 4)}, goal_cells={2: (2, 8), 3: (3, 8)})
+    return GridConfig(n_agents=4 + n_bystanders, height=5, width=10, horizon=horizon, delay=delay,
+                      start_cells=((0, 0), (1, 0), (2, 0), (3, 0), *BYSTANDER_SLOTS[:n_bystanders]), events=(event,))

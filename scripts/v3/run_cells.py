@@ -63,6 +63,10 @@ GRIDS = {
     "pilot_fixed": (_main((0, 1)), PILOT_FIXED_ALGS),
     "pilot_perm": (_perm((0, 1, 2, 3, 4)), PILOT_PERM_ALGS),
     "pilot_h5": (_h5((0, 1), layouts=("overlap", "partial")), PILOT_H5_ALGS),
+    # ---- Phase 2.4 (descriptive, NOT pre-registered): order-4 coalition, seeds 5-9
+    "double_k4": ([DataCell(delay=d, n_bystanders=2, seed=s, horizon=80 if d >= 50 else 60, layout="double")
+                   for d in (0, 25) for s in CONFIRM_SEEDS],
+                  ("uniform", "atd", "atd_set", "atd_set_struct", "table3_mix", "ece3_mix", "atd_noint")),
     # ---- Phase 0.7: stored partial-layout cells at d > 0, re-run with the Markov state (same methods and seeds)
     "rerun_partial_h3": ([DataCell(delay=d, n_bystanders=2, seed=s, horizon=80 if d >= 50 else 60, layout="partial")
                           for d in (25, 50) for s in range(5)],

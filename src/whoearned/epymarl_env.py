@@ -19,7 +19,7 @@ from whoearned.envs import (
     overlap_example,
     running_example,
 )
-from whoearned.envs.layouts import multi_event_layout
+from whoearned.envs.layouts import double_enabler_layout, multi_event_layout
 from whoearned.envs.gridworld import GridConfig
 
 LAYOUTS = {
@@ -27,6 +27,7 @@ LAYOUTS = {
     "overlap_example": overlap_example,
     "coalition_layout": coalition_layout,
     "multi_event_layout": multi_event_layout,
+    "double_enabler_layout": double_enabler_layout,
 }
 # v3 Phase 3. "team": one shared reward (EPyMARL common_reward=True). "team_vector": every agent receives
 # the team reward as its own (common_reward=False), the control for "difference". "difference": exact
