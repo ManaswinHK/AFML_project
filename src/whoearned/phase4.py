@@ -48,6 +48,23 @@ class BranchableMacTeam(MacTeam):
         self.t = st["t"]
 
 
+@th.no_grad()
+def structural_credit(h, batch, n: int) -> np.ndarray:
+    """(B, n): V(s_0) - V(s_0 with agent i stopped), from the MAPPO critic (mean over agent heads)."""
+    states = batch["state"]
+    original = batch.data.transition_data["state"]
+    V0 = h.learner.critic(batch).squeeze(3).mean(-1)[:, 0]
+    out = []
+    for i in range(n):
+        batch.data.transition_data["state"] = th.tensor(ab.stopped_state(states.cpu().numpy(), n, (i,), "noop"),
+                                                        dtype=states.dtype)
+        try:
+            out.append((V0 - h.learner.critic(batch).squeeze(3).mean(-1)[:, 0]).cpu().numpy())
+        finally:
+            batch.data.transition_data["state"] = original
+    return np.stack(out, 1)
+
+
 def lanes_env_args(K: int, horizon: int = 25, lane_length: int = 4, n_bystanders: int = 0) -> dict:
     return {"map_name": "multi_event_layout",
             "layout_kwargs": {"n_events": K, "delay": 0, "horizon": horizon, "lane_length": lane_length,
@@ -72,17 +89,26 @@ def evaluate_checkpoint(path: str, K: int, n_test: int = 30, seed: int = 0, epsi
         episodes.append(Episode(cfg, f.actions, f.rewards, f.event_log, (1 << n) - 1))
         returns.append(f.total)
     batch = episodes_to_batch(h, episodes)
-    masked = masked_credit(h, "mappo", batch, [cfg] * n_test, "noop")["per_step"]       # (B, T, n)
+    masked = masked_credit(h, "mappo", batch, [cfg] * n_test, "noop")["per_step"]       # (B, T, n), pre-registered
     std = shared_advantage(h, batch)
+    # Post-hoc read-outs (docs/v3/report.md, Phase 4): (i) the gamma^t-weighted kappa, which telescopes as in
+    # theory Section 2; (ii) the structural read-out V(s_0) - W_{-i}(s_0): the critic against itself, so any
+    # calibration offset between the critic and realised returns cancels.
+    gamma = h.args.gamma
+    disc = gamma ** np.arange(masked.shape[1])
+    masked_disc = masked * disc[None, :, None]
+    struct = structural_credit(h, batch, n)
     enablers = sorted({e for ev in cfg.events for e in ev.enablers})
     bystanders = list(cfg.bystanders)
-    uniform_rows = []
+    uniform_rows, rows_disc, rows_struct = [], [], []
     for b, (f, W) in enumerate(zip(facts, truths)):
         k_true = ab.ablation_td_credit(f.rewards, W)          # (n, T)
         loo = k_true.sum(1)
         rows_masked.append(evaluate_against(masked[b].sum(0), loo, enablers, bystanders).as_dict())
         rows_std.append(evaluate_against(std[b].sum(0), loo, enablers, bystanders).as_dict())
         uniform_rows.append(evaluate_against(np.ones(n), loo, enablers, bystanders).as_dict())
+        rows_disc.append(evaluate_against(masked_disc[b].sum(0), loo, enablers, bystanders).as_dict())
+        rows_struct.append(evaluate_against(struct[b], loo, enablers, bystanders).as_dict())
         kh.append(masked[b].T)
         kt.append(k_true)
 
@@ -92,5 +118,7 @@ def evaluate_checkpoint(path: str, K: int, n_test: int = 30, seed: int = 0, epsi
     return {"return_mean": float(np.mean(returns)), "success": float(np.mean(returns)) / (10.0 * K),
             "masked_l1": mean(rows_masked, "l1"), "standard_l1": mean(rows_std, "l1"),
             "uniform_l1": mean(uniform_rows, "l1"), "masked_leakage": mean(rows_masked, "leakage"),
+            "posthoc_masked_disc_l1": mean(rows_disc, "l1"), "posthoc_struct_l1": mean(rows_struct, "l1"),
+            "posthoc_struct_leakage": mean(rows_struct, "leakage"),
             "masked_step_r": pearson(np.stack(kh), np.stack(kt)),
             "n_valid": sum(r["valid"] for r in rows_masked)}

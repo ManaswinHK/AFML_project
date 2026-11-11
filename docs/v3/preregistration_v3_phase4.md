@@ -24,3 +24,19 @@ Frozen at the commit that adds this file. No `phase4` run existed before it.
 | H4.4 | Fidelity over training (descriptive) | Masked L1 per checkpoint, both arms |
 
 Three seeds: these are directional predictions with descriptive statistics, not significance tests.
+
+## Addendum (post-hoc; written 12 Nov 02:25 after a 5-episode smoke test of seed 5's final checkpoints, before the full evaluation)
+
+**What was seen.**
+- With the pre-registered read-out (κ from MAPPO's critic at stopped states), both arms give an equal split (L1 ≈ 0.67).
+- Diagnosis:
+  - MAPPO's critic works in standardised, discounted units and is offset from the realised standardised return;
+  - κ compares the critic with the *realised* return, so the offset is shared by every agent and swamps the per-agent differences;
+  - separately, the implemented κ sums per-step terms without the γᵗ weights that make them telescope (theory §2 uses γᵗ). The same implementation is used by control V2 (P9a/P9b) in the frozen Mode P code.
+- The dropout-trained critic *does* encode the structure: at t = 0, stopping a lane member lowers V by 0.26–0.62, stopping a bystander by about 0–0.14. The no-dropout critic does not.
+
+**Post-hoc read-outs added (reported next to the pre-registered one, labelled post-hoc):**
+1. γᵗ-weighted κ (the theory's definition);
+2. **structural**: V(s₀) − V(s₀ with i stopped), the episode total of the commitment split's structural credit. The critic is compared only with itself, so calibration offsets cancel.
+
+H4.1–H4.4 are evaluated first exactly as pre-registered (κ as implemented). The same predictions are then reported for the two post-hoc read-outs, labelled as such.
