@@ -6,7 +6,25 @@ Team Aporia · 12 Nov 2026 · branch `intervention-credit-v3` · pre-registratio
 
 ## 0. Summary
 
-{{SUMMARY}}
+**One sentence.** Making agents *stop* during data collection turns "who earned the reward" into a quantity an ordinary critic can learn exactly. A critic that respects the symmetry of relabelling agents makes it generalise. Getting credit right speeds up learning only when the team reward mixes many unrelated events.
+
+| Question | Answer | Evidence |
+|---|---|---|
+| Do standard one-step read-outs recover who earned the reward? | No, and not even their own per-step targets. More data with stops does not fix them; a different read-out of the same critic does. | P4b (r ≤ 0.19); control V2: MAPPO 2.00 → 0.32–0.69 at d ≤ 25 (P9a) |
+| Can persistent interventions make it learnable? | Yes. A plain MLP critic with 200 stops is within 0.012–0.063 L1 of exact credit, picks the coalition 100% of the time, and fails without the stops. | P2a, P2b, P3, P6a |
+| Was ECE's H5 result about the model? | No: about the data. A presence-only table matches or beats it. | P5 |
+| Does it generalise when roles change every episode? | With a symmetry-respecting set critic, yes: L1 0.010 / 0.008 (MLP 0.53 / 0.88), coalition dividends 0.13 / 0.21, with or without role flags. It transfers to unseen team sizes (right coalition, partial calibration). | P8a–d, P11 |
+| Can a critic know who was *lucky* in one episode? | No, by construction. Removing the luck term helps (0.65 → 0.49) but stays above the expected-credit floor (0.38). | P10 |
+| Does exact credit speed up learning? | Only with many unrelated events: 1.00× with one lane, 0.40× episodes with eight. | Phase 3, H3.1–H3.3 |
+| Does robustness training give credit for free? | Partly. The dropout-trained critic carries it, but only a calibration-robust read-out extracts it (0.43–0.74 vs 0.67 for an equal split). | Phase 4 (partly post-hoc) |
+
+**Pre-registered tally (Mode P, seeds 5–9):** 18 supported, 7 partial, 2 not supported, 1 descriptive. Phase 3 gate: the 3 tested hypotheses supported; monotonicity in K not. Every failure, partial result and correction is reported where it occurs.
+
+**What changed since round 2:**
+- the record (errata E1–E10);
+- the theory (commitment split; per-step semivalues; identifiability);
+- the critic (a symmetric set critic beats the MLP by 30–100×);
+- an answer to the learning question that round 2 left open.
 
 ## 1. What v3 set out to do
 
@@ -210,7 +228,34 @@ Pre-registration: `preregistration_v3_phase4.md`, including its post-hoc addendu
 
 ## 9. What to claim, and what not
 
-{{CLAIMS}}
+**We can claim** (confirmatory unless marked):
+1. **A planted-truth benchmark with two-level grading and exact persistent-ablation truth**, with closed-loop truth as the default. Errata E1–E10 correct the earlier record.
+2. **Exact identities** (`theory.md`, all tested to machine precision):
+   - one-step read-outs integrate the right quantity along the wrong trajectories (Identity 2);
+   - persistent ablation-TD credit sums to removal credit (Identity 1);
+   - it splits exactly into shared surprise plus structural contribution;
+   - per-step Shapley values and dividends of the pending game sum to the episode's, with credit at commitment, not payout.
+3. **Persistent interventions make removal credit learnable by an ordinary value critic; one-step read-outs do not get there even with the same data** (P2–P4, P9).
+4. **Credit errors have a consequence:** ablation credit selects exactly the coalition every time; COMA is at chance; QMIX is right mainly where it is right for the wrong reason (P6).
+5. **H5's coalition result is a property of removal interventions, not of a trajectory model:** a presence-only table matches or beats ECE (P5).
+6. **A critic that respects the relabelling symmetry generalises across role assignments** (L1 ≤ 0.01 with 200 stops, where an MLP needs far more). It recovers coalition structure, does not depend on role flags, and transfers zero-shot across team sizes to the right coalition (P8, P11). This is the result most worth developing.
+7. **Exact credit changes learning only when the team reward mixes many unrelated events:**
+   - no effect with one event;
+   - about 2.5× fewer episodes with 8 (Phase 3, pre-registered);
+   - consistent with the theory that only realised counterfactuals, which split luck between agents, can help.
+8. **A robustness-trained critic carries credit**, but only a calibration-robust (structural) read-out extracts it, and it is much weaker than a dedicated intervention critic (Phase 4, partly post-hoc).
+
+**We should not claim:**
+- that persistent ablation is a new *definition*: it is difference rewards / leave-one-out with a persistent null;
+- that the set critic is a new architecture: it is DeepSets with attention, motivated by a stated symmetry;
+- that ablation credit, used as a reward, improves learning: expected-value credit provably cannot, and Phase 3's benefit comes from *realised* difference rewards;
+- anything beyond this environment family, scripted teams and simple learned policies, n ≤ 7;
+- realised (per-episode luck) credit from a state critic: P10a shows the gap.
+
+**Before external use:**
+- read SHAQ and C3 in full for the novelty wording;
+- verify the memory-cited references (`related_work.md`);
+- repeat the shuffled-roles and size-transfer results in a second environment (Level-Based Foraging is the natural one).
 
 ## 10. Plan items not run, and why
 
