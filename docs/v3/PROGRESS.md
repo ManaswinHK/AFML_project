@@ -48,3 +48,8 @@ Env: `.venv` (Python 3.12, torch CPU). Run tests: `.venv/bin/python -m pytest -q
   If resuming: check `ls results/v3/confirm_*`, re-run `WORKERS=6 scripts/v3/run_confirm_all.sh`, then
   `.venv/bin/python scripts/v3/run_phase3.py --grid gate_fine --workers 3` and `--grid gate_ns`, then phase4
   (`--grid phase4 --workers 3`) and `scripts/v3/analyse_prereg.py`, `scripts/v3/analyse_phase3.py`.
+- 2026-11-12 02:30: Phase 3 gate DONE (H3.1-H3.3 supported; addendum A1 agrees); gate_ns (A2, post-hoc) running.
+  Phase 4 training running (2 workers) then eval. FOUND: pre-registered masked kappa read-out omits gamma^t
+  and is swamped by critic calibration offsets (MAPPO standardised units); post-hoc structural read-out added
+  (Phase 4 addendum; V2 post-hoc methods *_kdisc, *_struct; grid v2_posthoc queued last).
+  Queue after confirm chain: double_k4 -> v1_coverage -> v2_posthoc (waiters use bracket regex patterns).
