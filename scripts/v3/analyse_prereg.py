@@ -70,15 +70,17 @@ def fmt_family(res: dict) -> str:
 
 # Thresholds: must equal docs/v3/preregistration_v3.md, Section 3 (frozen).
 TAU = {
-    "P2a_l1": 0.10, "P3_gap": 0.30, "P4a_r": 0.85, "P4b_r": 0.50, "P5_margin": 0.05, "P6a_topk": 0.90,
+    "P2a_l1": 0.15, "P2a_set_l1": 0.05, "P4a_set_r": 0.85, "P11a_topk": 0.90, "P11b_gap": 0.30, "P3_gap": 0.30, "P4a_r": 0.85, "P4b_r": 0.50, "P5_margin": 0.05, "P6a_topk": 0.90,
     "P6b_topk": 0.50, "P7a_margin": 0.05, "P7b_gap": 0.25, "P8a_l1": 0.05, "P8b_gap": 0.25, "P8c_div": 0.40,
     "P8d_gap": 0.25, "P9a_gap": 0.50, "P9c_gain": 0.10, "P10a_margin": 0.10,
-    "P11_l1": None, "P11_gap": None,
 }
 
 
+GRIDS = {"main": "confirm_main", "h5": "confirm_h5", "perm": "confirm_perm", "size": "size_transfer_confirm.json"}
+
+
 def hypotheses():
-    main, h5, perm = "confirm_main", "confirm_h5", "confirm_perm"
+    main, h5, perm = GRIDS["main"], GRIDS["h5"], GRIDS["perm"]
     overlap = lambda c: c[0] == "overlap"
     partial = lambda c: c[0] == "partial"
     learn = lambda alg, m="loo_cn": {**collect(main, alg, m), **collect(h5, alg, m, overlap)}
@@ -86,11 +88,15 @@ def hypotheses():
     # A. learnability and necessity of interventions
     H.append(("P2a", "atd: L1 vs exact no-op truth below P2a_l1 (main + overlap)",
               lambda: S.threshold_family(learn("atd"), TAU["P2a_l1"])))
+    H.append(("P2a-set", "atd_set: L1 vs exact no-op truth below P2a_set_l1 (main + overlap)",
+              lambda: S.threshold_family(learn("atd_set"), TAU["P2a_set_l1"])))
     H.append(("P2b", "atd beats the equal split (main + overlap)", lambda: S.paired_family(learn("atd"), learn("uniform"))))
     H.append(("P3", "interventions are necessary: atd_noint worse than atd by >= P3_gap (main + overlap)",
               lambda: S.paired_family(learn("atd"), learn("atd_noint"), TAU["P3_gap"])))
     H.append(("P4a", "atd per-step fidelity (vs exact kappa) above P4a_r (main)",
               lambda: S.threshold_family(collect(main, "atd", "step_r"), TAU["P4a_r"], "above")))
+    H.append(("P4a-set", "atd_set per-step fidelity (vs exact kappa) above P4a_set_r (main)",
+              lambda: S.threshold_family(collect(main, "atd_set", "step_r"), TAU["P4a_set_r"], "above")))
     for alg in ("vdn", "qmix", "coma", "mappo"):
         H.append((f"P4b-{alg}", f"{alg}: per-step fidelity vs its own one-step target below P4b_r (main)",
                   lambda alg=alg: S.threshold_family(collect(main, alg, "step_r"), TAU["P4b_r"])))
@@ -126,9 +132,9 @@ def hypotheses():
     H.append(("P9a", "MAPPO on intervention data: masked read-out beats its standard read-out by >= P9a_gap (main)",
               lambda: S.paired_family(collect(main, "mappo_int_masked", "loo_cn"), collect(main, "mappo_int", "loo_cn"),
                                       TAU["P9a_gap"])))
-    H.append(("P9b", "QMIX on intervention data: masked read-out beats its standard read-out (main, d > 0)",
-              lambda: S.paired_family(collect(main, "qmix_int_masked", "loo_cn", lambda c: c[1] > 0),
-                                      collect(main, "qmix_int", "loo_cn", lambda c: c[1] > 0))))
+    H.append(("P9b", "QMIX on intervention data: masked vs standard read-out (main, d > 0) - TWO-SIDED, DESCRIPTIVE",
+              lambda: S.two_sided_family(collect(main, "qmix_int_masked", "loo_cn", lambda c: c[1] > 0),
+                                         collect(main, "qmix_int", "loo_cn", lambda c: c[1] > 0))))
     H.append(("P9c", "data alone does not fix one-step read-outs: mappo_int improves on mappo by less than P9c_gain",
               lambda: S.paired_family(collect(main, "mappo", "loo_cn"), collect(main, "mappo_int", "loo_cn"),
                                       -TAU["P9c_gain"])))
@@ -138,13 +144,29 @@ def hypotheses():
                                       -TAU["P10a_margin"])))
     H.append(("P10b", "partial: structural read-out beats kappa",
               lambda: S.paired_family(collect(h5, "atd_struct", "loo_cn", partial), collect(h5, "atd", "loo_cn", partial))))
+    # G. zero-shot size transfer (results/v3/size_transfer_confirm.json)
+    def size(metric_path):
+        path = os.path.join(ROOT, "results", "v3", GRIDS["size"])
+        out = defaultdict(list)
+        for r in json.load(open(path)):
+            out[(f"b{r['b_train']}->b{r['b_test']}",)].append(metric_path(r))
+        return dict(out)
+    H.append(("P11a", "size transfer: the transferred set critic keeps exactly the coalition (top-k above P11a_topk)",
+              lambda: S.threshold_family(size(lambda r: r["transfer"]["top_k"]), TAU["P11a_topk"], "above")))
+    H.append(("P11b", "size transfer: transferred critic below the equal split by more than P11b_gap",
+              lambda: S.paired_family(size(lambda r: r["transfer"]["l1"]), size(lambda r: r["uniform"]["l1"]),
+                                      TAU["P11b_gap"])))
     return H
 
 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--out", default=os.path.join(ROOT, "docs", "v3", "confirmatory_results.md"))
+    for k, v in GRIDS.items():
+        p.add_argument(f"--{k}", default=v, help="grid (or file) to read; dry runs point these at pilot grids")
     a = p.parse_args()
+    for k in GRIDS:
+        GRIDS[k] = getattr(a, k)
     parts = ["# v3 confirmatory results (generated by scripts/v3/analyse_prereg.py)", ""]
     for hid, text, fn in hypotheses():
         try:

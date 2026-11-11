@@ -1,6 +1,6 @@
 # Pre-registration v3: credit by intervention
 
-**Status: DRAFT. Thresholds are filled from the exploratory pilots (`docs/v3/pilot_findings.md`) before the commit that freezes this file. No confirmatory cell (seeds 5–9) is run before that commit.** The commit hash that freezes it is recorded in `docs/v3/PROGRESS.md`.
+**Status: DRAFT until the commit titled "Freeze pre-registration v3". No confirmatory Mode P cell (seeds 5–9) is run before that commit.** Phase 3 (the headroom gate) has its own frozen pre-registration: `docs/v3/preregistration_v3_phase3.md`.
 
 Authors: team Aporia. Date: 11–12 Nov 2026. Supersedes nothing: it pre-registers new hypotheses on fresh seeds. The earlier pre-registrations (`docs/h5_preregistration.md`, `docs/preregistration_amendment.md`) and their results stand, as qualified in `docs/v3/errata.md`.
 
@@ -28,7 +28,6 @@ Theory: `docs/v3/theory.md`. Code: `src/whoearned/ablation.py`, `src/whoearned/c
 | `confirm_h5` | overlap (b = 1) and partial (b = 2), d ∈ {0, 50} | 4 × 5 = 20 |
 | `confirm_perm` | shuffled roles, d = 25, b ∈ {2, 4} | 2 × 5 = 10 |
 | `confirm_size` | size transfer: train shuffled b = 2 → test b = 4, and b = 4 → b = 2 | 2 × 5 runs |
-| `gate` (Phase 3) | lanes K ∈ {1, 2, 4, 8} × {team, team_vector, difference}, IPPO | 60 runs |
 
 - **Methods** (registry names in `experiments.py`):
   - **`atd`**: MLP 2×128 on the global state; 200 training episodes + 200 stops; stratified sampler; no-op null; Monte-Carlo regression; 3,000 Adam steps.
@@ -46,9 +45,53 @@ Theory: `docs/v3/theory.md`. Code: `src/whoearned/ablation.py`, `src/whoearned/c
 
 ## 3. Hypotheses
 
-THRESHOLDS: see §3 table (filled from the pilots with a margin; every threshold is looser than the pilot value in the direction that makes the hypothesis harder to fail by chance, i.e. it is a conservative test of the direction the pilot showed).
+Thresholds come from the exploratory pilots (`docs/v3/pilot_findings.md`), with a margin. For the MLP critic they are the plan's own values (assessment §9), even where the pilot suggests the MLP may fail them: the test should be able to catch its instability. Code: `scripts/v3/analyse_prereg.py` (the `TAU` table there must equal this one).
 
-(Table to be filled.)
+Notation:
+- **loo_cn**: L1 against the exact no-op truth (closed loop, common random numbers). For no-op-null methods this equals the method's own null.
+- **main**: `confirm_main`, 12 conditions.
+- **overlap/partial**: `confirm_h5`.
+- **perm**: `confirm_perm`, 2 conditions.
+
+| ID | Hypothesis | Conditions | Supported if (every condition, Holm) | Pilot value |
+|---|---|---|---|---|
+| **A. Learnability** | | | | |
+| P2a | The MLP ablation critic learns removal credit | main + overlap | loo_cn of `atd` < 0.15 | 0.004–0.15 |
+| P2a-set | So does the set critic | main + overlap | loo_cn of `atd_set` < 0.05 | 0.001–0.05 |
+| P2b | `atd` beats the equal split | main + overlap | paired, uniform − atd > 0 | 0.8 vs 0.04 |
+| P3 | Interventions are necessary | main + overlap | paired, atd_noint − atd > 0.30 | gap 0.44–1.4 |
+| P4a | Per-step fidelity (vs exact κ) is high for the MLP | main | step r of `atd` > 0.85 | 0.69–1.00 |
+| P4a-set | … and for the set critic | main | step r of `atd_set` > 0.85 | 0.86–1.00 |
+| P4b | One-step read-outs are not faithful to their own per-step targets | main; each of VDN, QMIX, COMA, MAPPO | step r < 0.50 | ≤ 0.36 (stored) |
+| **B. Coalition level, fixed layouts** | | | | |
+| P5 | The presence-only table is not worse than ECE-3 | coalition (b = 2 slack, d ∈ {0, 50}), overlap, partial | paired, table3 − ece3 dividend error < 0.05 (removal game) | lower on 6/6 (round 2) |
+| **C. Consequence** | | | | |
+| P6a | Ablation credit keeps exactly the coalition | main | top-k of `atd` > 0.90 | 100% |
+| P6b | QMIX and COMA usually do not | main; each | top-k < 0.50 | 40%, 9% (stored); QMIX 75% in one pilot cell |
+| **D. Generalisation across roles** | | | | |
+| P7a | A table cannot use role information | perm | paired, table3 not better than uniform by more than 0.05 | equal |
+| P7b | The MLP critic can, partly | perm | paired, uniform − atd > 0.25 | 0.34, 0.27 |
+| P8a | The set critic is near exact | perm | loo_cn of `atd_set` < 0.05 | 0.004, 0.009 |
+| P8b | … and beats the MLP | perm | paired, atd − atd_set > 0.25 | 0.45, 0.86 |
+| P8c-a | … recovers coalition structure | perm | dividend error (own null) of `atd_set` < 0.40 | 0.06, 0.33 |
+| P8c-b | … better than ECE-3_mix | perm | paired, ece3 − set dividend error > 0 | 0.21 vs 0.06; 0.68 vs 0.33 |
+| P8d | The set critic's advantage does not depend on role flags | perm | paired, atd_noroles − atd_set_noroles > {{P8D}} | {{P8D_PILOT}} |
+| **E. Better data or better read-out (V2)** | | | | |
+| P9a | MAPPO trained on stops: the masked read-out beats its standard read-out | main | paired, standard − masked > 0.50 | 1.5 |
+| P9b | QMIX trained on stops: masked vs standard | main, d > 0 | **two-sided, descriptive** (the pilot contradicted the plan's direction) | 0.78 vs 0.70 |
+| P9c | Data alone does not fix one-step read-outs | main | paired, mappo − mappo_int < 0.10 (no real gain) | 0.07, 0.0 |
+| **F. Luck** | | | | |
+| P10a | On the partial layout the structural read-out is as good as any expected-credit estimator can be | partial | paired, struct − floor < 0.10 | 0.25 vs 0.19 (tiny cell) |
+| P10b | … and better than κ, which carries the luck | partial | paired, atd − atd_struct > 0 | 0.45 vs 0.25 |
+| **G. Size transfer** | | | | |
+| P11a | A set critic trained on one team size picks the right coalition at another | b = 2 → 4 and 4 → 2 | top-k > 0.90 | 100% |
+| P11b | … and is clearly better than the equal split | same | paired, uniform − transfer > 0.30 | 0.54, 0.51 |
+
+**Descriptive, reported without a test:**
+- the semantic gap of a perfect one-step critic (missed enabler credit), as before;
+- data scaling (`atd_n*`, `atd_set_n*`);
+- the removal-null variants;
+- the commitment timeline figure.
 
 ## 4. Analysis (fixed; code `scripts/v3/stats.py`, `scripts/v3/analyse_prereg.py`)
 

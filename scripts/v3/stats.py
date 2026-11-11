@@ -91,5 +91,19 @@ def paired_family(a: dict, b: dict, delta: float = 0.0, alpha: float = 0.05) -> 
 
 def _verdict(rows: list[dict]) -> dict:
     k = sum(r["supported"] for r in rows)
-    verdict = "SUPPORTED" if rows and k == len(rows) else ("PARTIAL" if k else "NOT SUPPORTED")
+    if not rows:
+        return {"verdict": "NO DATA", "k": 0, "m": 0, "rows": rows}
+    verdict = "SUPPORTED" if k == len(rows) else ("PARTIAL" if k else "NOT SUPPORTED")
     return {"verdict": verdict, "k": k, "m": len(rows), "rows": rows}
+
+
+def two_sided_family(a: dict, b: dict) -> dict:
+    """Descriptive two-sided paired comparison per condition (no verdict, no Holm decision)."""
+    rows = []
+    for c in sorted(set(a) & set(b)):
+        d = np.asarray(b[c], float) - np.asarray(a[c], float)
+        p = float(stats.ttest_1samp(d, 0.0).pvalue) if len(d) > 1 and np.std(d, ddof=1) > 0 else float("nan")
+        rows.append({"condition": c, "n": len(d), "mean_a": float(np.mean(a[c])), "mean_b": float(np.mean(b[c])),
+                     "mean_diff": float(d.mean()), "delta": 0.0, "p": p, "p_holm": p, "wilcoxon_p": float("nan"),
+                     "supported": False})
+    return {"verdict": "DESCRIPTIVE", "k": 0, "m": len(rows), "rows": rows}
