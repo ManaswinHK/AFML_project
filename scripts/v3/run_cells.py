@@ -67,6 +67,11 @@ GRIDS = {
     "double_k4": ([DataCell(delay=d, n_bystanders=2, seed=s, horizon=80 if d >= 50 else 60, layout="double")
                    for d in (0, 25) for s in CONFIRM_SEEDS],
                   ("uniform", "atd", "atd_set", "atd_set_struct", "table3_mix", "ece3_mix", "atd_noint")),
+    # ---- Control V1 (plan Section 6, reduced; descriptive): does more / noisier data make one-step critics
+    # faithful to their own per-step targets? d = 25, b = 2, slack; seeds 5-7.
+    "v1_coverage": ([DataCell(delay=25, n_bystanders=2, seed=s, horizon=60, n_train=nt, epsilon=eps)
+                     for nt in (200, 800, 3200) for eps in (0.2, 0.4) for s in (5, 6, 7)],
+                    ("qmix", "coma", "uniform")),
     # ---- Phase 0.7: stored partial-layout cells at d > 0, re-run with the Markov state (same methods and seeds)
     "rerun_partial_h3": ([DataCell(delay=d, n_bystanders=2, seed=s, horizon=80 if d >= 50 else 60, layout="partial")
                           for d in (25, 50) for s in range(5)],

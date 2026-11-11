@@ -152,7 +152,8 @@ class DataCell:
         crit = f"_es{self.enabler_start}" if self.enabler_start else ""
         prefix = "" if self.layout == "coalition" else f"{self.layout}_"
         perm = "perm_" if self.shuffle_roles else ""
-        return f"{perm}{prefix}d{self.delay}_b{self.n_bystanders}{crit}_s{self.seed}"
+        data = (f"_n{self.n_train}" if self.n_train != 200 else "") + (f"_eps{self.epsilon}" if self.epsilon != 0.2 else "")
+        return f"{perm}{prefix}d{self.delay}_b{self.n_bystanders}{crit}{data}_s{self.seed}"
 
     def env_args(self) -> dict:
         """EPyMARL env_args that build the same configuration as :meth:`config`."""
