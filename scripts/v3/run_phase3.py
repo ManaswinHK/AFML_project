@@ -1,0 +1,102 @@
+"""v3 Phase 3 (headroom gate): IPPO / MAPPO on K walled lanes with team vs exact difference rewards.
+
+    .venv/bin/python scripts/v3/run_phase3.py --grid feasibility --workers 1
+    .venv/bin/python scripts/v3/run_phase3.py --grid gate --workers 8
+    .venv/bin/python scripts/v3/run_phase3.py --summarise gate
+
+Each run calls scripts/run_epymarl.py (EPyMARL, unmodified) in a subprocess with its own sacred directory
+results/v3/phase3/<grid>/<run>/, and is skipped if its metrics.json exists. Learning is measured by the
+greedy test success rate (fraction of lanes completed) logged every test_interval steps.
+"""
+from __future__ import annotations
+
+import argparse
+import glob
+import itertools
+import json
+import os
+import subprocess
+import sys
+import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
+import numpy as np
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+OUT = os.path.join(ROOT, "results", "v3", "phase3")
+HORIZON = 25
+
+# reward arm -> (EPyMARL common_reward, env reward_mode)
+ARMS = {"team": (True, "team"), "team_vector": (False, "team_vector"), "difference": (False, "difference")}
+
+GRIDS = {
+    # 3.2 feasibility: can IPPO learn one lane at all, and how fast?
+    "feasibility": dict(algs=("ippo",), Ks=(1,), arms=("team",), seeds=(0,), t_max=400_000),
+    "feasibility_k8": dict(algs=("ippo",), Ks=(8,), arms=("team", "difference"), seeds=(0,), t_max=2_000_000),
+}
+
+
+def run_name(alg, K, arm, seed):
+    return f"{alg}_K{K}_{arm}_s{seed}"
+
+
+def train_one(grid, alg, K, arm, seed, t_max):
+    run_dir = os.path.join(OUT, grid, run_name(alg, K, arm, seed))
+    if glob.glob(os.path.join(run_dir, "*", "metrics.json")):
+        return f"skip {run_dir}"
+    os.makedirs(run_dir, exist_ok=True)
+    common, mode = ARMS[arm]
+    cmd = [sys.executable, os.path.join(ROOT, "scripts", "run_epymarl.py"), f"--config={alg}",
+           "--env-config=planted_lanes", "with", f"seed={seed}", f"t_max={t_max}", "use_cuda=False",
+           f"env_args.layout_kwargs.n_events={K}", f"common_reward={common}", f"env_args.reward_mode={mode}",
+           "save_model=False"]
+    env = dict(os.environ, WHOEARNED_SACRED_DIR=run_dir, OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
+    t0 = time.time()
+    with open(os.path.join(run_dir, "stdout.log"), "w") as log:
+        rc = subprocess.run(cmd, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT).returncode
+    return f"{run_name(alg, K, arm, seed)} rc={rc} {time.time() - t0:.0f}s"
+
+
+def curve(run_dir):
+    """(t_env, test success rate) from the run's sacred metrics."""
+    hits = glob.glob(os.path.join(run_dir, "*", "metrics.json"))
+    if not hits:
+        return None
+    m = json.load(open(sorted(hits)[-1]))
+    key = "test_success_rate_mean"
+    if key not in m:
+        return None
+    return np.array(m[key]["steps"]), np.array(m[key]["values"])
+
+
+def episodes_to(run_dir, level=0.9):
+    c = curve(run_dir)
+    if c is None:
+        return None
+    steps, vals = c
+    hit = np.flatnonzero(vals >= level)
+    return float(steps[hit[0]] / HORIZON) if len(hit) else None
+
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("--grid")
+    p.add_argument("--workers", type=int, default=1)
+    p.add_argument("--summarise")
+    a = p.parse_args()
+    if a.summarise:
+        for d in sorted(glob.glob(os.path.join(OUT, a.summarise, "*"))):
+            c = curve(d)
+            last = None if c is None else float(c[1][-1])
+            print(os.path.basename(d), "episodes_to_90:", episodes_to(d), "final:", last)
+        return
+    g = GRIDS[a.grid]
+    jobs = list(itertools.product(g["algs"], g["Ks"], g["arms"], g["seeds"]))
+    with ProcessPoolExecutor(a.workers) as ex:
+        futs = [ex.submit(train_one, a.grid, alg, K, arm, s, g["t_max"]) for alg, K, arm, s in jobs]
+        for f in as_completed(futs):
+            print(f.result(), flush=True)
+
+
+if __name__ == "__main__":
+    main()

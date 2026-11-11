@@ -1,5 +1,7 @@
 # Mode T (H4): Return vs Credit Faithfulness
 
+> **v3 erratum (11 Nov 2026):** some statements here are corrected or qualified in [`docs/v3/errata.md`](v3/errata.md) (E1–E10). The text below is left as it was.
+
 **Status: H4 assessed descriptively for two methods (VDN and QMIX) under a seeded protocol; COMA and MAPPO were tried with behavioural-cloning pretraining but collapse online, so they could not be assessed (§3b).** Plain online training never earned reward (§1). Seeding the replay buffer with scripted episodes fixed that for the two off-policy learners (§2), which allowed a return-versus-credit analysis (§3).
 
 ## 1. Plain online training earns no reward

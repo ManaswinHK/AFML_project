@@ -1,5 +1,7 @@
 # Who Earned the Reward? Results and Inferences So Far
 
+> **v3 erratum (11 Nov 2026):** some statements here are corrected or qualified in [`docs/v3/errata.md`](v3/errata.md) (E1–E10). The text below is left as it was.
+
 A summary of every result to date (Steps 1–9), as of 7 November 2026. Details and full tables are in the linked documents. Each result is labelled:
 - **confirmatory**: a pre-registered rule, applied as written;
 - **post-hoc**: done after seeing the data; hypothesis-generating only.

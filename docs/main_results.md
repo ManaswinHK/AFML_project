@@ -1,5 +1,7 @@
 # Mode P Main-Grid Results
 
+> **v3 erratum (11 Nov 2026):** some statements here are corrected or qualified in [`docs/v3/errata.md`](v3/errata.md) (E1–E10). The text below is left as it was.
+
 **Run:** 120 data cells:
 - delay d ∈ {0, 10, 25, 50};
 - bystanders b ∈ {0, 2, 4};

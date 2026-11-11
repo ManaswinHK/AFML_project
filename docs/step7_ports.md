@@ -1,5 +1,7 @@
 # Step 7: Porting NA²Q and STAS
 
+> **v3 erratum (11 Nov 2026):** some statements here are corrected or qualified in [`docs/v3/errata.md`](v3/errata.md) (E1–E10). The text below is left as it was.
+
 Both methods are reimplemented in this repository from their official code, rather than run inside the official codebases. The official code is the reference; where we deviate, it is listed below with the reason.
 
 | Method | Paper | Official code (commit read) | Our module |
