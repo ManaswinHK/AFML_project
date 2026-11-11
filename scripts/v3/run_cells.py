@@ -43,7 +43,21 @@ PILOT_PERM_ALGS = ("atd", "atd_n800", "atd_set", "atd_n800_set", "atd_active", "
                    "table3_mix", "ece3_mix")
 PILOT_H5_ALGS = ("atd", "atd_remove", "atd_set", "atd_n800", "atd_active", "table2_mix", "table3_mix")
 
+CONFIRM_SEEDS = (5, 6, 7, 8, 9)
+CONFIRM_MAIN_ALGS = ("uniform", "floor_expected", "atd", "atd_struct", "atd_noint", "atd_remove", "atd_set",
+                     "atd_set_struct", "atd_n25", "atd_n50", "atd_n100", "atd_n400", "atd_n800", "table3_mix",
+                     "ece3_mix", "vdn", "qmix", "coma", "mappo", "mappo_int", "mappo_int_masked", "qmix_int",
+                     "qmix_int_masked")
+CONFIRM_H5_ALGS = ("uniform", "floor_expected", "atd", "atd_struct", "atd_noint", "atd_remove", "atd_set",
+                   "atd_set_struct", "atd_set_remove", "table2_mix", "table3_mix", "ece2_mix", "ece3_mix")
+CONFIRM_PERM_ALGS = ("uniform", "atd", "atd_n800", "atd_noint", "atd_set", "atd_set_struct", "atd_n800_set",
+                     "atd_set_n25", "atd_set_n50", "atd_set_n100", "table3_mix", "ece3_mix")
+
 GRIDS = {
+    # ---- confirmatory (seeds 5-9): run only after docs/v3/preregistration_v3.md is frozen
+    "confirm_main": (_main(CONFIRM_SEEDS), CONFIRM_MAIN_ALGS),
+    "confirm_h5": (_h5(CONFIRM_SEEDS, layouts=("overlap", "partial")), CONFIRM_H5_ALGS),
+    "confirm_perm": (_perm(CONFIRM_SEEDS), CONFIRM_PERM_ALGS),
     # ---- exploratory pilots (seeds 0-4, the seeds of every earlier round): choose settings, set thresholds
     "pilot_fixed": (_main((0, 1)), PILOT_FIXED_ALGS),
     "pilot_perm": (_perm((0, 1, 2, 3, 4)), PILOT_PERM_ALGS),
