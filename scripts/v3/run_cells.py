@@ -51,6 +51,7 @@ CONFIRM_MAIN_ALGS = ("uniform", "floor_expected", "atd", "atd_struct", "atd_noin
 CONFIRM_H5_ALGS = ("uniform", "floor_expected", "atd", "atd_struct", "atd_noint", "atd_remove", "atd_set",
                    "atd_set_struct", "atd_set_remove", "table2_mix", "table3_mix", "ece2_mix", "ece3_mix")
 CONFIRM_PERM_ALGS = ("uniform", "atd", "atd_n800", "atd_noint", "atd_set", "atd_set_struct", "atd_n800_set",
+                     "atd_noroles", "atd_set_noroles",
                      "atd_set_n25", "atd_set_n50", "atd_set_n100", "table3_mix", "ece3_mix")
 
 GRIDS = {

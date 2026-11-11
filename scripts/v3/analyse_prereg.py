@@ -68,24 +68,76 @@ def fmt_family(res: dict) -> str:
     return "\n".join(lines)
 
 
-# Filled from the frozen pre-registration (Section 3). Each entry: id, text, and a function returning a family result.
+# Thresholds: must equal docs/v3/preregistration_v3.md, Section 3 (frozen).
+TAU = {
+    "P2a_l1": 0.10, "P3_gap": 0.30, "P4a_r": 0.85, "P4b_r": 0.50, "P5_margin": 0.05, "P6a_topk": 0.90,
+    "P6b_topk": 0.50, "P7a_margin": 0.05, "P7b_gap": 0.25, "P8a_l1": 0.05, "P8b_gap": 0.25, "P8c_div": 0.40,
+    "P8d_gap": 0.25, "P9a_gap": 0.50, "P9c_gain": 0.10, "P10a_margin": 0.10,
+    "P11_l1": None, "P11_gap": None,
+}
+
+
 def hypotheses():
-    main = "confirm_main"
-    single = lambda c: c[0] == "coalition"
+    main, h5, perm = "confirm_main", "confirm_h5", "confirm_perm"
+    overlap = lambda c: c[0] == "overlap"
+    partial = lambda c: c[0] == "partial"
+    learn = lambda alg, m="loo_cn": {**collect(main, alg, m), **collect(h5, alg, m, overlap)}
     H = []
-    H.append(("P2a", "atd learns removal credit: L1 vs exact no-op truth below 0.15 (main + overlap + partial)",
-              lambda: S.threshold_family({**collect(main, "atd", "loo_cn"), **collect("confirm_h5", "atd", "loo_cn")}, 0.15)))
-    H.append(("P2b", "atd beats the equal split (paired, same target)",
-              lambda: S.paired_family({**collect(main, "atd", "loo_cn"), **collect("confirm_h5", "atd", "loo_cn")},
-                                      {**collect(main, "uniform", "loo_cn"), **collect("confirm_h5", "uniform", "loo_cn")})))
-    H.append(("P3", "interventions are necessary: atd_noint worse than atd by >= 0.3",
-              lambda: S.paired_family({**collect(main, "atd", "loo_cn"), **collect("confirm_h5", "atd", "loo_cn")},
-                                      {**collect(main, "atd_noint", "loo_cn"), **collect("confirm_h5", "atd_noint", "loo_cn")}, 0.3)))
-    H.append(("P4a", "per-step fidelity of atd >= 0.85 at every delay (single coalition)",
-              lambda: S.threshold_family(collect(main, "atd", "step_r", single), 0.85, "above")))
+    # A. learnability and necessity of interventions
+    H.append(("P2a", "atd: L1 vs exact no-op truth below P2a_l1 (main + overlap)",
+              lambda: S.threshold_family(learn("atd"), TAU["P2a_l1"])))
+    H.append(("P2b", "atd beats the equal split (main + overlap)", lambda: S.paired_family(learn("atd"), learn("uniform"))))
+    H.append(("P3", "interventions are necessary: atd_noint worse than atd by >= P3_gap (main + overlap)",
+              lambda: S.paired_family(learn("atd"), learn("atd_noint"), TAU["P3_gap"])))
+    H.append(("P4a", "atd per-step fidelity (vs exact kappa) above P4a_r (main)",
+              lambda: S.threshold_family(collect(main, "atd", "step_r"), TAU["P4a_r"], "above")))
     for alg in ("vdn", "qmix", "coma", "mappo"):
-        H.append((f"P4b-{alg}", f"{alg}: per-step fidelity vs its own one-step target below 0.5",
-                  lambda alg=alg: S.threshold_family(collect(main, alg, "step_r", single), 0.5, "below")))
+        H.append((f"P4b-{alg}", f"{alg}: per-step fidelity vs its own one-step target below P4b_r (main)",
+                  lambda alg=alg: S.threshold_family(collect(main, alg, "step_r"), TAU["P4b_r"])))
+    # B. coalition level on fixed layouts: the table is not worse than ECE
+    h5conds = lambda alg: {**collect(main, alg, "div_c", lambda c: c[2] == 2 and c[3] == "slack" and c[1] in (0, 50)),
+                           **collect(h5, alg, "div_c")}
+    H.append(("P5", "table3_mix dividend error not worse than ece3_mix by more than P5_margin (closed-loop removal game)",
+              lambda: S.paired_family(h5conds("ece3_mix"), h5conds("table3_mix"), -TAU["P5_margin"])))
+    # C. consequence: top-k selection
+    H.append(("P6a", "atd keeps exactly the coalition (top-k) with probability above P6a_topk (main)",
+              lambda: S.threshold_family(collect(main, "atd", "top_k"), TAU["P6a_topk"], "above")))
+    for alg in ("qmix", "coma"):
+        H.append((f"P6b-{alg}", f"{alg} keeps the coalition with probability below P6b_topk (main)",
+                  lambda alg=alg: S.threshold_family(collect(main, alg, "top_k"), TAU["P6b_topk"])))
+    # D. generalisation across role assignments
+    H.append(("P7a", "shuffled roles: table3_mix not better than uniform by more than P7a_margin",
+              lambda: S.paired_family(collect(perm, "uniform", "loo_cn"), collect(perm, "table3_mix", "loo_cn"),
+                                      -TAU["P7a_margin"])))
+    H.append(("P7b", "shuffled roles: MLP atd below uniform by >= P7b_gap",
+              lambda: S.paired_family(collect(perm, "atd", "loo_cn"), collect(perm, "uniform", "loo_cn"), TAU["P7b_gap"])))
+    H.append(("P8a", "shuffled roles: set critic L1 below P8a_l1",
+              lambda: S.threshold_family(collect(perm, "atd_set", "loo_cn"), TAU["P8a_l1"])))
+    H.append(("P8b", "shuffled roles: set critic beats MLP by >= P8b_gap",
+              lambda: S.paired_family(collect(perm, "atd_set", "loo_cn"), collect(perm, "atd", "loo_cn"), TAU["P8b_gap"])))
+    H.append(("P8c-a", "shuffled roles: set critic dividend error (own null) below P8c_div",
+              lambda: S.threshold_family(collect(perm, "atd_set", "div_cn"), TAU["P8c_div"])))
+    H.append(("P8c-b", "shuffled roles: set critic dividend error below ece3_mix's",
+              lambda: S.paired_family(collect(perm, "atd_set", "div_cn"), collect(perm, "ece3_mix", "div_c"))))
+    H.append(("P8d", "shuffled roles, role flags hidden: set critic beats MLP by >= P8d_gap",
+              lambda: S.paired_family(collect(perm, "atd_set_noroles", "loo_cn"), collect(perm, "atd_noroles", "loo_cn"),
+                                      TAU["P8d_gap"])))
+    # E. better data or better read-out (control V2)
+    H.append(("P9a", "MAPPO on intervention data: masked read-out beats its standard read-out by >= P9a_gap (main)",
+              lambda: S.paired_family(collect(main, "mappo_int_masked", "loo_cn"), collect(main, "mappo_int", "loo_cn"),
+                                      TAU["P9a_gap"])))
+    H.append(("P9b", "QMIX on intervention data: masked read-out beats its standard read-out (main, d > 0)",
+              lambda: S.paired_family(collect(main, "qmix_int_masked", "loo_cn", lambda c: c[1] > 0),
+                                      collect(main, "qmix_int", "loo_cn", lambda c: c[1] > 0))))
+    H.append(("P9c", "data alone does not fix one-step read-outs: mappo_int improves on mappo by less than P9c_gain",
+              lambda: S.paired_family(collect(main, "mappo", "loo_cn"), collect(main, "mappo_int", "loo_cn"),
+                                      -TAU["P9c_gain"])))
+    # F. luck: partial synergy
+    H.append(("P10a", "partial: structural read-out within P10a_margin of the expected-credit floor",
+              lambda: S.paired_family(collect(h5, "atd_struct", "loo_cn", partial), collect(h5, "floor_expected", "loo_cn", partial),
+                                      -TAU["P10a_margin"])))
+    H.append(("P10b", "partial: structural read-out beats kappa",
+              lambda: S.paired_family(collect(h5, "atd_struct", "loo_cn", partial), collect(h5, "atd", "loo_cn", partial))))
     return H
 
 
