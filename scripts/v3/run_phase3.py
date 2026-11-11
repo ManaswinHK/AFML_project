@@ -36,17 +36,20 @@ GRIDS = {
     # 3.4 / 3.5 the gate (pre-registered in docs/v3/preregistration_v3.md): seeds 5-9.
     "gate": dict(algs=("ippo",), Ks=(1, 2, 4, 8), arms=("team", "team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
                  t_max={1: 400_000, 2: 800_000, 4: 1_600_000, 8: 3_000_000}),
+    # Phase 4.1: MAPPO with random persistent stops during training (dropout p), checkpoints for 4.2
+    "phase4": dict(algs=("mappo",), Ks=(4,), arms=("team",), seeds=(5, 6, 7), t_max=1_600_000,
+                   dropout=(0.0, 0.25), save_models=True),
     "gate_mappo": dict(algs=("mappo",), Ks=(1, 8), arms=("team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
                        t_max={1: 400_000, 8: 3_000_000}),
 }
 
 
-def run_name(alg, K, arm, seed):
-    return f"{alg}_K{K}_{arm}_s{seed}"
+def run_name(alg, K, arm, seed, p=0.0):
+    return f"{alg}_K{K}_{arm}_s{seed}" + (f"_drop{p}" if p else "")
 
 
-def train_one(grid, alg, K, arm, seed, t_max):
-    run_dir = os.path.join(OUT, grid, run_name(alg, K, arm, seed))
+def train_one(grid, alg, K, arm, seed, t_max, p=0.0, save_models=False):
+    run_dir = os.path.join(OUT, grid, run_name(alg, K, arm, seed, p))
     if glob.glob(os.path.join(run_dir, "*", "metrics.json")):
         return f"skip {run_dir}"
     os.makedirs(run_dir, exist_ok=True)
@@ -54,12 +57,14 @@ def train_one(grid, alg, K, arm, seed, t_max):
     cmd = [sys.executable, os.path.join(ROOT, "scripts", "run_epymarl.py"), f"--config={alg}",
            "--env-config=planted_lanes", "with", f"seed={seed}", f"t_max={t_max}", "use_cuda=False",
            f"env_args.layout_kwargs.n_events={K}", f"common_reward={common}", f"env_args.reward_mode={mode}",
-           "save_model=False"]
+           f"env_args.dropout_p={p}", f"env_args.dropout_seed={seed}"]
+    cmd += ([f"save_model=True", f"save_model_interval={t_max // 10}", f"local_results_path={run_dir}"]
+            if save_models else ["save_model=False"])
     env = dict(os.environ, WHOEARNED_SACRED_DIR=run_dir, OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
     t0 = time.time()
     with open(os.path.join(run_dir, "stdout.log"), "w") as log:
         rc = subprocess.run(cmd, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT).returncode
-    return f"{run_name(alg, K, arm, seed)} rc={rc} {time.time() - t0:.0f}s"
+    return f"{run_name(alg, K, arm, seed, p)} rc={rc} {time.time() - t0:.0f}s"
 
 
 def curve(run_dir):
@@ -96,12 +101,13 @@ def main():
             print(os.path.basename(d), "episodes_to_90:", episodes_to(d), "final:", last)
         return
     g = GRIDS[a.grid]
-    jobs = list(itertools.product(g["algs"], g["Ks"], g["arms"], g["seeds"]))
+    jobs = list(itertools.product(g["algs"], g["Ks"], g["arms"], g["seeds"], g.get("dropout", (0.0,))))
     with ProcessPoolExecutor(a.workers) as ex:
         tmax = lambda K: g["t_max"][K] if isinstance(g["t_max"], dict) else g["t_max"]
         # longest runs first, so the pool is not left waiting on one big run at the end
         jobs.sort(key=lambda j: -tmax(j[1]))
-        futs = [ex.submit(train_one, a.grid, alg, K, arm, s, tmax(K)) for alg, K, arm, s in jobs]
+        futs = [ex.submit(train_one, a.grid, alg, K, arm, s, tmax(K), p, g.get("save_models", False))
+                for alg, K, arm, s, p in jobs]
         for f in as_completed(futs):
             print(f.result(), flush=True)
 
