@@ -56,3 +56,19 @@ def test_team_vector_gives_everyone_the_team_reward():
 def test_reward_mode_must_match_common_reward():
     with pytest.raises(ValueError):
         PlantedEPyMARLEnv(map_name="multi_event_layout", common_reward=True, reward_mode="difference")
+
+
+def test_dropout_wrapper_stops_agents_and_flags_them_in_state():
+    env = PlantedEPyMARLEnv(map_name="multi_event_layout", layout_kwargs={"n_events": 2}, dropout_p=1.0, dropout_seed=3)
+    stopped_seen = 0
+    for _ in range(20):
+        env.reset()
+        for t in range(25):
+            env.step([NOOP] * 4)
+        n = env.n_agents
+        acting = env.get_state()[3 * n:4 * n]
+        stopped_seen += acting.min() == 0.0 or env._drop_plan[0] == 24
+    assert stopped_seen == 20
+    env0 = PlantedEPyMARLEnv(map_name="multi_event_layout", layout_kwargs={"n_events": 2}, dropout_p=0.0)
+    env0.reset()
+    assert env0._drop_plan is None

@@ -52,6 +52,9 @@ class PlantedEPyMARLEnv:
         reward_scalarisation: str = "sum",
         present: int | None = None,
         reward_mode: str = "team",
+        dropout_p: float = 0.0,
+        dropout_null: str = "noop",
+        dropout_seed: int | None = None,
     ):
         if reward_mode not in REWARD_MODES:
             raise ValueError(f"reward_mode must be one of {REWARD_MODES}")
@@ -68,11 +71,24 @@ class PlantedEPyMARLEnv:
         self._return = 0.0
         self.shadows = ([PlantedCoalitionGridworld(self.config) for _ in range(self.n_agents)]
                         if reward_mode == "difference" else [])
+        # v3 Phase 4.1: with probability dropout_p per episode, a random set of agents (as in the intervention
+        # data: half single agents, half random subsets) stops for good at a uniformly random step. The global
+        # state's acting flags show it, so the centralised critic of an actor-critic learner is trained on
+        # stopped states, i.e. it becomes an ablation critic as a side effect of robustness training.
+        import numpy as _np
+        self.dropout_p, self.dropout_null = float(dropout_p), dropout_null
+        self._drop_rng = _np.random.default_rng(dropout_seed if dropout_seed is not None else seed)
+        self._drop_plan = None
 
     # --- MultiAgentEnv interface ---------------------------------------------------
 
     def reset(self, seed=None, options=None):
         obs = self.env.reset(self.present)
+        self._drop_plan = None
+        if self.dropout_p > 0 and self._drop_rng.random() < self.dropout_p:
+            from whoearned.ablation import sample_stopped
+            t0 = int(self._drop_rng.integers(self.episode_limit))
+            self._drop_plan = (t0, sample_stopped(self._drop_rng, self.n_agents))
         for i, sh in enumerate(self.shadows):
             sh.reset(self.present)
             sh.stop([i], "noop")
@@ -80,6 +96,8 @@ class PlantedEPyMARLEnv:
         return obs, {}
 
     def step(self, actions):
+        if self._drop_plan is not None and self.env.t == self._drop_plan[0]:
+            self.env.stop(self._drop_plan[1], self.dropout_null)
         actions = [int(a) for a in actions]
         obs, reward, done, _ = self.env.step(actions)
         self._return += reward
