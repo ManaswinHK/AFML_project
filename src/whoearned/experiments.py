@@ -102,10 +102,15 @@ ATD_ALGS = {
 # critic queried at the state with agent i stopped (MAPPO: V(s with i's acting flag off); QMIX: the mixer at
 # that state with i at its no-op utility), turned into ablation-TD credit.
 INT_ALGS = ("mappo_int", "mappo_int_masked", "qmix_int", "qmix_int_masked")
+# Post-hoc (12 Nov, after the Phase 4 diagnosis; docs/v3/report.md): the same trained critics read out with the
+# gamma^t-weighted kappa ("_kdisc") and with the structural read-out V(s_0) - W_{-i}(s_0) ("_struct").
+INT_POSTHOC_ALGS = ("mappo_int_kdisc", "mappo_int_struct", "qmix_int_kdisc", "qmix_int_struct")
+INT_ALGS = INT_ALGS + INT_POSTHOC_ALGS
 INT_N, INT_SAMPLER, INT_NULL = 200, "stratified", "noop"
 for _a in INT_ALGS:
     MATCHED_TARGET[_a] = "loo"
-    STEP_TARGET[_a] = f"kappa_{INT_NULL}" if _a.endswith("_masked") else "noop"
+    STEP_TARGET[_a] = (f"kappa_{INT_NULL}" if _a.endswith(("_masked", "_kdisc")) else
+                       None if _a.endswith("_struct") else "noop")
 DIRECT_ALGS = TABLE_ALGS + tuple(ATD_ALGS) + ("uniform", "floor_expected")
 # Oracle reference, not a method: every test episode gets the mean realised exact credit of its cell (no-op
 # null). On a fixed layout the start state is shared, so this is the best any *expected*-credit estimator can do;
@@ -455,13 +460,15 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
         elif alg in INT_ALGS:
             if train_facts is None:
                 train_facts = _train_facts(cell, train_eps)
-            base = alg.removesuffix("_masked")
+            base = alg.removesuffix("_masked").removesuffix("_kdisc").removesuffix("_struct")
             if base not in int_cache:
                 int_cache[base] = _train_on_interventions(cell, base.removesuffix("_int"), train_eps, train_facts,
                                                           test_eps, train, rng)
             h, test, losses = int_cache[base]
-            out = (masked_credit(h, base.removesuffix("_int"), test, truth.configs, INT_NULL)
-                   if alg.endswith("_masked") else read_credit(h, base.removesuffix("_int"), test, test_eps))
+            readout = ("kappa" if alg.endswith("_masked") else "kappa_disc" if alg.endswith("_kdisc") else
+                       "struct" if alg.endswith("_struct") else None)
+            out = (masked_credit(h, base.removesuffix("_int"), test, truth.configs, INT_NULL, readout)
+                   if readout else read_credit(h, base.removesuffix("_int"), test, test_eps))
         else:
             h = make_harness(alg, env_args=env_args, seed=cell.seed)
             alg_train = mix_eps if alg.endswith(MIX) else train_eps
@@ -542,7 +549,7 @@ def _train_on_interventions(cell, base: str, train_eps, train_facts, test_eps, t
 
 
 @th.no_grad()
-def masked_credit(h, base: str, batch, configs, null: str) -> dict:
+def masked_credit(h, base: str, batch, configs, null: str, readout: str = "kappa") -> dict:
     """Ablation-TD credit from an EPyMARL critic queried at stopped states (factual test batch, edited state).
 
     W_i(t): MAPPO - mean over agent heads of V(s_t with i stopped); QMIX - mixer(chosen utilities with i at its
@@ -579,7 +586,19 @@ def masked_credit(h, base: str, batch, configs, null: str) -> dict:
             raise ValueError(base)
     W[:, T] = 0.0
     kappa = rewards[..., None] + gamma * W[:, 1:] - W[:, :-1]
-    return {"per_step": kappa.cpu().numpy()}
+    if readout == "kappa":            # as frozen in pre-registration v3 (no gamma^t weights)
+        return {"per_step": kappa.cpu().numpy()}
+    if readout == "kappa_disc":       # theory Section 2: gamma^t-weighted, telescopes to G_gamma - W_{-i}(s_0)
+        return {"per_step": (kappa * (gamma ** th.arange(T, dtype=kappa.dtype))[None, :, None]).cpu().numpy()}
+    if readout == "struct":           # V(s_0) - W_{-i}(s_0): the critic against itself (offsets cancel)
+        if base == "mappo":
+            V0 = learner.critic(batch).squeeze(3).mean(-1)[:, 0]
+        else:
+            V0 = learner.mixer(chosen, states[:, :T]).squeeze(-1)[:, 0]
+        per_step = th.zeros(B, T, n)
+        per_step[:, 0] = V0[:, None] - W[:, 0]
+        return {"per_step": per_step.cpu().numpy()}
+    raise ValueError(readout)
 
 
 def table_credit(cfg, mix_eps, k: int, n_test: int) -> dict:

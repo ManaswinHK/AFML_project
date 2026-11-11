@@ -72,6 +72,11 @@ GRIDS = {
     "v1_coverage": ([DataCell(delay=25, n_bystanders=2, seed=s, horizon=60, n_train=nt, epsilon=eps)
                      for nt in (200, 800, 3200) for eps in (0.2, 0.4) for s in (5, 6, 7)],
                     ("qmix", "coma", "uniform")),
+    # ---- V2 post-hoc read-outs (12 Nov, after the Phase 4 diagnosis; labelled post-hoc everywhere)
+    "v2_posthoc": ([DataCell(delay=d, n_bystanders=b, seed=s, horizon=80 if d >= 50 else 60)
+                    for d in (0, 25, 50) for b in (2, 4) for s in (5, 6, 7)],
+                   ("uniform", "atd", "mappo_int", "mappo_int_masked", "mappo_int_kdisc", "mappo_int_struct",
+                    "qmix_int", "qmix_int_masked", "qmix_int_kdisc", "qmix_int_struct")),
     # ---- Phase 0.7: stored partial-layout cells at d > 0, re-run with the Markov state (same methods and seeds)
     "rerun_partial_h3": ([DataCell(delay=d, n_bystanders=2, seed=s, horizon=80 if d >= 50 else 60, layout="partial")
                           for d in (25, 50) for s in range(5)],
