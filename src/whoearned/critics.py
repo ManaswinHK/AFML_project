@@ -88,8 +88,8 @@ class StateTokens:
     Context: per event gate/done/pending/countdown/amount (5k), and t / T.
     """
 
-    def __init__(self, n: int, k: int):
-        self.n, self.k = n, k
+    def __init__(self, n: int, k: int, roles: bool = True):
+        self.n, self.k, self.roles = n, k, roles
         per_event = 5 + n
         roles = 4 * n + k * per_event                                    # start of the role-flag block
         self.d_state = roles + 2 * n * k + 1
@@ -97,12 +97,13 @@ class StateTokens:
         for i in range(n):
             cols = [2 * i, 2 * i + 1, 2 * n + i, 3 * n + i]
             cols += [4 * n + e * per_event + 5 + i for e in range(k)]   # this agent's pulled flag per event
-            cols += [roles + 2 * k * i + j for j in range(2 * k)]       # its role flags per event
+            if self.roles:
+                cols += [roles + 2 * k * i + j for j in range(2 * k)]   # its role flags per event
             agent_idx.append(cols)
-        self.agent_idx = th.tensor(agent_idx)                          # (n, 4 + 3k)
+        self.agent_idx = th.tensor(agent_idx)                          # (n, 4 + 3k), or (n, 4 + k) without roles
         ctx = [4 * n + e * per_event + j for e in range(k) for j in range(5)] + [self.d_state - 1]
         self.ctx_idx = th.tensor(ctx)                                    # (5k + 1,)
-        self.d_agent, self.d_ctx = 4 + 3 * k, 5 * k + 1
+        self.d_agent, self.d_ctx = 4 + (3 if self.roles else 1) * k, 5 * k + 1
 
     def __call__(self, S: th.Tensor):
         return S[:, self.agent_idx], S[:, self.ctx_idx]                  # (B, n, d_agent), (B, d_ctx)
@@ -128,10 +129,21 @@ class SetCritic(th.nn.Module):
         return self.head(pooled)
 
 
-def fit_set_critic(X, y, n, k, seed=0, hidden=128, steps=3000, batch=256, lr=1e-3, weights=None):
+def role_columns(n: int, k: int) -> np.ndarray:
+    """Indices of the role-flag block of the global state."""
+    start = 4 * n + k * (5 + n)
+    return np.arange(start, start + 2 * n * k)
+
+
+def drop_roles(X: np.ndarray, n: int, k: int) -> np.ndarray:
+    """The state without its role flags (roles must then be inferred from positions, as in round 2)."""
+    return np.delete(np.asarray(X), role_columns(n, k), axis=-1)
+
+
+def fit_set_critic(X, y, n, k, seed=0, hidden=128, steps=3000, batch=256, lr=1e-3, weights=None, roles=True):
     th.set_num_threads(1)
     th.manual_seed(seed)
-    net = SetCritic(StateTokens(n, k), hidden)
+    net = SetCritic(StateTokens(n, k, roles=roles), hidden)
     final = _train(net, X, y, seed, steps, batch, lr, weights)
     predict = _predictor(net)
     predict.net = net

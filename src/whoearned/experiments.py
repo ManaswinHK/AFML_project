@@ -17,7 +17,7 @@ import torch as th
 
 from whoearned import ablation as ab
 from whoearned import ground_truth as gtm
-from whoearned.critics import fit_ensemble, fit_mlp, fit_set_critic
+from whoearned.critics import drop_roles, fit_ensemble, fit_mlp, fit_set_critic
 from whoearned.envs import NOOP, coalition_layout, overlap_example
 from whoearned.epymarl_bridge import episodes_to_batch
 from whoearned.ground_truth import agents_of, mask_of, normalise_shares
@@ -67,7 +67,7 @@ class AtdSpec:
     n_int: int = 200                # stopped continuations added to the 200 full-team episodes
     null: str = "noop"
     sampler: str = "stratified"
-    critic: str = "mlp"             # "mlp" or "set" (permutation-invariant)
+    critic: str = "mlp"             # "mlp", "set" (permutation-invariant), "mlp_noroles", "set_noroles" (role flags hidden)
     steps: int = 3000
     design: str = "random"          # "random" or "active" (ensemble-disagreement stops, ablation.active_plan)
     # "kappa": ablation-TD credit (realised return minus expected counterfactual). "struct": the structural part
@@ -84,6 +84,8 @@ ATD_ALGS = {
     "atd_struct": AtdSpec(readout="struct"),
     "atd_set_struct": AtdSpec(critic="set", readout="struct"),
     "atd_set_remove": AtdSpec(critic="set", null="remove"),
+    "atd_noroles": AtdSpec(critic="mlp_noroles"),
+    "atd_set_noroles": AtdSpec(critic="set_noroles"),
     "atd_tp": AtdSpec(sampler="through_payout"),
     "atd_n800_set": AtdSpec(n_int=800, critic="set"),
     "atd_active": AtdSpec(design="active"),
@@ -618,6 +620,13 @@ def atd_credit(cell: DataCell, spec: AtdSpec, train_facts: list, test_facts: lis
         predict = fit_mlp(data.X, data.y, seed=cell.seed, steps=spec.steps)
     elif spec.critic == "set":
         predict = fit_set_critic(data.X, data.y, n, k, seed=cell.seed, steps=spec.steps)
+    elif spec.critic == "mlp_noroles":
+        inner = fit_mlp(drop_roles(data.X, n, k), data.y, seed=cell.seed, steps=spec.steps)
+        predict = lambda S, inner=inner: inner(drop_roles(S, n, k))
+        predict.final_loss, predict.n_parameters = inner.final_loss, inner.n_parameters
+    elif spec.critic == "set_noroles":
+        # the set critic slices tokens from the full state but ignores the role block (roles=False)
+        predict = fit_set_critic(data.X, data.y, n, k, seed=cell.seed, steps=spec.steps, roles=False)
     else:
         raise ValueError(f"unknown critic {spec.critic!r}")
     data_info = dict(data.info, n_rows=int(len(data.y)))

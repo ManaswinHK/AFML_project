@@ -54,3 +54,20 @@ def test_critics_fit_a_simple_function():
     for fit in (lambda: fit_mlp(X, y, steps=1500), lambda: fit_set_critic(X, y, n, k, steps=1500)):
         p = fit()
         assert np.mean((p(X) - y) ** 2) < 1.0
+
+
+def test_set_critic_without_roles_ignores_role_flags_and_stays_invariant():
+    cfg = overlap_example()
+    env = PlantedCoalitionGridworld(cfg)
+    env.reset()
+    S = np.array([env.get_state()])
+    from whoearned.critics import role_columns
+    S2 = S.copy()
+    S2[:, role_columns(5, 2)] = 1 - S2[:, role_columns(5, 2)]
+    th.manual_seed(0)
+    net = SetCritic(StateTokens(5, 2, roles=False))
+    with th.no_grad():
+        np.testing.assert_allclose(net(th.tensor(S)).numpy(), net(th.tensor(S2, dtype=th.float32)).numpy())
+        perm = np.array([3, 1, 4, 0, 2])
+        np.testing.assert_allclose(net(th.tensor(S)).numpy(),
+                                   net(th.tensor(permute_state(S, 5, 2, perm), dtype=th.float32)).numpy(), atol=1e-5)
