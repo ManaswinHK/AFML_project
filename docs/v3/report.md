@@ -107,7 +107,38 @@ Metric: episodes to 90% greedy test success.
 
 ## 6. Credit for free from robustness training? (Phase 4)
 
-{{PHASE4}}
+Pre-registration: `preregistration_v3_phase4.md`, including its post-hoc addendum, written after a 5-episode smoke test and before the full evaluation. Data: `results/v3/phase4/*.json`.
+
+**Setting.**
+- **Layout:** 2 walled lanes plus 2 task-less bystanders (n = 6), so an equal split is wrong.
+- **Training:** EPyMARL MAPPO with team reward, 300k steps, seeds 5–7.
+- **Arms:** without dropout, or with **dropout 0.25** (a random set of agents stops for good at a random step in 25% of training episodes).
+- **Evaluation:** every 30k-step checkpoint is scored on 30 clean test episodes against the **exact** persistent-ablation truth of *that* learned policy, computed by branching the policy itself (RNG, RNN state and buffer; tested exact).
+
+**Final checkpoint (L1 vs exact credit; equal split = 0.67):**
+
+| Read-out | no dropout (s5, s6, s7) | dropout 0.25 (s5, s6, s7) |
+|---|---|---|
+| κ, as pre-registered | 0.68, 0.66, 0.68 | 0.66, 0.66, 0.67 |
+| κ with γᵗ weights (post-hoc) | 0.68, 0.66, 0.68 | 0.66, 0.66, 0.67 |
+| **structural V(s₀) − W₋ᵢ(s₀) (post-hoc)** | 1.91, 1.52, 1.99 | **0.43, 0.43, 0.74** |
+| MAPPO's standard shared advantage | 0.67 (equal split by construction) | 0.67 |
+| clean success | 1.00, 1.00, 0.98 | 1.00, 1.00, 1.00 |
+
+| Prediction | Verdict |
+|---|---|
+| H4.1: dropout makes MAPPO's critic an ablation critic (κ read-out) | **Met only on the letter, negligible in size**: dropout < no dropout in 3/3 seeds and below the equal split by 0.005. The prediction had no margin; this is not meaningful support. |
+| H4.2: without stops, the masked read-out is no better than an equal split | **Supported** (0.67 vs 0.67) |
+| H4.3: robustness training costs little return | **Supported** (success 1.00 vs 0.99) |
+| H4.4: fidelity over training (descriptive) | With dropout, the structural read-out improves steadily (1.85 → 0.43 in two seeds; s7 reaches 0.41 then drifts to 0.74). **Without dropout it gets worse with training** (dip to about 0.7–1.1, then 1.5–2.0): the critic's extrapolation to never-seen stopped states degrades. |
+
+**Reading.**
+- **A robustness-trained critic carries credit, but not in a form κ can extract.**
+  - MAPPO's critic works in standardised, discounted units and is offset from realised returns.
+  - κ compares the critic with the realised return, so the offset is common to all agents and swamps the per-agent differences.
+  - The structural read-out compares the critic with itself, so the offset cancels. The commitment split is therefore useful in practice, not only as bookkeeping.
+- Even then, **credit "for free" is much weaker than credit by design**: 0.43–0.74 against 0.02 for the Monte-Carlo intervention critic of §4. That gap is the cost of a TD-trained, reward-standardised critic whose stops land after commitment most of the time (lanes complete by step 3–5 of 25).
+- **Without stops in its data, a critic's answer to "what if i stopped?" is arbitrary and drifts as training continues.** This is the learning-time version of P3.
 
 ## 7. Descriptive and exploratory results
 
