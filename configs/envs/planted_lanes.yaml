@@ -10,6 +10,9 @@ env_args:
     lane_length: 4
   present: null
   reward_mode: "team"
+  dropout_p: 0.0        # Phase 4.1: probability per episode of a random persistent stop
+  dropout_null: "noop"
+  dropout_seed: 0
 
 test_greedy: True
 test_nepisode: 32
