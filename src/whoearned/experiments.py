@@ -70,6 +70,9 @@ class AtdSpec:
     critic: str = "mlp"             # "mlp" or "set" (permutation-invariant)
     steps: int = 3000
     design: str = "random"          # "random" or "active" (ensemble-disagreement stops, ablation.active_plan)
+    # "kappa": ablation-TD credit (realised return minus expected counterfactual). "struct": the structural part
+    # of the commitment split, c_i(t) = D_i(s_t) - D_i(s_{t+1}) with D_i = V - W_{-i} (expected credit only).
+    readout: str = "kappa"
 
 
 ATD_ALGS = {
@@ -78,6 +81,9 @@ ATD_ALGS = {
     "atd_remove": AtdSpec(null="remove"),
     "atd_bd": AtdSpec(sampler="before_done"),           # round-2 sampler (reproduction check, Phase 1.4)
     "atd_set": AtdSpec(critic="set"),
+    "atd_struct": AtdSpec(readout="struct"),
+    "atd_set_struct": AtdSpec(critic="set", readout="struct"),
+    "atd_set_remove": AtdSpec(critic="set", null="remove"),
     "atd_tp": AtdSpec(sampler="through_payout"),
     "atd_n800_set": AtdSpec(n_int=800, critic="set"),
     "atd_active": AtdSpec(design="active"),
@@ -98,7 +104,12 @@ INT_N, INT_SAMPLER, INT_NULL = 200, "stratified", "noop"
 for _a in INT_ALGS:
     MATCHED_TARGET[_a] = "loo"
     STEP_TARGET[_a] = f"kappa_{INT_NULL}" if _a.endswith("_masked") else "noop"
-DIRECT_ALGS = TABLE_ALGS + tuple(ATD_ALGS) + ("uniform",)
+DIRECT_ALGS = TABLE_ALGS + tuple(ATD_ALGS) + ("uniform", "floor_expected")
+# Oracle reference, not a method: every test episode gets the mean realised exact credit of its cell (no-op
+# null). On a fixed layout the start state is shared, so this is the best any *expected*-credit estimator can do;
+# its L1 is the "luck floor" (docs/v3/theory.md Section 3).
+MATCHED_TARGET["floor_expected"] = "loo"
+STEP_TARGET["floor_expected"] = None
 MATCHED_TARGET["uniform"] = "loo"   # equal split; scored against every target like any method
 STEP_TARGET["uniform"] = None
 for _a, _spec in ATD_ALGS.items():
@@ -412,11 +423,17 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
         record["data"]["mix_return_mean"] = float(np.mean([e.total for e in mix_eps]))
         record["data"]["mix_return_zero"] = float(np.mean([e.total == 0 for e in mix_eps]))
     train_facts = None
-    int_cache = {}
+    int_cache, critic_cache = {}, {}
     for alg in train.algs:
         ta = time.time()
         h, losses, extra = None, [], {}
-        if alg == "uniform":
+        if alg == "floor_expected":
+            if cell.shuffle_roles or "noop" not in truth.ablation_W:
+                continue
+            mean_loo = np.mean([f.total - W[:, 0] for f, W in zip(truth.facts, truth.ablation_W["noop"])], axis=0)
+            out = {"per_step": np.concatenate([np.repeat(mean_loo[None, None], len(test_eps), 0),
+                                               np.zeros((len(test_eps), cfg.horizon - 1, cfg.n_agents))], 1)}
+        elif alg == "uniform":
             out = {"per_step": np.concatenate([np.ones((len(test_eps), 1, cfg.n_agents)),
                                                np.zeros((len(test_eps), cfg.horizon - 1, cfg.n_agents))], 1)}
         elif alg in TABLE_ALGS:
@@ -424,7 +441,7 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
         elif alg in ATD_ALGS:
             if train_facts is None:
                 train_facts = _train_facts(cell, train_eps)
-            out = atd_credit(cell, ATD_ALGS[alg], train_facts, truth.facts)
+            out = atd_credit(cell, ATD_ALGS[alg], train_facts, truth.facts, critic_cache)
             extra = out.pop("info")
         elif alg in INT_ALGS:
             if train_facts is None:
@@ -573,7 +590,7 @@ def table_credit(cfg, mix_eps, k: int, n_test: int) -> dict:
     return {"per_step": per_step, "dividends": np.repeat(div[None], n_test, 0)}
 
 
-def atd_credit(cell: DataCell, spec: AtdSpec, train_facts: list, test_facts: list) -> dict:
+def atd_credit(cell: DataCell, spec: AtdSpec, train_facts: list, test_facts: list, cache: dict | None = None) -> dict:
     """Persistent-ablation critic: intervention data -> value critic on the global state -> read-out.
 
     Read-out uses factual test states only (no interventions at test time): the critic at s_t with agent
@@ -583,6 +600,11 @@ def atd_credit(cell: DataCell, spec: AtdSpec, train_facts: list, test_facts: lis
     cfg = cell.config()
     n, k = cfg.n_agents, len(cfg.events)
     make_for = lambda i: (lambda: cell.team("train", i))
+    from dataclasses import replace
+    key = replace(spec, readout="kappa")             # read-outs of one critic share its training
+    if cache is not None and key in cache:
+        predict, data_info, design_diag = cache[key]
+        return _atd_readout(spec, predict, data_info, design_diag, test_facts, n)
     plan, design_diag = None, None
     if spec.design == "active":
         plan, design_diag = ab.active_plan(cfg, make_for, train_facts, spec.n_int, seed=cell.seed,
@@ -598,15 +620,28 @@ def atd_credit(cell: DataCell, spec: AtdSpec, train_facts: list, test_facts: lis
         predict = fit_set_critic(data.X, data.y, n, k, seed=cell.seed, steps=spec.steps)
     else:
         raise ValueError(f"unknown critic {spec.critic!r}")
+    data_info = dict(data.info, n_rows=int(len(data.y)))
+    if cache is not None:
+        cache[key] = (predict, data_info, design_diag)
+    return _atd_readout(spec, predict, data_info, design_diag, test_facts, n)
+
+
+def _atd_readout(spec: AtdSpec, predict, data_info, design_diag, test_facts, n) -> dict:
     per_step, dividends = [], []
     all_stopped = [tuple(i for i in range(n) if not m >> i & 1) for m in range(1 << n)]
     for f in test_facts:
         W = ab.learned_ablation_values(predict, f, null=spec.null)
-        per_step.append(ab.ablation_td_credit(f.rewards, W).T)
+        if spec.readout == "kappa":
+            per_step.append(ab.ablation_td_credit(f.rewards, W).T)
+        elif spec.readout == "struct":
+            _, c = ab.commitment_split(f.rewards, ab.learned_value(predict, f), W)
+            per_step.append(c.T)
+        else:
+            raise ValueError(spec.readout)
         v0 = predict(np.stack([ab.stopped_state(f.states[0], n, st, spec.null) for st in all_stopped]))
         dividends.append(gtm.harsanyi_dividends(v0 - v0[0]))
     return {"per_step": np.stack(per_step), "dividends": np.stack(dividends),
-            "info": {"atd": asdict(spec), "data": data.info, "n_rows": int(len(data.y)), "design": design_diag,
+            "info": {"atd": asdict(spec), "data": data_info, "design": design_diag,
                      "final_loss": predict.final_loss, "n_parameters": predict.n_parameters}}
 
 
