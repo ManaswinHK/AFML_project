@@ -15,6 +15,9 @@ from dataclasses import asdict, dataclass, field
 import numpy as np
 import torch as th
 
+from whoearned import ablation as ab
+from whoearned import ground_truth as gtm
+from whoearned.critics import fit_mlp, fit_set_critic
 from whoearned.envs import NOOP, coalition_layout, overlap_example
 from whoearned.epymarl_bridge import episodes_to_batch
 from whoearned.ground_truth import agents_of, mask_of, normalise_shares
@@ -25,10 +28,18 @@ from whoearned.metrics import (
     evaluate_credit,
     identified_coalitions,
     pearson,
+    top_k_selection,
     true_dividends,
 )
 from whoearned.mode_p import ALGS, MIX, base_alg, episode_credit, make_harness, read_credit, train_step
-from whoearned.replay import ground_truth_open_loop, planted_dividends, replay, rollout, step_counterfactuals
+from whoearned.replay import (
+    ground_truth_closed_loop,
+    ground_truth_open_loop,
+    planted_dividends,
+    replay,
+    rollout,
+    step_counterfactuals,
+)
 from whoearned.scripted import ScriptedTeam
 
 # Enabler start that puts A on the critical path in about half of the noisy (eps = 0.2)
@@ -43,6 +54,39 @@ MATCHED_TARGET = {"vdn": "loo", "qmix": "loo", "coma": "loo", "mappo": "loo", "n
 # None: the read-out estimates no single-agent per-step counterfactual, so it has no level-1 score.
 STEP_TARGET = {"vdn": "noop", "qmix": "noop", "coma": "baseline", "mappo": "noop", "na2q": None, "stas": None,
                "ece2": None, "ece3": None}
+# --- v3: methods computed directly from scripted data (no EPyMARL), scored like every other method ---
+# Presence-only table (sparse Moebius regression) on the same ``mix`` data ECE-k_mix sees (Phase 0.4).
+TABLE_ALGS = ("table2_mix", "table3_mix")
+TABLE_ALPHA = 0.025  # ECE's 0.05 sparsity weight in scikit-learn's Lasso convention; not tuned
+
+
+@dataclass(frozen=True)
+class AtdSpec:
+    """A persistent-ablation critic (``whoearned.ablation``): data protocol + critic + read-out."""
+    n_int: int = 200                # stopped continuations added to the 200 full-team episodes
+    null: str = "noop"
+    sampler: str = "stratified"
+    critic: str = "mlp"             # "mlp" or "set" (permutation-invariant)
+    steps: int = 3000
+
+
+ATD_ALGS = {
+    "atd": AtdSpec(),                                   # primary (pre-registration v3)
+    "atd_noint": AtdSpec(n_int=0),                      # control: same critic, no interventions
+    "atd_remove": AtdSpec(null="remove"),
+    "atd_bd": AtdSpec(sampler="before_done"),           # round-2 sampler (reproduction check, Phase 1.4)
+    "atd_set": AtdSpec(critic="set"),
+    **{f"atd_n{k}": AtdSpec(n_int=k) for k in (25, 50, 100, 400, 800)},   # data scaling (Phase 1.7)
+    "atd_remove_n800": AtdSpec(n_int=800, null="remove"),
+}
+DIRECT_ALGS = TABLE_ALGS + tuple(ATD_ALGS)
+for _a, _spec in ATD_ALGS.items():
+    MATCHED_TARGET[_a] = "loo"
+    STEP_TARGET[_a] = f"kappa_{_spec.null}"   # level 1: the exact ablation-TD credit under its own null
+for _a in TABLE_ALGS:
+    MATCHED_TARGET[base_alg(_a)] = "shapley"   # registered under the base name, like ece2/ece3
+    STEP_TARGET[base_alg(_a)] = None
+
 # A coalition counts as identified if it holds more than this share of |dividends| (H3).
 IDENTIFY_THRESHOLD = 0.1
 # Replay-varied training data (H5): in each extra replay, each agent is kept with this probability.
@@ -139,13 +183,32 @@ class TestTruth:
     returns: list
     truths: list = field(default_factory=list, repr=False)
     step: dict = field(default_factory=lambda: {"noop": [], "baseline": []}, repr=False)
+    # v3: closed-loop (re-run) ground truth, the recommended default (Phase 0.6, 0.8)
+    closed: list = field(default_factory=list, repr=False)
+    # v3: factual test episodes with snapshots, and exact ablation values W[null] (n, T+1) per episode
+    facts: list = field(default_factory=list, repr=False)
+    ablation_W: dict = field(default_factory=dict, repr=False)
 
 
-def _test_truth(cell: DataCell, test_eps) -> TestTruth:
+def _test_truth(cell: DataCell, test_eps, ablation_nulls=()) -> TestTruth:
     cfg = cell.config()
     planted = planted_dividends(cfg)
     out = TestTruth([], [], [], [], [], [])
+    for null in ablation_nulls:
+        out.ablation_W[null] = []
+        out.step[f"kappa_{null}"] = []
     for s, ep in enumerate(test_eps):
+        make = lambda s=s: cell.team("test", s)
+        out.closed.append(ground_truth_closed_loop(cfg, make))
+        if ablation_nulls:
+            f = ab.factual_rollout(cfg, make)
+            if not np.array_equal(f.actions, ep.actions):
+                raise RuntimeError(f"factual rollout of test episode {s} did not reproduce its actions")
+            out.facts.append(f)
+            for null in ablation_nulls:
+                W = ab.oracle_ablation_values(cfg, make, f, null=null)
+                out.ablation_W[null].append(W)
+                out.step[f"kappa_{null}"].append(ab.ablation_td_credit(f.rewards, W).T)
         truth = ground_truth_open_loop(cfg, ep.actions)
         noop = ground_truth_open_loop(cfg, ep.actions, null="noop")
         step = step_counterfactuals(cfg, lambda: cell.team("test", s), gamma=cell.gamma)
@@ -195,10 +258,14 @@ def _score(alg: str, out: dict, truth: TestTruth, cfg) -> list[dict]:
     credit = episode_credit(per_step)
     enablers, bystanders = _roles(cfg)
     rows = []
+    coalition = sorted({a for ev in cfg.events for a in ev.coalition})
     for b, gt in enumerate(truth.truths):
         row = {"episode": b}
         for target in ("loo", "shapley"):
             row[target] = evaluate_credit(credit[b], gt, cfg, target=target).as_dict()
+            if truth.closed:
+                row[f"{target}_closed"] = evaluate_credit(credit[b], truth.closed[b], cfg, target=target).as_dict()
+        row["top_k"] = top_k_selection(credit[b], coalition)
         row["matched"] = row[MATCHED_TARGET[base_alg(alg)]]
         if STEP_TARGET[base_alg(alg)] is not None:
             step_truth = truth.step[STEP_TARGET[base_alg(alg)]][b]
@@ -206,6 +273,8 @@ def _score(alg: str, out: dict, truth: TestTruth, cfg) -> list[dict]:
             row["fidelity"]["step_pearson"] = pearson(per_step[b], step_truth)
         if "dividends" in out:
             row["coalition"] = coalition_scores(out["dividends"][b], gt)
+            if truth.closed:
+                row["coalition_closed"] = coalition_scores(out["dividends"][b], truth.closed[b])
         shares = normalise_shares(credit[b])
         row["shares"] = None if shares is None else shares.tolist()
         rows.append(row)
@@ -252,7 +321,8 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
     t0 = time.time()
     cfg = cell.config()
     train_eps, test_eps = cell.episodes("train"), cell.episodes("test")
-    truth = _test_truth(cell, test_eps)
+    nulls = tuple(dict.fromkeys(ATD_ALGS[a].null for a in train.algs if a in ATD_ALGS))
+    truth = _test_truth(cell, test_eps, ablation_nulls=nulls)
     record = {
         "cell": asdict(cell),
         "train": asdict(train),
@@ -271,22 +341,31 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
     }
     env_args = cell.env_args()
     rng = np.random.default_rng(cell.seed)
-    mix_eps = cell.episodes("mix") if any(a.endswith(MIX) for a in train.algs) else None
+    mix_eps = cell.episodes("mix") if any(a.endswith(MIX) for a in train.algs) else None  # tables are *_mix too
     if mix_eps is not None:
         record["data"]["mix_return_mean"] = float(np.mean([e.total for e in mix_eps]))
         record["data"]["mix_return_zero"] = float(np.mean([e.total == 0 for e in mix_eps]))
+    train_facts = None
     for alg in train.algs:
         ta = time.time()
-        h = make_harness(alg, env_args=env_args, seed=cell.seed)
-        alg_train = mix_eps if alg.endswith(MIX) else train_eps
-        data, test = episodes_to_batch(h, alg_train), episodes_to_batch(h, test_eps)
-        losses = []
-        for k in range(train.updates):
-            idx = rng.choice(len(alg_train), train.batch_size, replace=False)
-            loss = train_step(h, alg, data[idx], k)
-            if k % train.log_every == 0 or k == train.updates - 1:
-                losses.append((k, loss))
-        out = read_credit(h, alg, test, test_eps)
+        h, losses, extra = None, [], {}
+        if alg in TABLE_ALGS:
+            out = table_credit(cfg, mix_eps, k=int(alg[5]), n_test=len(test_eps))
+        elif alg in ATD_ALGS:
+            if train_facts is None:
+                train_facts = _train_facts(cell, train_eps)
+            out = atd_credit(cell, ATD_ALGS[alg], train_facts, truth.facts)
+            extra = out.pop("info")
+        else:
+            h = make_harness(alg, env_args=env_args, seed=cell.seed)
+            alg_train = mix_eps if alg.endswith(MIX) else train_eps
+            data, test = episodes_to_batch(h, alg_train), episodes_to_batch(h, test_eps)
+            for k in range(train.updates):
+                idx = rng.choice(len(alg_train), train.batch_size, replace=False)
+                loss = train_step(h, alg, data[idx], k)
+                if k % train.log_every == 0 or k == train.updates - 1:
+                    losses.append((k, loss))
+            out = read_credit(h, alg, test, test_eps)
         rows = _score(alg, out, truth, cfg)
         rec = {
             "seconds": time.time() - ta,
@@ -294,7 +373,11 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
             "summary": summarise(rows),
             "summary_loo": summarise(rows, "loo"),
             "summary_shapley": summarise(rows, "shapley"),
+            "summary_loo_closed": summarise(rows, "loo_closed"),
+            "summary_shapley_closed": summarise(rows, "shapley_closed"),
+            "top_k": _mean(r["top_k"] for r in rows),
             "episodes": rows,
+            **extra,
         }
         if STEP_TARGET[base_alg(alg)] is not None:
             fidelity = summarise(rows, "fidelity")
@@ -304,7 +387,10 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
         if "dividends" in out:
             rec["summary_coalition"] = {k: _mean(r["coalition"][k] for r in rows)
                                         for k in rows[0]["coalition"] if k != "dividends"}
-        if hasattr(h.learner, "n_parameters"):
+            if "coalition_closed" in rows[0]:
+                rec["summary_coalition_closed"] = {k: _mean(r["coalition_closed"][k] for r in rows)
+                                                   for k in rows[0]["coalition_closed"] if k != "dividends"}
+        if h is not None and hasattr(h.learner, "n_parameters"):
             rec["n_parameters"] = h.learner.n_parameters()
         if "snr" in out:
             rec["snr"] = {k: v.tolist() for k, v in out["snr"].items()}
@@ -316,6 +402,64 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
         json.dump(record, f)
     os.replace(path + ".tmp", path)
     return path
+
+
+def _train_facts(cell: DataCell, train_eps) -> list:
+    """Training episodes re-run with a snapshot before every step (identical actions, checked)."""
+    cfg = cell.config()
+    facts = []
+    for i, ep in enumerate(train_eps):
+        f = ab.factual_rollout(cfg, lambda i=i: cell.team("train", i))
+        if not np.array_equal(f.actions, ep.actions):
+            raise RuntimeError(f"factual rollout of training episode {i} did not reproduce its actions")
+        facts.append(f)
+    return facts
+
+
+def table_credit(cfg, mix_eps, k: int, n_test: int) -> dict:
+    """Presence-only table on the ``mix`` data: Lasso of return on [all of S present], |S| <= k.
+
+    It never looks at a trajectory, so its dividends and its Shapley split are the same for every test
+    episode. Credit is placed at step 0 (it has no temporal read-out).
+    """
+    n = cfg.n_agents
+    div = ab.fit_table([ep.present for ep in mix_eps], [ep.total for ep in mix_eps], n, k, alpha=TABLE_ALPHA)
+    phi = np.zeros(n)
+    for s in range(1, 1 << n):
+        members = gtm.agents_of(s)
+        phi[list(members)] += div[s] / len(members)
+    per_step = np.zeros((n_test, cfg.horizon, n))
+    per_step[:, 0] = phi
+    return {"per_step": per_step, "dividends": np.repeat(div[None], n_test, 0)}
+
+
+def atd_credit(cell: DataCell, spec: AtdSpec, train_facts: list, test_facts: list) -> dict:
+    """Persistent-ablation critic: intervention data -> value critic on the global state -> read-out.
+
+    Read-out uses factual test states only (no interventions at test time): the critic at s_t with agent
+    i's acting flag switched off gives W_hat_{-i}(s_t); per-step credit is the ablation-TD credit.
+    Coalition level: the dividends of u(S) = W_hat_S(s_0) - W_hat_empty(s_0), per test episode.
+    """
+    cfg = cell.config()
+    n, k = cfg.n_agents, len(cfg.events)
+    data = ab.intervention_dataset(cfg, lambda i: (lambda: cell.team("train", i)), train_facts, spec.n_int,
+                                   seed=cell.seed, null=spec.null, sampler=spec.sampler)
+    if spec.critic == "mlp":
+        predict = fit_mlp(data.X, data.y, seed=cell.seed, steps=spec.steps)
+    elif spec.critic == "set":
+        predict = fit_set_critic(data.X, data.y, n, k, seed=cell.seed, steps=spec.steps)
+    else:
+        raise ValueError(f"unknown critic {spec.critic!r}")
+    per_step, dividends = [], []
+    all_stopped = [tuple(i for i in range(n) if not m >> i & 1) for m in range(1 << n)]
+    for f in test_facts:
+        W = ab.learned_ablation_values(predict, f, null=spec.null)
+        per_step.append(ab.ablation_td_credit(f.rewards, W).T)
+        v0 = predict(np.stack([ab.stopped_state(f.states[0], n, st, spec.null) for st in all_stopped]))
+        dividends.append(gtm.harsanyi_dividends(v0 - v0[0]))
+    return {"per_step": np.stack(per_step), "dividends": np.stack(dividends),
+            "info": {"atd": asdict(spec), "data": data.info, "n_rows": int(len(data.y)),
+                     "final_loss": predict.final_loss, "n_parameters": predict.n_parameters}}
 
 
 def _enabler_critical(ep) -> bool:

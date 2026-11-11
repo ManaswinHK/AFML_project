@@ -1,0 +1,133 @@
+"""State-value critics for persistent-ablation credit.
+
+All critics regress the undiscounted return-to-go on the environment's global state (which carries
+per-agent ``acting`` flags, so a stopped agent is just another state). Monte-Carlo targets, Adam.
+
+* :func:`fit_mlp` - flat MLP (round-2 prototype: 2 x 128, 3,000 steps, batch 256, lr 1e-3).
+* :func:`fit_ensemble` - bootstrap ensemble of MLPs; ``predict.std`` gives epistemic spread.
+* :func:`fit_set_critic` - permutation-invariant critic (plan Section 7.2). The flat state is re-sliced
+  into one token per agent (its position, presence, acting flag and its own lever flags) plus one
+  shared context vector (event flags and time). A shared encoder, one self-attention layer and sum/mean
+  pooling make W(pi s, pi mask) = W(s, mask) hold by construction. It sees exactly the information the
+  MLP sees; only the symmetry differs.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+import torch as th
+
+SCALE = 10.0
+
+
+def _train(net, X, y, seed, steps, batch, lr, weights=None):
+    th.manual_seed(seed)
+    opt = th.optim.Adam(net.parameters(), lr=lr)
+    Xt, yt = th.tensor(X, dtype=th.float32), th.tensor(y / SCALE, dtype=th.float32)
+    w = None if weights is None else th.tensor(weights, dtype=th.float32)
+    g = th.Generator().manual_seed(seed)
+    loss = th.tensor(0.0)
+    for _ in range(steps):
+        idx = th.randint(0, len(Xt), (batch,), generator=g)
+        err = (net(Xt[idx]).squeeze(-1) - yt[idx]) ** 2
+        loss = err.mean() if w is None else (err * w[idx]).sum() / w[idx].sum()
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+    return float(loss.detach())
+
+
+def _predictor(net):
+    def predict(S):
+        with th.no_grad():
+            return net(th.tensor(np.asarray(S), dtype=th.float32)).squeeze(-1).numpy().astype(np.float64) * SCALE
+    return predict
+
+
+def mlp(d_in: int, hidden: int = 128) -> th.nn.Module:
+    return th.nn.Sequential(th.nn.Linear(d_in, hidden), th.nn.ReLU(), th.nn.Linear(hidden, hidden), th.nn.ReLU(),
+                            th.nn.Linear(hidden, 1))
+
+
+def fit_mlp(X, y, seed=0, hidden=128, steps=3000, batch=256, lr=1e-3, weights=None):
+    th.set_num_threads(1)
+    th.manual_seed(seed)
+    net = mlp(X.shape[1], hidden)
+    final = _train(net, X, y, seed, steps, batch, lr, weights)
+    predict = _predictor(net)
+    predict.final_loss = final
+    predict.n_parameters = sum(p.numel() for p in net.parameters())
+    return predict
+
+
+def fit_ensemble(X, y, seed=0, members=5, **kw):
+    """Bootstrap ensemble: each member sees a resample of the training *rows*."""
+    rng = np.random.default_rng([seed, 31])
+    preds = []
+    for m in range(members):
+        idx = rng.integers(0, len(X), len(X))
+        preds.append(fit_mlp(X[idx], y[idx], seed=seed * 100 + m, **kw))
+
+    def predict(S):
+        return np.mean([p(S) for p in preds], axis=0)
+
+    def std(S):
+        return np.std([p(S) for p in preds], axis=0)
+    predict.std = std
+    predict.members = preds
+    return predict
+
+
+# --- permutation-invariant critic --------------------------------------------------------------------
+
+
+class StateTokens:
+    """Slices the flat global state (see PlantedCoalitionGridworld.get_state) into agent tokens + context."""
+
+    def __init__(self, n: int, k: int):
+        self.n, self.k = n, k
+        per_event = 5 + n
+        self.d_state = 4 * n + k * per_event + 1
+        agent_idx = []
+        for i in range(n):
+            cols = [2 * i, 2 * i + 1, 2 * n + i, 3 * n + i]
+            cols += [4 * n + e * per_event + 5 + i for e in range(k)]   # this agent's pulled flag per event
+            agent_idx.append(cols)
+        self.agent_idx = th.tensor(agent_idx)                          # (n, 4 + k)
+        ctx = [4 * n + e * per_event + j for e in range(k) for j in range(5)] + [self.d_state - 1]
+        self.ctx_idx = th.tensor(ctx)                                    # (5k + 1,)
+        self.d_agent, self.d_ctx = 4 + k, 5 * k + 1
+
+    def __call__(self, S: th.Tensor):
+        return S[:, self.agent_idx], S[:, self.ctx_idx]                  # (B, n, d_agent), (B, d_ctx)
+
+
+class SetCritic(th.nn.Module):
+    def __init__(self, tokens: StateTokens, hidden: int = 128, heads: int = 4):
+        super().__init__()
+        self.tokens = tokens
+        h = hidden
+        self.enc = th.nn.Sequential(th.nn.Linear(tokens.d_agent + tokens.d_ctx, h), th.nn.ReLU(), th.nn.Linear(h, h))
+        self.attn = th.nn.MultiheadAttention(h, heads, batch_first=True)
+        self.post = th.nn.Sequential(th.nn.ReLU(), th.nn.Linear(h, h), th.nn.ReLU())
+        self.head = th.nn.Sequential(th.nn.Linear(2 * h + tokens.d_ctx, h), th.nn.ReLU(), th.nn.Linear(h, 1))
+
+    def forward(self, S):
+        a, c = self.tokens(S)
+        n = a.shape[1]
+        z = self.enc(th.cat([a, c[:, None, :].expand(-1, n, -1)], -1))      # (B, n, h)
+        z = z + self.attn(z, z, z, need_weights=False)[0]
+        z = self.post(z)
+        pooled = th.cat([z.sum(1), z.mean(1), c], -1)
+        return self.head(pooled)
+
+
+def fit_set_critic(X, y, n, k, seed=0, hidden=128, steps=3000, batch=256, lr=1e-3, weights=None):
+    th.set_num_threads(1)
+    th.manual_seed(seed)
+    net = SetCritic(StateTokens(n, k), hidden)
+    final = _train(net, X, y, seed, steps, batch, lr, weights)
+    predict = _predictor(net)
+    predict.final_loss = final
+    predict.n_parameters = sum(p.numel() for p in net.parameters())
+    return predict

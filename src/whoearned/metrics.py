@@ -248,6 +248,27 @@ def evaluate_against(
     )
 
 
+def top_k_selection(credit: Sequence[float], coalition: Iterable[int], tol: float = 1e-9) -> float:
+    """Probability that keeping the |coalition| highest-credited agents keeps exactly the coalition.
+
+    Ties at the cut-off are broken uniformly at random, so an equal split scores its chance level
+    (1 / C(n, k)) instead of an artefact of index order (v3 Phase 0.5; plan Test D).
+    """
+    credit = np.asarray(credit, dtype=np.float64)
+    coalition = set(int(i) for i in coalition)
+    k = len(coalition)
+    if k == 0 or k > len(credit):
+        return 0.0
+    cut = np.sort(credit)[::-1][k - 1]
+    scale = max(1.0, float(np.abs(credit).max()))
+    above = {i for i in range(len(credit)) if credit[i] > cut + tol * scale}
+    tied = {i for i in range(len(credit)) if abs(credit[i] - cut) <= tol * scale}
+    need = coalition - above
+    if not above <= coalition or not need <= tied:
+        return 0.0
+    return 1.0 / comb(len(tied), len(need))
+
+
 def pearson(x: np.ndarray, y: np.ndarray) -> float | None:
     """Pearson correlation of flattened arrays; None if either is constant."""
     x, y = np.ravel(x).astype(np.float64), np.ravel(y).astype(np.float64)
