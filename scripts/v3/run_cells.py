@@ -54,6 +54,9 @@ GRIDS = {
                          ("vdn", "qmix", "coma", "mappo", "na2q", "stas", "uniform")),
     "rerun_partial_h5": ([DataCell(delay=50, n_bystanders=2, seed=s, horizon=80, layout="partial") for s in range(5)],
                          ("ece2", "ece3", "ece2_mix", "ece3_mix", "na2q_mix", "stas_mix", "table2_mix", "table3_mix")),
+    "pilot_v2": ([DataCell(delay=d, n_bystanders=b, seed=s, horizon=80 if d >= 50 else 60)
+                  for d in (0, 25, 50) for b in (2, 4) for s in (1, 2)],
+                 ("uniform", "atd", "mappo", "mappo_int", "mappo_int_masked", "qmix", "qmix_int", "qmix_int_masked")),
     "pilot_budget": (_perm((0, 1, 2)), ("uniform", "atd_set_n25", "atd_set_active_n25", "atd_set_n50",
                                         "atd_set_active_n50", "atd_set_n100", "atd_set_active_n100",
                                         "atd_n100", "atd_active_n100", "atd_n400", "atd_active_n400")),
