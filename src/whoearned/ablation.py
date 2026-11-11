@@ -346,3 +346,45 @@ def fit_table(masks: np.ndarray, returns: np.ndarray, n: int, k: int, alpha: flo
     for c, b in zip(subsets, beta):
         div[gt.mask_of(c)] = b
     return div
+
+
+# --- active intervention design ------------------------------------------------------------------------
+
+
+def active_plan(config: GridConfig, make_team_for: Callable[[int], MakeTeam], facts: list[Factual], budget: int,
+                seed: int, fit_ensemble: Callable, null: str = "noop", sampler: str = "stratified",
+                rounds: int = 3, initial_frac: float = 0.25, pool_size: int = 1500, single_prob: float = 0.5):
+    """Choose stops where a bootstrap ensemble disagrees most about the value just after the stop.
+
+    The read-out only ever queries W_hat at factual states with some agents' acting flags switched off,
+    i.e. at the *start* state of a stop. So candidates (episode, t0, stopped set) are drawn from the same
+    distribution as the random design, scored by the ensemble's standard deviation at that start state,
+    and the highest-scoring distinct candidates are run. ``initial_frac`` of the budget is random.
+    Returns (plan, diagnostics).
+    """
+    rng = np.random.default_rng([seed, 991])
+    n = config.n_agents
+
+    def draw():
+        idx = int(rng.integers(len(facts)))
+        return idx, sample_stop_time(rng, facts[idx], sampler), sample_stopped(rng, n, single_prob)
+
+    n0 = max(1, int(round(budget * initial_frac)))
+    plan = [draw() for _ in range(n0)]
+    per_round = [(budget - n0) // rounds + (1 if r < (budget - n0) % rounds else 0) for r in range(rounds)]
+    diag = []
+    for r, k in enumerate(per_round):
+        if k == 0:
+            continue
+        data = intervention_dataset(config, make_team_for, facts, 0, seed, null, sampler, plan=plan)
+        ens = fit_ensemble(data.X, data.y, seed=seed * 10 + r)
+        chosen = {(i, t, s) for i, t, s in plan}
+        pool = [c for c in {draw() for _ in range(pool_size)} if c not in chosen]
+        S = np.stack([stopped_state(facts[i].states[t], n, s, null) for i, t, s in pool])
+        score = ens.std(S)
+        order = np.argsort(-score)[:k]
+        plan += [pool[j] for j in order]
+        diag.append({"round": r, "added": int(k), "pool": len(pool), "score_top_mean": float(score[order].mean()),
+                     "score_pool_mean": float(score.mean()),
+                     "added_single": float(np.mean([len(pool[j][2]) == 1 for j in order]))})
+    return plan, diag

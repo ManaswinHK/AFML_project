@@ -118,3 +118,15 @@ def test_learned_readout_with_a_perfect_lookup_critic_reproduces_the_oracle():
             table[ab.stopped_state(f.states[t], n, (i,), "noop").tobytes()] = W[i, t]
     predict = lambda S: np.array([table[s.astype(np.float32).tobytes()] for s in S])
     np.testing.assert_allclose(ab.learned_ablation_values(predict, f, null="noop"), W)
+
+
+def test_active_plan_spends_the_budget_on_distinct_stops():
+    from whoearned.critics import fit_ensemble
+    cfg = coalition_layout(2, delay=5)
+    makes = [lambda i=i: ScriptedTeam(cfg, seed=200 + i, epsilon=0.2) for i in range(10)]
+    facts = [ab.factual_rollout(cfg, m) for m in makes]
+    plan, diag = ab.active_plan(cfg, lambda i: makes[i], facts, budget=20, seed=0,
+                                fit_ensemble=lambda X, y, seed: fit_ensemble(X, y, seed=seed, members=3, steps=200),
+                                pool_size=200)
+    assert len(plan) == 20 and len(diag) == 3
+    assert all(d["score_top_mean"] >= d["score_pool_mean"] for d in diag)

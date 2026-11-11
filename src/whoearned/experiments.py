@@ -17,7 +17,7 @@ import torch as th
 
 from whoearned import ablation as ab
 from whoearned import ground_truth as gtm
-from whoearned.critics import fit_mlp, fit_set_critic
+from whoearned.critics import fit_ensemble, fit_mlp, fit_set_critic
 from whoearned.envs import NOOP, coalition_layout, overlap_example
 from whoearned.epymarl_bridge import episodes_to_batch
 from whoearned.ground_truth import agents_of, mask_of, normalise_shares
@@ -68,6 +68,7 @@ class AtdSpec:
     sampler: str = "stratified"
     critic: str = "mlp"             # "mlp" or "set" (permutation-invariant)
     steps: int = 3000
+    design: str = "random"          # "random" or "active" (ensemble-disagreement stops, ablation.active_plan)
 
 
 ATD_ALGS = {
@@ -76,6 +77,10 @@ ATD_ALGS = {
     "atd_remove": AtdSpec(null="remove"),
     "atd_bd": AtdSpec(sampler="before_done"),           # round-2 sampler (reproduction check, Phase 1.4)
     "atd_set": AtdSpec(critic="set"),
+    "atd_tp": AtdSpec(sampler="through_payout"),
+    "atd_n800_set": AtdSpec(n_int=800, critic="set"),
+    "atd_active": AtdSpec(design="active"),
+    "atd_set_active": AtdSpec(critic="set", design="active"),
     **{f"atd_n{k}": AtdSpec(n_int=k) for k in (25, 50, 100, 400, 800)},   # data scaling (Phase 1.7)
     "atd_remove_n800": AtdSpec(n_int=800, null="remove"),
 }
@@ -463,8 +468,16 @@ def atd_credit(cell: DataCell, spec: AtdSpec, train_facts: list, test_facts: lis
     """
     cfg = cell.config()
     n, k = cfg.n_agents, len(cfg.events)
-    data = ab.intervention_dataset(cfg, lambda i: (lambda: cell.team("train", i)), train_facts, spec.n_int,
-                                   seed=cell.seed, null=spec.null, sampler=spec.sampler)
+    make_for = lambda i: (lambda: cell.team("train", i))
+    plan, design_diag = None, None
+    if spec.design == "active":
+        plan, design_diag = ab.active_plan(cfg, make_for, train_facts, spec.n_int, seed=cell.seed,
+                                           fit_ensemble=lambda X, y, seed: fit_ensemble(X, y, seed=seed, steps=1500),
+                                           null=spec.null, sampler=spec.sampler)
+    elif spec.design != "random":
+        raise ValueError(f"unknown design {spec.design!r}")
+    data = ab.intervention_dataset(cfg, make_for, train_facts, spec.n_int, seed=cell.seed, null=spec.null,
+                                   sampler=spec.sampler, plan=plan)
     if spec.critic == "mlp":
         predict = fit_mlp(data.X, data.y, seed=cell.seed, steps=spec.steps)
     elif spec.critic == "set":
@@ -479,7 +492,7 @@ def atd_credit(cell: DataCell, spec: AtdSpec, train_facts: list, test_facts: lis
         v0 = predict(np.stack([ab.stopped_state(f.states[0], n, st, spec.null) for st in all_stopped]))
         dividends.append(gtm.harsanyi_dividends(v0 - v0[0]))
     return {"per_step": np.stack(per_step), "dividends": np.stack(dividends),
-            "info": {"atd": asdict(spec), "data": data.info, "n_rows": int(len(data.y)),
+            "info": {"atd": asdict(spec), "data": data.info, "n_rows": int(len(data.y)), "design": design_diag,
                      "final_loss": predict.final_loss, "n_parameters": predict.n_parameters}}
 
 

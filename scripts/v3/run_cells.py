@@ -33,7 +33,21 @@ def _h5(seeds, layouts=("overlap", "partial", "coalition")):
                      layout=lay) for lay, d, s in itertools.product(layouts, (0, 50), seeds)]
 
 
+def _perm(seeds, bs=(2, 4), delay=25):
+    return [DataCell(delay=delay, n_bystanders=b, seed=s, horizon=60, shuffle_roles=True)
+            for b, s in itertools.product(bs, seeds)]
+
+
+PILOT_FIXED_ALGS = ("atd", "atd_bd", "atd_tp", "atd_noint", "atd_remove", "atd_set", "atd_active", "table3_mix")
+PILOT_PERM_ALGS = ("atd", "atd_n800", "atd_set", "atd_n800_set", "atd_active", "atd_set_active", "atd_noint",
+                   "table3_mix", "ece3_mix")
+PILOT_H5_ALGS = ("atd", "atd_remove", "atd_set", "atd_n800", "atd_active", "table2_mix", "table3_mix")
+
 GRIDS = {
+    # ---- exploratory pilots (seeds 0-4, the seeds of every earlier round): choose settings, set thresholds
+    "pilot_fixed": (_main((0, 1)), PILOT_FIXED_ALGS),
+    "pilot_perm": (_perm((0, 1, 2, 3, 4)), PILOT_PERM_ALGS),
+    "pilot_h5": (_h5((0, 1), layouts=("overlap", "partial")), PILOT_H5_ALGS),
     "smoke": ([DataCell(delay=0, n_bystanders=2, seed=0)], ("atd_bd", "atd", "atd_noint", "table3_mix")),
     "smoke_epymarl": ([DataCell(delay=0, n_bystanders=2, seed=0)], ("qmix", "ece3_mix", "atd")),
 }
