@@ -33,6 +33,11 @@ GRIDS = {
     # 3.2 feasibility: can IPPO learn one lane at all, and how fast?
     "feasibility": dict(algs=("ippo",), Ks=(1,), arms=("team",), seeds=(0,), t_max=400_000),
     "feasibility_k8": dict(algs=("ippo",), Ks=(8,), arms=("team", "difference"), seeds=(0,), t_max=2_000_000),
+    # 3.4 / 3.5 the gate (pre-registered in docs/v3/preregistration_v3.md): seeds 5-9.
+    "gate": dict(algs=("ippo",), Ks=(1, 2, 4, 8), arms=("team", "team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
+                 t_max={1: 400_000, 2: 800_000, 4: 1_600_000, 8: 3_000_000}),
+    "gate_mappo": dict(algs=("mappo",), Ks=(1, 8), arms=("team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
+                       t_max={1: 400_000, 8: 3_000_000}),
 }
 
 
@@ -93,7 +98,10 @@ def main():
     g = GRIDS[a.grid]
     jobs = list(itertools.product(g["algs"], g["Ks"], g["arms"], g["seeds"]))
     with ProcessPoolExecutor(a.workers) as ex:
-        futs = [ex.submit(train_one, a.grid, alg, K, arm, s, g["t_max"]) for alg, K, arm, s in jobs]
+        tmax = lambda K: g["t_max"][K] if isinstance(g["t_max"], dict) else g["t_max"]
+        # longest runs first, so the pool is not left waiting on one big run at the end
+        jobs.sort(key=lambda j: -tmax(j[1]))
+        futs = [ex.submit(train_one, a.grid, alg, K, arm, s, tmax(K)) for alg, K, arm, s in jobs]
         for f in as_completed(futs):
             print(f.result(), flush=True)
 

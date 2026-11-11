@@ -33,6 +33,7 @@ from whoearned.metrics import (
 )
 from whoearned.mode_p import ALGS, MIX, base_alg, episode_credit, make_harness, read_credit, train_step
 from whoearned.replay import (
+    GroundTruth,
     ground_truth_closed_loop,
     ground_truth_open_loop,
     planted_dividends,
@@ -228,6 +229,9 @@ class TestTruth:
     facts: list = field(default_factory=list, repr=False)
     ablation_W: dict = field(default_factory=dict, repr=False)
     configs: list = field(default_factory=list, repr=False)   # per test episode (differs if roles are shuffled)
+    # v3: closed-loop coalition game under the NO-OP null (every subset stops at t = 0 but stays on the grid,
+    # teammates not told). Differs from ``closed`` (removal) where teammates react to absence (overlap layout).
+    closed_noop: list = field(default_factory=list, repr=False)
 
 
 def _test_truth(cell: DataCell, test_eps, ablation_nulls=()) -> TestTruth:
@@ -246,6 +250,11 @@ def _test_truth(cell: DataCell, test_eps, ablation_nulls=()) -> TestTruth:
             if not np.array_equal(f.actions, ep.actions):
                 raise RuntimeError(f"factual rollout of test episode {s} did not reproduce its actions")
             out.facts.append(f)
+            n = cfg.n_agents
+            v0 = [f.total if m == (1 << n) - 1 else
+                  ab.continue_stopped(cfg, make, f.snaps[0], tuple(i for i in range(n) if not m >> i & 1), "noop")
+                  for m in range(1 << n)]
+            out.closed_noop.append(GroundTruth.from_event_values(np.array(v0)[None], clipped=False))
             for null in ablation_nulls:
                 W = ab.oracle_ablation_values(cfg, make, f, null=null)
                 out.ablation_W[null].append(W)
@@ -307,6 +316,9 @@ def _score(alg: str, out: dict, truth: TestTruth, cfg) -> list[dict]:
             row[target] = evaluate_credit(credit[b], gt, cfg, target=target).as_dict()
             if truth.closed:
                 row[f"{target}_closed"] = evaluate_credit(credit[b], truth.closed[b], cfg, target=target).as_dict()
+            if truth.closed_noop:
+                row[f"{target}_closed_noop"] = evaluate_credit(credit[b], truth.closed_noop[b], cfg,
+                                                               target=target).as_dict()
         row["top_k"] = top_k_selection(credit[b], coalition)
         row["matched"] = row[MATCHED_TARGET[base_alg(alg)]]
         if STEP_TARGET[base_alg(alg)] is not None:
@@ -317,6 +329,8 @@ def _score(alg: str, out: dict, truth: TestTruth, cfg) -> list[dict]:
             row["coalition"] = coalition_scores(out["dividends"][b], gt)
             if truth.closed:
                 row["coalition_closed"] = coalition_scores(out["dividends"][b], truth.closed[b])
+            if truth.closed_noop:
+                row["coalition_closed_noop"] = coalition_scores(out["dividends"][b], truth.closed_noop[b])
         shares = normalise_shares(credit[b])
         row["shares"] = None if shares is None else shares.tolist()
         rows.append(row)
@@ -383,6 +397,7 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
                   "shapley_closed": [t.shapley.tolist() for t in truth.closed],
                   "loo_closed": [t.leave_one_out.tolist() for t in truth.closed],
                   "dividends_closed": [t.dividends.tolist() for t in truth.closed],
+                  "v_closed_noop": [t.v.tolist() for t in truth.closed_noop],
                   **{f"loo_ablation_{null}": [(f.total - W[:, 0]).tolist() for f, W in zip(truth.facts, Ws)]
                      for null, Ws in truth.ablation_W.items()},
                   "roles": [{"enablers": sorted({e for ev in c.events for e in ev.enablers}),
@@ -440,6 +455,8 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
             "summary_shapley": summarise(rows, "shapley"),
             "summary_loo_closed": summarise(rows, "loo_closed"),
             "summary_shapley_closed": summarise(rows, "shapley_closed"),
+            **({"summary_loo_closed_noop": summarise(rows, "loo_closed_noop"),
+                "summary_shapley_closed_noop": summarise(rows, "shapley_closed_noop")} if truth.closed_noop else {}),
             "top_k": _mean(r["top_k"] for r in rows),
             "episodes": rows,
             **extra,
@@ -452,9 +469,9 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
         if "dividends" in out:
             rec["summary_coalition"] = {k: _mean(r["coalition"][k] for r in rows)
                                         for k in rows[0]["coalition"] if k != "dividends"}
-            if "coalition_closed" in rows[0]:
-                rec["summary_coalition_closed"] = {k: _mean(r["coalition_closed"][k] for r in rows)
-                                                   for k in rows[0]["coalition_closed"] if k != "dividends"}
+            for key in ("coalition_closed", "coalition_closed_noop"):
+                if key in rows[0]:
+                    rec[f"summary_{key}"] = {k: _mean(r[key][k] for r in rows) for k in rows[0][key] if k != "dividends"}
         if h is not None and hasattr(h.learner, "n_parameters"):
             rec["n_parameters"] = h.learner.n_parameters()
         if "snr" in out:

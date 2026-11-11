@@ -33,6 +33,8 @@ def metrics(rec: dict) -> dict:
     f = rec.get("summary_fidelity") or {}
     c = rec.get("summary_coalition") or {}
     cc = rec.get("summary_coalition_closed") or {}
+    ccn = rec.get("summary_coalition_closed_noop") or {}
+    own_noop = (rec.get("atd") or {}).get("null") == "noop" or alg_null_noop(rec)
     lc = rec.get("summary_loo_closed") or {}
     return {
         "fid_l1": f.get("l1"), "step_r": f.get("step_pearson"),
@@ -40,7 +42,14 @@ def metrics(rec: dict) -> dict:
         "shap_c": (rec.get("summary_shapley_closed") or {}).get("l1"), "shap_o": rec["summary_shapley"]["l1"],
         "leak_c": lc.get("leakage"), "miss_c": lc.get("missed"),
         "top_k": rec.get("top_k"), "div_c": cc.get("dividend_error"), "div_o": c.get("dividend_error"),
+        "div_cn": ccn.get("dividend_error"),
+        # dividend error against the closed-loop game of the method's own null (removal for tables/ECE)
+        "div_own": (ccn if own_noop else cc).get("dividend_error"),
     }
+
+
+def alg_null_noop(rec: dict) -> bool:
+    return False
 
 
 def load(grid: str):
