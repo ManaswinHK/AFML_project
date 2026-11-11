@@ -158,7 +158,10 @@ def episodes_to_batch(harness: Harness, episodes: list[Episode]) -> EpisodeBatch
             raise ValueError("all episodes must share n_agents, number of events and horizon")
         env = PlantedCoalitionGridworld(ep.config)
         env.reset(ep.present)
+        stops = ep.stops or {}
         for t in range(T):
+            if t in stops:
+                env.stop(*stops[t])
             batch.update(
                 {
                     "state": [env.get_state()],

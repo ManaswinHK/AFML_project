@@ -130,3 +130,23 @@ def test_active_plan_spends_the_budget_on_distinct_stops():
                                 pool_size=200)
     assert len(plan) == 20 and len(diag) == 3
     assert all(d["score_top_mean"] >= d["score_pool_mean"] for d in diag)
+
+
+@pytest.mark.parametrize("null", ["noop", "remove"])
+def test_stopped_episode_replays_through_the_bridge_contract(null):
+    """The Episode form of a stopped continuation replays (as the EPyMARL bridge does) to its rewards and
+    its states match the recorded continuation."""
+    cfg, make, f = _setup(seed=5)
+    t0, stopped = 7, (0, 3)
+    ep = ab.stopped_episode(cfg, make, f, t0, stopped, null)
+    g, states, rewards = ab.continue_stopped(cfg, make, f.snaps[t0], stopped, null, record=True)
+    np.testing.assert_allclose(ep.rewards[t0:], rewards)
+    env = PlantedCoalitionGridworld(cfg)
+    env.reset(ep.present)
+    for t in range(cfg.horizon):
+        if t in ep.stops:
+            env.stop(*ep.stops[t])
+        if t >= t0:
+            np.testing.assert_array_equal(env.get_state(), states[t - t0])
+        _, r, _, _ = env.step(ep.actions[t])
+        assert r == ep.rewards[t]

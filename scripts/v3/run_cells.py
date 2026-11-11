@@ -50,6 +50,8 @@ GRIDS = {
     "pilot_h5": (_h5((0, 1), layouts=("overlap", "partial")), PILOT_H5_ALGS),
     "smoke": ([DataCell(delay=0, n_bystanders=2, seed=0)], ("atd_bd", "atd", "atd_noint", "table3_mix")),
     "smoke_epymarl": ([DataCell(delay=0, n_bystanders=2, seed=0)], ("qmix", "ece3_mix", "atd")),
+    "smoke_v2": ([DataCell(delay=25, n_bystanders=2, seed=0)], ("uniform", "atd", "mappo", "mappo_int", "mappo_int_masked",
+                                                                 "qmix", "qmix_int", "qmix_int_masked")),
 }
 
 

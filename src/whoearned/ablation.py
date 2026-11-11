@@ -133,6 +133,27 @@ def stopped_state(state: np.ndarray, n: int, stopped, null: str = "noop") -> np.
     return s
 
 
+def stopped_episode(config: GridConfig, make_team: MakeTeam, f: Factual, t0: int, stopped, null: str = "noop"):
+    """The whole episode (factual prefix up to t0, then the stopped continuation) as a ``replay.Episode``
+    with ``stops = {t0: (stopped, null)}``, so the EPyMARL bridge can replay it for any learner."""
+    from whoearned.replay import Episode
+    env0, rng_state = f.snaps[t0]
+    env = env0.clone()
+    env.stop(stopped, null)
+    team = make_team()
+    team.reset(env)
+    team.set_rng_state(rng_state)
+    T, n = config.horizon, config.n_agents
+    actions = np.zeros((T, n), dtype=np.int64)
+    rewards = np.zeros(T)
+    actions[:t0], rewards[:t0] = f.actions[:t0], f.rewards[:t0]
+    for t in range(t0, T):
+        actions[t] = team.act(env)
+        _, rewards[t], _, _ = env.step(actions[t])
+    actions[t0:, list(stopped)] = 0      # what the environment executed (stopped agents: NOOP)
+    return Episode(config, actions, rewards, env.event_log, (1 << n) - 1, stops={t0: (tuple(stopped), null)})
+
+
 # --- exact (oracle) ablation values and credit ------------------------------------------------------
 
 
@@ -258,6 +279,18 @@ def sample_stop_time(rng: np.random.Generator, f: Factual, sampler: str) -> int:
     raise ValueError(f"sampler must be one of {SAMPLERS}")
 
 
+def random_plan(facts: list[Factual], n: int, n_int: int, seed: int, sampler: str = "stratified",
+                single_prob: float = 0.5) -> list:
+    """The random design: ``n_int`` (episode, stop step, stopped set) triples. Deterministic in ``seed``, so
+    every method given 'the same interventions' gets exactly the same ones."""
+    rng = np.random.default_rng([seed, 777])
+    plan = []
+    for _ in range(n_int):
+        idx = int(rng.integers(len(facts)))
+        plan.append((idx, sample_stop_time(rng, facts[idx], sampler), sample_stopped(rng, n, single_prob)))
+    return plan
+
+
 def intervention_dataset(config: GridConfig, make_team_for: Callable[[int], MakeTeam], facts: list[Factual],
                          n_int: int, seed: int, null: str = "noop", sampler: str = "stratified",
                          include_full: bool = True, single_prob: float = 0.5, plan=None) -> InterventionData:
@@ -267,7 +300,6 @@ def intervention_dataset(config: GridConfig, make_team_for: Callable[[int], Make
     ``plan``: optional explicit list of (idx, t0, stopped) instead of random sampling (used by
     active designs and by the table baseline's 'all stops at t = 0' variant).
     """
-    rng = np.random.default_rng([seed, 777])
     n = config.n_agents
     X, y, ep, isint, record = [], [], [], [], []
     if include_full:
@@ -277,10 +309,7 @@ def intervention_dataset(config: GridConfig, make_team_for: Callable[[int], Make
             ep.append(np.full(f.horizon, idx))
             isint.append(np.zeros(f.horizon, dtype=bool))
     if plan is None:
-        plan = []
-        for _ in range(n_int):
-            idx = int(rng.integers(len(facts)))
-            plan.append((idx, sample_stop_time(rng, facts[idx], sampler), sample_stopped(rng, n, single_prob)))
+        plan = random_plan(facts, n, n_int, seed, sampler, single_prob)
     n_zero = 0
     for idx, t0, stopped in plan:
         g, states, rewards = continue_stopped(config, make_team_for(idx), facts[idx].snaps[t0], stopped, null,

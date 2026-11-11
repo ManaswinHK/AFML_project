@@ -84,7 +84,18 @@ ATD_ALGS = {
     **{f"atd_n{k}": AtdSpec(n_int=k) for k in (25, 50, 100, 400, 800)},   # data scaling (Phase 1.7)
     "atd_remove_n800": AtdSpec(n_int=800, null="remove"),
 }
-DIRECT_ALGS = TABLE_ALGS + tuple(ATD_ALGS)
+# Control V2 (plan Section 6): EPyMARL critics trained on the full-team episodes PLUS the same 200 stopped
+# episodes that "atd" gets. "<alg>_int": the method's standard one-step read-out; "<alg>_int_masked": its
+# critic queried at the state with agent i stopped (MAPPO: V(s with i's acting flag off); QMIX: the mixer at
+# that state with i at its no-op utility), turned into ablation-TD credit.
+INT_ALGS = ("mappo_int", "mappo_int_masked", "qmix_int", "qmix_int_masked")
+INT_N, INT_SAMPLER, INT_NULL = 200, "stratified", "noop"
+for _a in INT_ALGS:
+    MATCHED_TARGET[_a] = "loo"
+    STEP_TARGET[_a] = f"kappa_{INT_NULL}" if _a.endswith("_masked") else "noop"
+DIRECT_ALGS = TABLE_ALGS + tuple(ATD_ALGS) + ("uniform",)
+MATCHED_TARGET["uniform"] = "loo"   # equal split; scored against every target like any method
+STEP_TARGET["uniform"] = None
 for _a, _spec in ATD_ALGS.items():
     MATCHED_TARGET[_a] = "loo"
     STEP_TARGET[_a] = f"kappa_{_spec.null}"   # level 1: the exact ablation-TD credit under its own null
@@ -348,7 +359,8 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
     t0 = time.time()
     cfg = cell.config()
     train_eps, test_eps = cell.episodes("train"), cell.episodes("test")
-    nulls = tuple(dict.fromkeys(ATD_ALGS[a].null for a in train.algs if a in ATD_ALGS))
+    nulls = tuple(dict.fromkeys([ATD_ALGS[a].null for a in train.algs if a in ATD_ALGS]
+                                + [INT_NULL for a in train.algs if a in INT_ALGS]))
     truth = _test_truth(cell, test_eps, ablation_nulls=nulls)
     record = {
         "cell": asdict(cell),
@@ -363,7 +375,15 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
         },
         "h0": _h0(truth),
         "semantic_gap": semantic_gap(truth, cfg),
-        "truth": {"shapley": truth.shapley, "loo": truth.loo},
+        "truth": {"shapley": truth.shapley, "loo": truth.loo,
+                  "shapley_closed": [t.shapley.tolist() for t in truth.closed],
+                  "loo_closed": [t.leave_one_out.tolist() for t in truth.closed],
+                  "dividends_closed": [t.dividends.tolist() for t in truth.closed],
+                  **{f"loo_ablation_{null}": [(f.total - W[:, 0]).tolist() for f, W in zip(truth.facts, Ws)]
+                     for null, Ws in truth.ablation_W.items()},
+                  "roles": [{"enablers": sorted({e for ev in c.events for e in ev.enablers}),
+                             "bystanders": list(c.bystanders),
+                             "coalition": sorted({a for ev in c.events for a in ev.coalition})} for c in truth.configs]},
         "algs": {},
     }
     env_args = cell.env_args()
@@ -373,16 +393,30 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
         record["data"]["mix_return_mean"] = float(np.mean([e.total for e in mix_eps]))
         record["data"]["mix_return_zero"] = float(np.mean([e.total == 0 for e in mix_eps]))
     train_facts = None
+    int_cache = {}
     for alg in train.algs:
         ta = time.time()
         h, losses, extra = None, [], {}
-        if alg in TABLE_ALGS:
+        if alg == "uniform":
+            out = {"per_step": np.concatenate([np.ones((len(test_eps), 1, cfg.n_agents)),
+                                               np.zeros((len(test_eps), cfg.horizon - 1, cfg.n_agents))], 1)}
+        elif alg in TABLE_ALGS:
             out = table_credit(cfg, mix_eps, k=int(alg[5]), n_test=len(test_eps))
         elif alg in ATD_ALGS:
             if train_facts is None:
                 train_facts = _train_facts(cell, train_eps)
             out = atd_credit(cell, ATD_ALGS[alg], train_facts, truth.facts)
             extra = out.pop("info")
+        elif alg in INT_ALGS:
+            if train_facts is None:
+                train_facts = _train_facts(cell, train_eps)
+            base = alg.removesuffix("_masked")
+            if base not in int_cache:
+                int_cache[base] = _train_on_interventions(cell, base.removesuffix("_int"), train_eps, train_facts,
+                                                          test_eps, train, rng)
+            h, test, losses = int_cache[base]
+            out = (masked_credit(h, base.removesuffix("_int"), test, truth.configs, INT_NULL)
+                   if alg.endswith("_masked") else read_credit(h, base.removesuffix("_int"), test, test_eps))
         else:
             h = make_harness(alg, env_args=env_args, seed=cell.seed)
             alg_train = mix_eps if alg.endswith(MIX) else train_eps
@@ -440,6 +474,65 @@ def _train_facts(cell: DataCell, train_eps) -> list:
             raise RuntimeError(f"factual rollout of training episode {i} did not reproduce its actions")
         facts.append(f)
     return facts
+
+
+def _train_on_interventions(cell, base: str, train_eps, train_facts, test_eps, train: TrainSpec, rng):
+    """Control V2: an EPyMARL learner trained on full-team + stopped episodes (the plan 'atd' uses)."""
+    cfg = cell.config()
+    plan = ab.random_plan(train_facts, cfg.n_agents, INT_N, cell.seed, INT_SAMPLER)
+    stopped = [ab.stopped_episode(cell.config_for("train", i), (lambda i=i: cell.team("train", i)), train_facts[i],
+                                  t0, st, INT_NULL) for i, t0, st in plan]
+    h = make_harness(base, env_args=cell.env_args(), seed=cell.seed)
+    episodes = list(train_eps) + stopped
+    data, test = episodes_to_batch(h, episodes), episodes_to_batch(h, test_eps)
+    losses = []
+    for k in range(train.updates):
+        idx = rng.choice(len(episodes), train.batch_size, replace=False)
+        loss = train_step(h, base, data[idx], k)
+        if k % train.log_every == 0 or k == train.updates - 1:
+            losses.append((k, loss))
+    return h, test, losses
+
+
+@th.no_grad()
+def masked_credit(h, base: str, batch, configs, null: str) -> dict:
+    """Ablation-TD credit from an EPyMARL critic queried at stopped states (factual test batch, edited state).
+
+    W_i(t): MAPPO - mean over agent heads of V(s_t with i stopped); QMIX - mixer(chosen utilities with i at its
+    no-op utility, s_t with i stopped). Per-step credit r_t + gamma W_i(t+1) - W_i(t), W_i(T) = 0, in the
+    critic's own reward scale (standardised for MAPPO); shares are scale-free.
+    """
+    from whoearned.readouts import _mac_out
+    args, learner = h.args, h.learner
+    n = args.n_agents
+    states = batch["state"]                                   # (B, T+1, ds)
+    rewards = batch["reward"][:, :-1, 0]                      # (B, T)
+    if base == "mappo" and args.standardise_rewards:
+        rewards = (rewards - learner.rew_ms.mean) / th.sqrt(learner.rew_ms.var)
+    gamma = args.gamma
+    B, T = rewards.shape
+    W = th.zeros(B, T + 1, n)
+    if base == "qmix":
+        q = _mac_out(learner.mac, batch)                      # (B, T, n, A)
+        chosen = th.gather(q, 3, batch["actions"][:, :-1]).squeeze(3)
+    for i in range(n):
+        edited = th.tensor(ab.stopped_state(states.cpu().numpy(), n, (i,), null), dtype=states.dtype)
+        if base == "mappo":
+            original = batch.data.transition_data["state"]
+            batch.data.transition_data["state"] = edited
+            try:
+                W[:, :, i] = learner.critic(batch).squeeze(3).mean(-1)
+            finally:
+                batch.data.transition_data["state"] = original
+        elif base == "qmix":
+            qs = chosen.clone()
+            qs[..., i] = q[..., i, NOOP]
+            W[:, :T, i] = learner.mixer(qs, edited[:, :T]).squeeze(-1)
+        else:
+            raise ValueError(base)
+    W[:, T] = 0.0
+    kappa = rewards[..., None] + gamma * W[:, 1:] - W[:, :-1]
+    return {"per_step": kappa.cpu().numpy()}
 
 
 def table_credit(cfg, mix_eps, k: int, n_test: int) -> dict:

@@ -35,6 +35,8 @@ class Episode:
     event_log: list[EventRecord]
     present: int
     behaviour_probs: np.ndarray | None = None  # (T, n, A) if the team exposes `last_probs`
+    # v3: persistent stops applied during the episode, {t: (agents, null)}; env.stop is called before step t.
+    stops: dict | None = None
 
     @property
     def total(self) -> float:
