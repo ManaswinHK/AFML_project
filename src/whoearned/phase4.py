@@ -48,14 +48,16 @@ class BranchableMacTeam(MacTeam):
         self.t = st["t"]
 
 
-def lanes_env_args(K: int, horizon: int = 25, lane_length: int = 4) -> dict:
+def lanes_env_args(K: int, horizon: int = 25, lane_length: int = 4, n_bystanders: int = 0) -> dict:
     return {"map_name": "multi_event_layout",
-            "layout_kwargs": {"n_events": K, "delay": 0, "horizon": horizon, "lane_length": lane_length}}
+            "layout_kwargs": {"n_events": K, "delay": 0, "horizon": horizon, "lane_length": lane_length,
+                              "n_bystanders": n_bystanders}}
 
 
 @th.no_grad()
-def evaluate_checkpoint(path: str, K: int, n_test: int = 30, seed: int = 0, epsilon: float = 0.0) -> dict:
-    h = build_harness("mappo", env_args=lanes_env_args(K), seed=seed)
+def evaluate_checkpoint(path: str, K: int, n_test: int = 30, seed: int = 0, epsilon: float = 0.0,
+                        n_bystanders: int = 0) -> dict:
+    h = build_harness("mappo", env_args=lanes_env_args(K, n_bystanders=n_bystanders), seed=seed)
     h.learner.load_models(path)
     cfg = h.env.config
     n = cfg.n_agents
@@ -73,11 +75,14 @@ def evaluate_checkpoint(path: str, K: int, n_test: int = 30, seed: int = 0, epsi
     masked = masked_credit(h, "mappo", batch, [cfg] * n_test, "noop")["per_step"]       # (B, T, n)
     std = shared_advantage(h, batch)
     enablers = sorted({e for ev in cfg.events for e in ev.enablers})
+    bystanders = list(cfg.bystanders)
+    uniform_rows = []
     for b, (f, W) in enumerate(zip(facts, truths)):
         k_true = ab.ablation_td_credit(f.rewards, W)          # (n, T)
         loo = k_true.sum(1)
-        rows_masked.append(evaluate_against(masked[b].sum(0), loo, enablers, []).as_dict())
-        rows_std.append(evaluate_against(std[b].sum(0), loo, enablers, []).as_dict())
+        rows_masked.append(evaluate_against(masked[b].sum(0), loo, enablers, bystanders).as_dict())
+        rows_std.append(evaluate_against(std[b].sum(0), loo, enablers, bystanders).as_dict())
+        uniform_rows.append(evaluate_against(np.ones(n), loo, enablers, bystanders).as_dict())
         kh.append(masked[b].T)
         kt.append(k_true)
 
@@ -86,5 +91,6 @@ def evaluate_checkpoint(path: str, K: int, n_test: int = 30, seed: int = 0, epsi
         return float(np.mean(v)) if v else None
     return {"return_mean": float(np.mean(returns)), "success": float(np.mean(returns)) / (10.0 * K),
             "masked_l1": mean(rows_masked, "l1"), "standard_l1": mean(rows_std, "l1"),
+            "uniform_l1": mean(uniform_rows, "l1"), "masked_leakage": mean(rows_masked, "leakage"),
             "masked_step_r": pearson(np.stack(kh), np.stack(kt)),
             "n_valid": sum(r["valid"] for r in rows_masked)}

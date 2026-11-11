@@ -72,3 +72,16 @@ def test_dropout_wrapper_stops_agents_and_flags_them_in_state():
     env0 = PlantedEPyMARLEnv(map_name="multi_event_layout", layout_kwargs={"n_events": 2}, dropout_p=0.0)
     env0.reset()
     assert env0._drop_plan is None
+
+
+def test_lanes_with_bystanders():
+    from whoearned.envs.layouts import multi_event_layout
+    cfg = multi_event_layout(2, n_bystanders=2)
+    assert cfg.n_agents == 6 and cfg.bystanders == (4, 5)
+    env = PlantedCoalitionGridworld(cfg)
+    env.reset()
+    total = 0.0
+    for a in _solve_lane_actions(2, {0, 1}):
+        total += env.step(a + [RIGHT, RIGHT])[1]
+    assert total == pytest.approx(20.0)
+    assert all(p[0] == 6 for p in env.positions[4:])     # bystanders stay in their own row

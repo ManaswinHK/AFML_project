@@ -42,8 +42,8 @@ GRIDS = {
     "gate_ns": dict(algs=("ippo_ns",), Ks=(1, 2, 4, 8), arms=("team", "team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
                     t_max={1: 400_000, 2: 800_000, 4: 1_200_000, 8: 2_000_000}, test_interval=2000),
     # Phase 4.1: MAPPO with random persistent stops during training (dropout p), checkpoints for 4.2
-    "phase4": dict(algs=("mappo",), Ks=(4,), arms=("team",), seeds=(5, 6, 7), t_max=1_600_000,
-                   dropout=(0.0, 0.25), save_models=True),
+    "phase4": dict(algs=("mappo",), Ks=(2,), arms=("team",), seeds=(5, 6, 7), t_max=300_000,
+                   dropout=(0.0, 0.25), save_models=True, n_bystanders=2, save_interval=30_000),
     "gate_mappo": dict(algs=("mappo",), Ks=(1, 8), arms=("team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
                        t_max={1: 400_000, 8: 2_000_000}),
 }
@@ -53,7 +53,8 @@ def run_name(alg, K, arm, seed, p=0.0):
     return f"{alg}_K{K}_{arm}_s{seed}" + (f"_drop{p}" if p else "")
 
 
-def train_one(grid, alg, K, arm, seed, t_max, p=0.0, save_models=False, test_interval=None):
+def train_one(grid, alg, K, arm, seed, t_max, p=0.0, save_models=False, test_interval=None, n_bystanders=0,
+              save_interval=None):
     run_dir = os.path.join(OUT, grid, run_name(alg, K, arm, seed, p))
     if os.path.exists(os.path.join(run_dir, "run_info.json")):
         return f"skip {run_dir}"
@@ -65,7 +66,9 @@ def train_one(grid, alg, K, arm, seed, t_max, p=0.0, save_models=False, test_int
            f"env_args.dropout_p={p}", f"env_args.dropout_seed={seed}"]
     if test_interval:
         cmd += [f"test_interval={test_interval}"]
-    cmd += ([f"save_model=True", f"save_model_interval={t_max // 10}", f"local_results_path={run_dir}"]
+    if n_bystanders:
+        cmd += [f"env_args.layout_kwargs.n_bystanders={n_bystanders}"]
+    cmd += ([f"save_model=True", f"save_model_interval={save_interval or t_max // 10}", f"local_results_path={run_dir}"]
             if save_models else ["save_model=False"])
     env = dict(os.environ, WHOEARNED_SACRED_DIR=run_dir, OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
     t0 = time.time()
@@ -139,7 +142,7 @@ def main():
         # longest runs first, so the pool is not left waiting on one big run at the end
         jobs.sort(key=lambda j: -tmax(j[1]))
         futs = [ex.submit(train_one, a.grid, alg, K, arm, s, tmax(K), p, g.get("save_models", False),
-                          g.get("test_interval"))
+                          g.get("test_interval"), g.get("n_bystanders", 0), g.get("save_interval"))
                 for alg, K, arm, s, p in jobs]
         for f in as_completed(futs):
             print(f.result(), flush=True)

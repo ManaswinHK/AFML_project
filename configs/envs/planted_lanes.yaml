@@ -8,6 +8,7 @@ env_args:
     delay: 0
     horizon: 25
     lane_length: 4
+    n_bystanders: 0     # Phase 4: optional task-less agents in their own walled row
   present: null
   reward_mode: "team"
   dropout_p: 0.0        # Phase 4.1: probability per episode of a random persistent stop

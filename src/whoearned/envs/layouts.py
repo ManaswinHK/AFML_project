@@ -114,7 +114,8 @@ def overlap_example(delay: int = 15, horizon: int = 60) -> GridConfig:
     )
 
 
-def multi_event_layout(n_events: int = 2, delay: int = 0, horizon: int = 25, lane_length: int = 4) -> GridConfig:
+def multi_event_layout(n_events: int = 2, delay: int = 0, horizon: int = 25, lane_length: int = 4,
+                       n_bystanders: int = 0) -> GridConfig:
     """K walled lanes, each with one enabler and one finisher (v3 Phase 3, the headroom gate).
 
     Lane k uses rows 3k (enabler) and 3k + 1 (finisher); row 3k + 2 is a wall between lanes. The enabler
@@ -132,13 +133,18 @@ def multi_event_layout(n_events: int = 2, delay: int = 0, horizon: int = 25, lan
     """
     if n_events < 1 or lane_length < 3:
         raise ValueError("need n_events >= 1 and lane_length >= 3")
-    height = 3 * n_events - 1
-    walls = frozenset((3 * k + 2, c) for k in range(n_events - 1) for c in range(lane_length))
+    if not 0 <= n_bystanders <= lane_length:
+        raise ValueError("need 0 <= n_bystanders <= lane_length")
+    # Optional bystanders (v3 Phase 4): agents 2K.. in their own walled row below the lanes, with no task.
+    height = 3 * n_events - 1 + (2 if n_bystanders else 0)
+    walls = frozenset((3 * k + 2, c) for k in range(n_events - 1 + (1 if n_bystanders else 0))
+                      for c in range(lane_length))
     events, starts = [], []
     for k in range(n_events):
         e, f = 2 * k, 2 * k + 1
         events.append(EventSpec(enablers=(e,), finishers=(f,), reward=10.0,
                                 lever_cells={e: (3 * k, lane_length - 2)}, goal_cells={f: (3 * k + 1, lane_length - 1)}))
         starts += [(3 * k, 0), (3 * k + 1, 0)]
-    return GridConfig(n_agents=2 * n_events, height=height, width=lane_length, horizon=horizon, delay=delay,
+    starts += [(3 * n_events, c) for c in range(n_bystanders)]
+    return GridConfig(n_agents=2 * n_events + n_bystanders, height=height, width=lane_length, horizon=horizon, delay=delay,
                       start_cells=tuple(starts), events=tuple(events), walls=walls)
