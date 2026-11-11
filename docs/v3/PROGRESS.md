@@ -12,9 +12,16 @@ Env: `.venv` (Python 3.12, torch CPU). Run tests: `.venv/bin/python -m pytest -q
 5. Every result goes in a doc with: what was run, seeds, numbers, and whether it was pre-registered.
 
 ## Checklist
-- [ ] R. Research: read the 4 uploaded papers + SHAQ, CSCA (Li/Lee/Bareinboim), Exact-Is-Easier, CXAI, STAS; write `docs/v3/related_work.md`
-- [ ] R2. Read repo code in full; write `docs/v3/design_notes.md` (what changes where, and the novel idea)
-- [ ] 0.x Phase 0 items (see plan §8)
+- [x] R. Research: uploaded papers + SHAQ, CSCA, C3, Mesnard CCA, dropout (2304.12458), fault tolerance (2412.00534) -> `docs/v3/related_work.md`
+- [x] R2. Repo code read; theory written -> `docs/v3/theory.md` (commitment split, pending-game step semivalues, identifiability)
+- [x] 0.1 pending amount in state  - [x] 0.2 env.stop()/clone(), acting flags  - [x] 0.3 finisher feasibility
+- [x] 0.4 table baseline in pipeline  - [x] 0.5 top-k (tie-aware)  - [x] 0.6 closed-loop truths in every cell
+- [ ] 0.7 re-run stored partial cells (h3/h5 partial, d in {25,50}) with the fixed state
+- [x] 0.8 errata -> `docs/v3/errata.md`
+- [x] 1.2 exact truth in pipeline  - [x] 1.3 intervention data (stratified)  - [x] 1.4 atd registered; reproduction check passed (L1 0.006 vs 0.02, r 0.98 vs 0.96)
+- [x] 2.1 shuffled roles  - [x] V2 control implemented (mappo/qmix _int, _int_masked)
+- [x] 3.1 lanes layout  - [x] 3.2 feasibility (IPPO K=1: 98% test success by 120k steps)  - [x] 3.3 difference rewards via shadow copies
+- [ ] Exploratory pilots (seeds 0-4): pilot_fixed, pilot_perm, pilot_h5, pilot_budget, smoke_v2 -> `docs/v3/pilot_findings.md`
 - [ ] 1.1 Pre-registration v3 committed before any confirmatory run
 - [ ] 1.x Phase 1
 - [ ] 2.x Phase 2
@@ -23,4 +30,6 @@ Env: `.venv` (Python 3.12, torch CPU). Run tests: `.venv/bin/python -m pytest -q
 - [ ] 5. Write-up
 
 ## Session notes
-- 2026-11-11 (session 1): cloned, venv built, branch created.
+- 2026-11-11 (session 1): cloned, venv built, branch created. Phase 0 code + tests, ablation library, critics
+  (MLP, ensemble, set), V2 control, shuffled roles, lanes + difference rewards. Pilots running.
+  Early pilot signal (exploratory): set critic on shuffled roles L1 0.005 vs MLP 0.475 (b=2, 200 stops).

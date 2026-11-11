@@ -83,6 +83,10 @@ ATD_ALGS = {
     "atd_set_active": AtdSpec(critic="set", design="active"),
     **{f"atd_n{k}": AtdSpec(n_int=k) for k in (25, 50, 100, 400, 800)},   # data scaling (Phase 1.7)
     "atd_remove_n800": AtdSpec(n_int=800, null="remove"),
+    # set critic at low budgets, random vs active stops (does active design matter when data binds?)
+    **{f"atd_set_n{k}": AtdSpec(n_int=k, critic="set") for k in (25, 50, 100)},
+    **{f"atd_set_active_n{k}": AtdSpec(n_int=k, critic="set", design="active") for k in (25, 50, 100)},
+    **{f"atd_active_n{k}": AtdSpec(n_int=k, design="active") for k in (50, 100, 400, 800)},
 }
 # Control V2 (plan Section 6): EPyMARL critics trained on the full-team episodes PLUS the same 200 stopped
 # episodes that "atd" gets. "<alg>_int": the method's standard one-step read-out; "<alg>_int_masked": its
