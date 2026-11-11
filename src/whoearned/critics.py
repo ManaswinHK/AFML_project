@@ -134,6 +134,17 @@ def fit_set_critic(X, y, n, k, seed=0, hidden=128, steps=3000, batch=256, lr=1e-
     net = SetCritic(StateTokens(n, k), hidden)
     final = _train(net, X, y, seed, steps, batch, lr, weights)
     predict = _predictor(net)
+    predict.net = net
     predict.final_loss = final
     predict.n_parameters = sum(p.numel() for p in net.parameters())
     return predict
+
+
+def transfer_set_critic(net: SetCritic, n: int, k: int):
+    """The same weights read out for a team of a different size n (agent tokens are size-independent)."""
+    import copy
+    other = copy.deepcopy(net)
+    other.tokens = StateTokens(n, k)
+    pred = _predictor(other)
+    pred.net = other
+    return pred

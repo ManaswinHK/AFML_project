@@ -48,6 +48,12 @@ GRIDS = {
     "pilot_fixed": (_main((0, 1)), PILOT_FIXED_ALGS),
     "pilot_perm": (_perm((0, 1, 2, 3, 4)), PILOT_PERM_ALGS),
     "pilot_h5": (_h5((0, 1), layouts=("overlap", "partial")), PILOT_H5_ALGS),
+    # ---- Phase 0.7: stored partial-layout cells at d > 0, re-run with the Markov state (same methods and seeds)
+    "rerun_partial_h3": ([DataCell(delay=d, n_bystanders=2, seed=s, horizon=80 if d >= 50 else 60, layout="partial")
+                          for d in (25, 50) for s in range(5)],
+                         ("vdn", "qmix", "coma", "mappo", "na2q", "stas", "uniform")),
+    "rerun_partial_h5": ([DataCell(delay=50, n_bystanders=2, seed=s, horizon=80, layout="partial") for s in range(5)],
+                         ("ece2", "ece3", "ece2_mix", "ece3_mix", "na2q_mix", "stas_mix", "table2_mix", "table3_mix")),
     "pilot_budget": (_perm((0, 1, 2)), ("uniform", "atd_set_n25", "atd_set_active_n25", "atd_set_n50",
                                         "atd_set_active_n50", "atd_set_n100", "atd_set_active_n100",
                                         "atd_n100", "atd_active_n100", "atd_n400", "atd_active_n400")),
