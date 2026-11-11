@@ -39,10 +39,27 @@ Episodes to 90% greedy test success (mean over seeds; censored runs at budget, c
 
 | K | arm | n | episodes to 90% (mean) | censored | final success (mean) |
 |---|---|---|---|---|---|
+| 1 | team | 5 | 1690 | 0 | 1.000 |
+| 1 | team_vector | 5 | 1690 | 0 | 1.000 |
+| 1 | difference | 5 | 1690 | 0 | 1.000 |
+| 2 | team | 5 | 3434 | 0 | 0.993 |
+| 2 | team_vector | 5 | 3434 | 0 | 0.990 |
+| 2 | difference | 5 | 810 | 0 | 0.990 |
+| 4 | team | 5 | 1162 | 0 | 0.990 |
+| 4 | team_vector | 5 | 1162 | 0 | 0.980 |
+| 4 | difference | 5 | 570 | 0 | 0.998 |
 | 8 | team | 5 | 1258 | 0 | 0.978 |
-| 8 | team_vector | 4 | 40585 | 2 | 0.629 |
+| 8 | team_vector | 5 | 1258 | 0 | 0.983 |
+| 8 | difference | 5 | 490 | 0 | 0.997 |
 
 | K | difference / team (ratio of means) | per seed | team_vector / team |
 |---|---|---|---|
+| 1 | 1.000 | {5: 1.0, 6: 1.0, 7: 1.0, 8: 1.0, 9: 1.0} | 1.000 |
+| 2 | 0.236 | {5: 0.505, 6: 0.15, 7: 0.551, 8: 0.537, 9: 0.201} | 1.000 |
+| 4 | 0.491 | {5: 0.434, 6: 0.619, 7: 0.551, 8: 0.471, 9: 0.425} | 1.000 |
+| 8 | 0.390 | {5: 0.416, 6: 0.588, 7: 0.304, 8: 0.318, 9: 0.39} | 1.000 |
 
-- **H3.3** (team_vector / team in [0.8, 1.25] at every K): [(8, 30.981)] -> **NOT SUPPORTED** (descriptive)
+- **H3.1** (K = 1, ratio in [0.8, 1.25]): ratio 1.000 -> **SUPPORTED**
+- **H3.2** (K = 8, paired one-sided t-test of log ratio < log 0.67): mean ratio 0.392, p = 0.0051 -> **SUPPORTED**
+- **H3.3** (team_vector / team in [0.8, 1.25] at every K): [(1, 1.0), (2, 1.0), (4, 1.0), (8, 1.0)] -> **SUPPORTED** (descriptive)
+- **H3.4** (mean log ratio decreases with K): Spearman rho = -0.40 (descriptive)
