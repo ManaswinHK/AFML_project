@@ -55,7 +55,7 @@ def test_adapter_env_info_and_step_contract():
         obs, r, terminated, truncated, info = env.step([NOOP] * 5)
         assert not truncated
         assert terminated == (t == T - 1)
-    assert info == {"events_completed": 0.0}  # numeric only: EPyMARL sums info values
+    assert info == {"events_completed": 0.0, "success_rate": 0.0}  # numeric only: EPyMARL sums info values
 
 
 def test_adapter_rejects_unknown_layout_and_individual_rewards():

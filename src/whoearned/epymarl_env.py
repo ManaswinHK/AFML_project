@@ -13,18 +13,27 @@ from __future__ import annotations
 
 from whoearned.envs import (
     N_ACTIONS,
+    NOOP,
     PlantedCoalitionGridworld,
     coalition_layout,
     overlap_example,
     running_example,
 )
+from whoearned.envs.layouts import multi_event_layout
 from whoearned.envs.gridworld import GridConfig
 
 LAYOUTS = {
     "running_example": running_example,
     "overlap_example": overlap_example,
     "coalition_layout": coalition_layout,
+    "multi_event_layout": multi_event_layout,
 }
+# v3 Phase 3. "team": one shared reward (EPyMARL common_reward=True). "team_vector": every agent receives
+# the team reward as its own (common_reward=False), the control for "difference". "difference": exact
+# difference rewards, r - r^(-i), where r^(-i) comes from a shadow copy of the environment fed the same
+# joint actions except that agent i takes no-op from the start of the episode (Wolpert & Tumer's
+# clamping, open loop, in lockstep: the repo's open-loop replay run online).
+REWARD_MODES = ("team", "team_vector", "difference")
 
 
 def build_config(layout: str, **layout_kwargs) -> GridConfig:
@@ -42,9 +51,13 @@ class PlantedEPyMARLEnv:
         common_reward: bool = True,
         reward_scalarisation: str = "sum",
         present: int | None = None,
+        reward_mode: str = "team",
     ):
-        if not common_reward:
-            raise ValueError("the planted gridworld only has a shared team reward; set common_reward=True")
+        if reward_mode not in REWARD_MODES:
+            raise ValueError(f"reward_mode must be one of {REWARD_MODES}")
+        if (reward_mode == "team") != bool(common_reward):
+            raise ValueError("reward_mode 'team' needs common_reward=True; per-agent modes need common_reward=False")
+        self.reward_mode = reward_mode
         # EPyMARL names runs by env_args.map_name, so the layout is selected through it.
         self.config = build_config(map_name, **(layout_kwargs or {}))
         self.env = PlantedCoalitionGridworld(self.config)
@@ -53,20 +66,32 @@ class PlantedEPyMARLEnv:
         self.present = present
         self._seed = seed
         self._return = 0.0
+        self.shadows = ([PlantedCoalitionGridworld(self.config) for _ in range(self.n_agents)]
+                        if reward_mode == "difference" else [])
 
     # --- MultiAgentEnv interface ---------------------------------------------------
 
     def reset(self, seed=None, options=None):
         obs = self.env.reset(self.present)
+        for i, sh in enumerate(self.shadows):
+            sh.reset(self.present)
+            sh.stop([i], "noop")
         self._return = 0.0
         return obs, {}
 
     def step(self, actions):
-        obs, reward, done, _ = self.env.step([int(a) for a in actions])
+        actions = [int(a) for a in actions]
+        obs, reward, done, _ = self.env.step(actions)
         self._return += reward
         # EPyMARL sums info values across episodes, so only numeric stats go here.
-        info = {"events_completed": float(sum(self.env.done_events))} if done else {}
-        return obs, float(reward), bool(done), False, info
+        info = ({"events_completed": float(sum(self.env.done_events)),
+                 "success_rate": float(sum(self.env.done_events)) / max(self.env.n_events, 1)} if done else {})
+        if self.reward_mode == "team":
+            return obs, float(reward), bool(done), False, info
+        if self.reward_mode == "team_vector":
+            return obs, [float(reward)] * self.n_agents, bool(done), False, info
+        rewards = [float(reward - sh.step(actions)[1]) for sh in self.shadows]   # shadow i overrides i to no-op
+        return obs, rewards, bool(done), False, info
 
     def get_obs(self):
         return self.env.get_obs()

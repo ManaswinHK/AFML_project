@@ -1,0 +1,58 @@
+"""v3 Phase 3: multi-event lanes and exact difference rewards."""
+
+import numpy as np
+import pytest
+
+from whoearned.envs import INTERACT, NOOP, RIGHT, PlantedCoalitionGridworld
+from whoearned.envs.layouts import multi_event_layout
+from whoearned.epymarl_env import PlantedEPyMARLEnv
+
+
+def _solve_lane_actions(K, solved):
+    """Scripted joint actions that complete exactly the lanes in ``solved`` (lane length 4)."""
+    seq_e = [RIGHT, RIGHT, INTERACT] + [NOOP] * 22
+    seq_f = [RIGHT, RIGHT, RIGHT, NOOP, INTERACT] + [NOOP] * 20
+    out = []
+    for t in range(25):
+        a = []
+        for k in range(K):
+            a += [seq_e[t], seq_f[t]] if k in solved else [NOOP, NOOP]
+        out.append(a)
+    return out
+
+
+def test_lanes_are_independent_and_pay_10_each():
+    K = 4
+    cfg = multi_event_layout(K)
+    env = PlantedCoalitionGridworld(cfg)
+    env.reset()
+    total = sum(env.step(a)[1] for a in _solve_lane_actions(K, {0, 2}))
+    assert total == pytest.approx(20.0) and env.done_events == [True, False, True, False]
+
+
+def test_difference_reward_is_each_agents_own_lane():
+    K = 3
+    env = PlantedEPyMARLEnv(map_name="multi_event_layout", layout_kwargs={"n_events": K}, common_reward=False,
+                            reward_mode="difference")
+    env.reset()
+    totals = np.zeros(2 * K)
+    team = 0.0
+    for a in _solve_lane_actions(K, {0, 2}):
+        _, r, _, _, _ = env.step(a)
+        totals += r
+    np.testing.assert_allclose(totals, [10, 10, 0, 0, 10, 10])
+
+
+def test_team_vector_gives_everyone_the_team_reward():
+    env = PlantedEPyMARLEnv(map_name="multi_event_layout", layout_kwargs={"n_events": 2}, common_reward=False,
+                            reward_mode="team_vector")
+    env.reset()
+    tot = np.zeros(4)
+    for a in _solve_lane_actions(2, {1}):
+        tot += env.step(a)[1]
+    np.testing.assert_allclose(tot, [10, 10, 10, 10])
+
+
+def test_reward_mode_must_match_common_reward():
+    with pytest.raises(ValueError):
+        PlantedEPyMARLEnv(map_name="multi_event_layout", common_reward=True, reward_mode="difference")

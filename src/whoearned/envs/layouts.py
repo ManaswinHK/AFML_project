@@ -112,3 +112,33 @@ def overlap_example(delay: int = 15, horizon: int = 60) -> GridConfig:
         start_cells=((0, 0), (2, 0), (3, 0), (4, 0), (4, 9)),
         events=(event0, event1),
     )
+
+
+def multi_event_layout(n_events: int = 2, delay: int = 0, horizon: int = 25, lane_length: int = 4) -> GridConfig:
+    """K walled lanes, each with one enabler and one finisher (v3 Phase 3, the headroom gate).
+
+    Lane k uses rows 3k (enabler) and 3k + 1 (finisher); row 3k + 2 is a wall between lanes. The enabler
+    (agent 2k) starts at column 0 and pulls a lever at column ``lane_length - 2``; the finisher (agent
+    2k + 1) starts at column 0 and interacts on its goal at column ``lane_length - 1`` once the gate is
+    open. Each event pays 10. Lanes cannot interact (walls), so the team reward is a sum of K
+    independent events and each agent's exact difference reward is its own lane's reward.
+
+    K = 2, lane_length = 4:
+        A.l.      A pulls the lever (0, 2)
+        B..g      B interacts on (1, 3) after the gate opens
+        ####
+        C.l.
+        D..g
+    """
+    if n_events < 1 or lane_length < 3:
+        raise ValueError("need n_events >= 1 and lane_length >= 3")
+    height = 3 * n_events - 1
+    walls = frozenset((3 * k + 2, c) for k in range(n_events - 1) for c in range(lane_length))
+    events, starts = [], []
+    for k in range(n_events):
+        e, f = 2 * k, 2 * k + 1
+        events.append(EventSpec(enablers=(e,), finishers=(f,), reward=10.0,
+                                lever_cells={e: (3 * k, lane_length - 2)}, goal_cells={f: (3 * k + 1, lane_length - 1)}))
+        starts += [(3 * k, 0), (3 * k + 1, 0)]
+    return GridConfig(n_agents=2 * n_events, height=height, width=lane_length, horizon=horizon, delay=delay,
+                      start_cells=tuple(starts), events=tuple(events), walls=walls)
