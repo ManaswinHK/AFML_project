@@ -229,7 +229,7 @@ def test_obs_and_state_sizes_are_fixed(mask):
     env = PlantedCoalitionGridworld(overlap_example())
     obs = env.reset(mask)
     assert all(o.shape == (4 * 5 + 7 * 2 + 4,) for o in obs)
-    assert env.get_state().shape == (4 * 5 + 2 * (5 + 5) + 1,)
+    assert env.get_state().shape == (4 * 5 + 2 * (5 + 5) + 2 * 5 * 2 + 1,)
 
 
 def test_state_carries_payout_countdown_but_observations_do_not():

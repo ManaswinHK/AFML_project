@@ -100,8 +100,11 @@ class PlantedCoalitionGridworld:
         self.n_events = len(config.events)
         self.obs_size = 4 * self.n_agents + 7 * self.n_events + 4
         # positions (2n), presence (n), acting (n); per event: gate, done, pending, countdown,
-        # pending amount, pulled-by-enabler (n); then t / T.  See docs/environment_design.md.
-        self.state_size = 4 * self.n_agents + self.n_events * (5 + self.n_agents) + 1
+        # pending amount, pulled-by-enabler (n); per agent per event: is-enabler, is-finisher (the
+        # agents' "unit types", which their own observations already carry); then t / T.
+        # See docs/environment_design.md.
+        self.state_size = (4 * self.n_agents + self.n_events * (5 + self.n_agents)
+                           + 2 * self.n_agents * self.n_events + 1)
         self._present_mask = 0
         self.reset()
 
@@ -311,6 +314,12 @@ class PlantedCoalitionGridworld:
             for e in ev.enablers:
                 state[o + 5 + e] = float(self.pulled[k][e])
             o += 5 + n
+        K = self.n_events
+        for i in range(n):
+            for k, ev in enumerate(self.config.events):
+                state[o + 2 * K * i + 2 * k] = float(i in ev.enablers)
+                state[o + 2 * K * i + 2 * k + 1] = float(i in ev.finishers)
+        o += 2 * n * K
         state[o] = self.t / self.config.horizon
         return state
 

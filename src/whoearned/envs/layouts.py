@@ -27,30 +27,43 @@ BYSTANDER_SLOTS = ((4, 4), (4, 6), (4, 2), (4, 8), (4, 0))
 
 
 def coalition_layout(
-    n_bystanders: int = 2, delay: int = 15, horizon: int = 60, partial: bool = False
+    n_bystanders: int = 2, delay: int = 15, horizon: int = 60, partial: bool = False, role_perm=None
 ) -> GridConfig:
     """The running-example coalition (A enables, B and C finish) plus 0-5 bystanders.
 
     Agents 0-2 are A, B, C; agents 3.. are bystanders on row 4. With
     n_bystanders=2 this is exactly :func:`running_example`.
+
+    ``role_perm`` (v3 Phase 2.1, shuffled roles): a permutation with ``role_perm[role] = agent index``,
+    where roles are 0 = enabler, 1-2 = finishers, 3.. = bystanders. Start cells move with the role; the
+    lever and goal cells stay where they are. ``None`` is the identity (the fixed layout).
     """
     if not 0 <= n_bystanders <= len(BYSTANDER_SLOTS):
         raise ValueError(f"n_bystanders must be in 0..{len(BYSTANDER_SLOTS)}")
+    n = 3 + n_bystanders
+    perm = list(range(n)) if role_perm is None else [int(x) for x in role_perm]
+    if sorted(perm) != list(range(n)):
+        raise ValueError(f"role_perm must be a permutation of 0..{n - 1}")
+    role_starts = ((0, 0), (2, 0), (3, 0), *BYSTANDER_SLOTS[:n_bystanders])
+    starts = [None] * n
+    for role, agent in enumerate(perm):
+        starts[agent] = role_starts[role]
+    a, b, c = perm[0], perm[1], perm[2]
     event = EventSpec(
-        enablers=(A,),
-        finishers=(B, C),
+        enablers=(a,),
+        finishers=tuple(sorted((b, c))),
         reward=10.0,
-        lever_cells={A: (0, 4)},
-        goal_cells={B: (2, 8), C: (3, 8)},
+        lever_cells={a: (0, 4)},
+        goal_cells={b: (2, 8), c: (3, 8)},
         partial=partial,
     )
     return GridConfig(
-        n_agents=3 + n_bystanders,
+        n_agents=n,
         height=5,
         width=10,
         horizon=horizon,
         delay=delay,
-        start_cells=((0, 0), (2, 0), (3, 0), *BYSTANDER_SLOTS[:n_bystanders]),
+        start_cells=tuple(starts),
         events=(event,),
     )
 

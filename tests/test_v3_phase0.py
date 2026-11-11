@@ -165,3 +165,34 @@ def test_noop_null_actions_are_overridden_even_if_the_team_sends_moves():
     env.step([3, NOOP, NOOP, NOOP, NOOP])   # 3 = LEFT is blocked anyway; try RIGHT (4) next
     env.step([4, NOOP, NOOP, NOOP, NOOP])
     assert env.positions[0] == pos
+
+
+# --- 2.1: shuffled roles -------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("seed", [0, 1, 2])
+def test_permuted_episode_has_the_same_return_and_the_permuted_truth(seed):
+    """Relabelling agents changes nothing physical: same return, and v(S) of the permuted layout equals
+    v(perm^-1 S) of the fixed layout (closed loop, deterministic team)."""
+    from whoearned.ground_truth import mask_of
+    rng = np.random.default_rng(seed)
+    perm = rng.permutation(5)                      # perm[role] = agent
+    base = coalition_layout(2, delay=10)
+    cfg = coalition_layout(2, delay=10, role_perm=perm)
+    assert cfg.events[0].enablers == (perm[0],)
+    v_base = ground_truth_closed_loop(base, lambda: ScriptedTeam(base, seed=0)).v
+    v_perm = ground_truth_closed_loop(cfg, lambda: ScriptedTeam(cfg, seed=0)).v
+    for m in range(32):
+        roles = [r for r in range(5) if m >> r & 1]
+        assert v_perm[mask_of([perm[r] for r in roles])] == pytest.approx(v_base[m])
+    assert v_perm[-1] == pytest.approx(10.0)
+
+
+def test_shuffled_data_cell_assigns_roles_per_episode():
+    from whoearned.experiments import DataCell
+    cell = DataCell(delay=0, n_bystanders=2, seed=5, shuffle_roles=True, n_train=6, n_test=3)
+    perms = {tuple(cell.role_perm("train", i)) for i in range(6)}
+    assert len(perms) > 1 and cell.key.startswith("perm_")
+    eps = cell.episodes("train")
+    assert all(ep.total == pytest.approx(10.0) or ep.total == 0 for ep in eps)
+    assert [ep.config for ep in eps] == [cell.config_for("train", i) for i in range(6)]

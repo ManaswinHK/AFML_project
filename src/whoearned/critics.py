@@ -82,21 +82,27 @@ def fit_ensemble(X, y, seed=0, members=5, **kw):
 
 
 class StateTokens:
-    """Slices the flat global state (see PlantedCoalitionGridworld.get_state) into agent tokens + context."""
+    """Slices the flat global state (see PlantedCoalitionGridworld.get_state) into agent tokens + context.
+
+    Agent token: position (2), present, acting, pulled flag per event (k), role flags per event (2k).
+    Context: per event gate/done/pending/countdown/amount (5k), and t / T.
+    """
 
     def __init__(self, n: int, k: int):
         self.n, self.k = n, k
         per_event = 5 + n
-        self.d_state = 4 * n + k * per_event + 1
+        roles = 4 * n + k * per_event                                    # start of the role-flag block
+        self.d_state = roles + 2 * n * k + 1
         agent_idx = []
         for i in range(n):
             cols = [2 * i, 2 * i + 1, 2 * n + i, 3 * n + i]
             cols += [4 * n + e * per_event + 5 + i for e in range(k)]   # this agent's pulled flag per event
+            cols += [roles + 2 * k * i + j for j in range(2 * k)]       # its role flags per event
             agent_idx.append(cols)
-        self.agent_idx = th.tensor(agent_idx)                          # (n, 4 + k)
+        self.agent_idx = th.tensor(agent_idx)                          # (n, 4 + 3k)
         ctx = [4 * n + e * per_event + j for e in range(k) for j in range(5)] + [self.d_state - 1]
         self.ctx_idx = th.tensor(ctx)                                    # (5k + 1,)
-        self.d_agent, self.d_ctx = 4 + k, 5 * k + 1
+        self.d_agent, self.d_ctx = 4 + 3 * k, 5 * k + 1
 
     def __call__(self, S: th.Tensor):
         return S[:, self.agent_idx], S[:, self.ctx_idx]                  # (B, n, d_agent), (B, d_ctx)

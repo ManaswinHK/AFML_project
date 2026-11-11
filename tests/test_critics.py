@@ -18,6 +18,8 @@ def permute_state(S, n, k, perm):
         out[..., 3 * n + new] = S[..., 3 * n + old]
         for e in range(k):
             out[..., 4 * n + e * per_event + 5 + new] = S[..., 4 * n + e * per_event + 5 + old]
+        roles = 4 * n + k * per_event
+        out[..., roles + 2 * k * new:roles + 2 * k * (new + 1)] = S[..., roles + 2 * k * old:roles + 2 * k * (old + 1)]
     return out
 
 
@@ -46,7 +48,7 @@ def test_set_critic_is_permutation_invariant():
 def test_critics_fit_a_simple_function():
     rng = np.random.default_rng(1)
     n, k = 3, 1
-    d = 4 * n + k * (5 + n) + 1
+    d = 4 * n + k * (5 + n) + 2 * n * k + 1
     X = rng.random((2000, d)).astype(np.float32)
     y = 10 * X[:, 3 * n:4 * n].sum(1)          # value = 10 x number of acting agents (symmetric)
     for fit in (lambda: fit_mlp(X, y, steps=1500), lambda: fit_set_critic(X, y, n, k, steps=1500)):

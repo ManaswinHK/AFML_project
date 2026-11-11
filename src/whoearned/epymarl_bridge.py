@@ -151,9 +151,12 @@ def episodes_to_batch(harness: Harness, episodes: list[Episode]) -> EpisodeBatch
         preprocess=harness.preprocess, device=harness.device,
     )
     for b, ep in enumerate(episodes):
-        if ep.config != cfg:
-            raise ValueError("all episodes must share one configuration")
-        env = PlantedCoalitionGridworld(cfg)
+        # Episodes may differ in role assignment (v3 shuffled roles) but not in shape.
+        same_shape = (ep.config.n_agents, len(ep.config.events), ep.config.horizon) == (
+            cfg.n_agents, len(cfg.events), cfg.horizon)
+        if not same_shape:
+            raise ValueError("all episodes must share n_agents, number of events and horizon")
+        env = PlantedCoalitionGridworld(ep.config)
         env.reset(ep.present)
         for t in range(T):
             batch.update(

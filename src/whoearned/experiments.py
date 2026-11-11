@@ -110,12 +110,15 @@ class DataCell:
     # "coalition": coalition_layout(n_bystanders). "partial": the same with partial synergy (the
     # event pays if any finisher interacts). "overlap": overlap_example (B in two events; n_bystanders ignored).
     layout: str = "coalition"
+    # v3 Phase 2.1: a fresh random role assignment per episode (coalition layout only).
+    shuffle_roles: bool = False
 
     @property
     def key(self) -> str:
         crit = f"_es{self.enabler_start}" if self.enabler_start else ""
         prefix = "" if self.layout == "coalition" else f"{self.layout}_"
-        return f"{prefix}d{self.delay}_b{self.n_bystanders}{crit}_s{self.seed}"
+        perm = "perm_" if self.shuffle_roles else ""
+        return f"{perm}{prefix}d{self.delay}_b{self.n_bystanders}{crit}_s{self.seed}"
 
     def env_args(self) -> dict:
         """EPyMARL env_args that build the same configuration as :meth:`config`."""
@@ -124,6 +127,22 @@ class DataCell:
         return {"map_name": "coalition_layout",
                 "layout_kwargs": {"n_bystanders": self.n_bystanders, "delay": self.delay, "horizon": self.horizon,
                                   "partial": self.layout == "partial"}}
+
+    def role_perm(self, split: str, index: int):
+        """The role permutation of one episode (None for fixed roles). Seeded by (seed, split, index)."""
+        if not self.shuffle_roles:
+            return None
+        rng = np.random.default_rng([self.seed, 0 if split == "train" else 1, index, 4242])
+        return rng.permutation(3 + self.n_bystanders)
+
+    def config_for(self, split: str, index: int):
+        """Configuration of one episode: :meth:`config` unless roles are shuffled."""
+        if not self.shuffle_roles:
+            return self.config()
+        if self.layout != "coalition":
+            raise ValueError("shuffle_roles is defined for the coalition layout only")
+        return coalition_layout(self.n_bystanders, delay=self.delay, horizon=self.horizon,
+                                role_perm=self.role_perm(split, index))
 
     def config(self):
         if self.layout == "overlap":
@@ -135,7 +154,7 @@ class DataCell:
 
     def team(self, split: str, index: int) -> ScriptedTeam:
         base = self.seed * 100_000 + (0 if split == "train" else 50_000)
-        return ScriptedTeam(self.config(), seed=base + index, epsilon=self.epsilon,
+        return ScriptedTeam(self.config_for(split, index), seed=base + index, epsilon=self.epsilon,
                             finish_not_before=self.finish_not_before,
                             enabler_start=self.enabler_start)
 
@@ -149,12 +168,12 @@ class DataCell:
             out = self.episodes("train")
             for ep in list(out):
                 kept = mask_of(np.flatnonzero(rng.random(cfg.n_agents) < MIX_KEEP))
-                rep = replay(cfg, ep.actions, present=kept)
+                rep = replay(ep.config, ep.actions, present=kept)
                 rep.actions[:, [i for i in range(cfg.n_agents) if not kept >> i & 1]] = NOOP
                 out.append(rep)
             return out
         count = self.n_train if split == "train" else self.n_test
-        return [rollout(cfg, self.team(split, s)) for s in range(count)]
+        return [rollout(self.config_for(split, s), self.team(split, s)) for s in range(count)]
 
 
 @dataclass(frozen=True)
@@ -188,16 +207,18 @@ class TestTruth:
     # v3: factual test episodes with snapshots, and exact ablation values W[null] (n, T+1) per episode
     facts: list = field(default_factory=list, repr=False)
     ablation_W: dict = field(default_factory=dict, repr=False)
+    configs: list = field(default_factory=list, repr=False)   # per test episode (differs if roles are shuffled)
 
 
 def _test_truth(cell: DataCell, test_eps, ablation_nulls=()) -> TestTruth:
-    cfg = cell.config()
-    planted = planted_dividends(cfg)
     out = TestTruth([], [], [], [], [], [])
     for null in ablation_nulls:
         out.ablation_W[null] = []
         out.step[f"kappa_{null}"] = []
     for s, ep in enumerate(test_eps):
+        cfg = cell.config_for("test", s)
+        planted = planted_dividends(cfg)
+        out.configs.append(cfg)
         make = lambda s=s: cell.team("test", s)
         out.closed.append(ground_truth_closed_loop(cfg, make))
         if ablation_nulls:
@@ -256,10 +277,11 @@ def _score(alg: str, out: dict, truth: TestTruth, cfg) -> list[dict]:
     where the read-out has a per-step target, and coalition level where it has dividends."""
     per_step = out["per_step"]
     credit = episode_credit(per_step)
-    enablers, bystanders = _roles(cfg)
     rows = []
-    coalition = sorted({a for ev in cfg.events for a in ev.coalition})
     for b, gt in enumerate(truth.truths):
+        cfg = truth.configs[b]
+        enablers, bystanders = _roles(cfg)
+        coalition = sorted({a for ev in cfg.events for a in ev.coalition})
         row = {"episode": b}
         for target in ("loo", "shapley"):
             row[target] = evaluate_credit(credit[b], gt, cfg, target=target).as_dict()
@@ -283,11 +305,11 @@ def _score(alg: str, out: dict, truth: TestTruth, cfg) -> list[dict]:
 
 def semantic_gap(truth: TestTruth, cfg) -> dict:
     """Level 2 (method-independent): a *perfect* per-step critic's credit vs removal credit."""
-    enablers, bystanders = _roles(cfg)
     out = {}
     for kind in ("noop", "baseline"):
         rows = []
         for b, gt in enumerate(truth.truths):
+            enablers, bystanders = _roles(truth.configs[b])
             rep = evaluate_against(truth.step[kind][b].sum(0), gt.leave_one_out, enablers, bystanders)
             rows.append({"matched": rep.as_dict()})
         out[kind] = summarise(rows)
@@ -406,10 +428,9 @@ def run_data_cell(cell: DataCell, train: TrainSpec, out_dir: str) -> str:
 
 def _train_facts(cell: DataCell, train_eps) -> list:
     """Training episodes re-run with a snapshot before every step (identical actions, checked)."""
-    cfg = cell.config()
     facts = []
     for i, ep in enumerate(train_eps):
-        f = ab.factual_rollout(cfg, lambda i=i: cell.team("train", i))
+        f = ab.factual_rollout(cell.config_for("train", i), lambda i=i: cell.team("train", i))
         if not np.array_equal(f.actions, ep.actions):
             raise RuntimeError(f"factual rollout of training episode {i} did not reproduce its actions")
         facts.append(f)
