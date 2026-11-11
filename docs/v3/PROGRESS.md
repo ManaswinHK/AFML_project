@@ -22,8 +22,10 @@ Env: `.venv` (Python 3.12, torch CPU). Run tests: `.venv/bin/python -m pytest -q
 - [x] 2.1 shuffled roles  - [x] V2 control implemented (mappo/qmix _int, _int_masked)
 - [x] 3.1 lanes layout  - [x] 3.2 feasibility (IPPO K=1: 98% test success by 120k steps)  - [x] 3.3 difference rewards via shadow copies
 - [x] 4.1/4.2 code: dropout option in adapter; BranchableMacTeam (exact branching of learned policies); phase4 grid
-- [ ] Exploratory pilots (seeds 0-4): pilot_fixed, pilot_perm, pilot_h5, pilot_v2, pilot_budget, pilot_roles, size transfer -> `docs/v3/pilot_findings.md`
-- [ ] Freeze `docs/v3/preregistration_v3.md` (thresholds = scripts/v3/analyse_prereg.py TAU) and push BEFORE any seed 5-9 run
+- [x] Exploratory pilots (seeds 0-4) -> `docs/v3/pilot_findings.md` (pilot_fixed and pilot_budget stopped early on purpose)
+- [x] Phase 3 pre-registration frozen (5a73c9c) + Addendum A (post-hoc, labelled); gate running
+- [x] Mode P pre-registration frozen: commit a08b267 "Freeze pre-registration v3"
+- [ ] RUNNING: `scripts/v3/run_confirm_all.sh` (log /private/tmp/claude-501/confirm.log); re-run it to resume (skips done cells)
 - [ ] Confirmatory: confirm_main (60), confirm_h5 (20), confirm_perm (10), size transfer (seeds 5-9), gate (Phase 3, 60 runs), phase4 (6 runs)
 - [ ] 0.7 re-run partial cells (rerun_partial_h3, rerun_partial_h5)
 - [ ] Analysis: scripts/v3/analyse_prereg.py -> docs/v3/confirmatory_results.md; Phase 3/4 summaries
@@ -41,3 +43,8 @@ Env: `.venv` (Python 3.12, torch CPU). Run tests: `.venv/bin/python -m pytest -q
   Early pilot signal (exploratory): set critic on shuffled roles L1 0.004 (b=2) / 0.006 (b=4) vs MLP 0.46 / 0.86.
   Partial layout: realised credit flips with exploration luck (1/3 episodes one finisher completes alone);
   structural read-out + expected-credit floor added. Active design: no reliable gain (exploratory negative).
+- 2026-11-12 00:30 (session 1): pre-registration frozen (a08b267); confirmatory chain launched (WORKERS=6);
+  gate (pre-registered) running, addendum grids gate_fine/gate_ns chained after it.
+  If resuming: check `ls results/v3/confirm_*`, re-run `WORKERS=6 scripts/v3/run_confirm_all.sh`, then
+  `.venv/bin/python scripts/v3/run_phase3.py --grid gate_fine --workers 3` and `--grid gate_ns`, then phase4
+  (`--grid phase4 --workers 3`) and `scripts/v3/analyse_prereg.py`, `scripts/v3/analyse_phase3.py`.
