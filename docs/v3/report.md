@@ -2,62 +2,7 @@
 
 Team Aporia · 12 Nov 2026 · branch `intervention-credit-v3` · pre-registrations frozen at `a08b267` (Mode P) and `5a73c9c` (Phase 3)
 
-> **Status of this document:** sections marked Full per-condition tables, p-values and the one analysis-script correction (P5 argument order): `confirmatory_results.md`. Values below are condition means over seeds 5–9 (ranges are over conditions). L1: share distance to the exact credit of the method's own null (0 = exact, 2 = disjoint). The equal split scores 0.80 (b = 2) and 1.14 (b = 4).
-
-### 4.1 Verdicts
-
-| ID | Hypothesis | Verdict | Key numbers |
-|---|---|---|---|
-| P2a | MLP ablation critic learns removal credit (L1 < 0.15) | **Supported** 14/14 | L1 0.012–0.063 (main), 0.014–0.025 (overlap) |
-| P2a-set | Set critic does too (L1 < 0.05) | Partial 12/14 | L1 0.002–0.032. The 2 misses have means 0.026 and 0.032, below the threshold but not significant with 5 seeds |
-| P2b | Beats the equal split | **Supported** 14/14 | |
-| P3 | Interventions are necessary (gap > 0.3) | Partial 12/14 | No-intervention critic 0.85–1.50 vs 0.01–0.06. The 2 misses (overlap) have gaps 0.65–0.72, not significant after Holm |
-| P4a | MLP per-step fidelity r > 0.85 | Partial 10/12 | r 0.91–1.00. Misses: critical cells at d = 25/50 (r 0.92, 0.91, sd 0.1), the MLP's seed instability seen in the pilot |
-| P4a-set | Set critic per-step r > 0.85 | **Supported** 12/12 | r 0.98–1.00 |
-| P4b | One-step read-outs are not faithful to their own per-step targets (r < 0.5) | **Supported** for VDN, QMIX, COMA, MAPPO, 12/12 each | r −0.00 to 0.19 |
-| P5 | Presence-only table not worse than ECE-3 (dividend error, removal game) | **Supported** 6/6 (after correcting the script's argument order) | equal on the single coalition (0.142 vs 0.143); better on overlap (0.47 vs 0.99–1.02) and partial (0.41 vs 1.04–1.05) |
-| P6a | Ablation credit keeps exactly the coalition (top-k > 0.9) | **Supported** 12/12 | 100% in every condition |
-| P6b | QMIX / COMA usually do not (< 0.5) | QMIX partial 9/12; COMA **supported** 12/12 | QMIX keeps the coalition in 77% of d = 0 slack episodes, "right for the wrong reason" again; COMA 1–15% |
-| P7a | Shuffled roles: the table cannot use role information | **Supported** 2/2 | table = equal split (0.78, 1.15) |
-| P7b | Shuffled roles: MLP below the equal split by ≥ 0.25 | **Not supported** 0/2 | gaps 0.27 and 0.26: above the margin as point estimates, not significant |
-| P8a | Shuffled roles: set critic near exact (L1 < 0.05) | **Supported** 2/2 | **0.010 and 0.008** |
-| P8b | … beats the MLP by ≥ 0.25 | **Supported** 2/2 | MLP 0.53 and 0.88 |
-| P8c-a | … recovers coalition structure (dividend error < 0.4) | **Supported** 2/2 | 0.13 and 0.21 |
-| P8c-b | … better than ECE-3_mix on dividends | Partial 1/2 | b = 4: 0.21 vs 0.57 (yes); b = 2: 0.13 vs 0.20 (p = 0.055) |
-| P8d | Set critic's advantage holds with role flags hidden | **Supported** 2/2 | 0.019 / 0.007 vs MLP 0.60 / 0.93 |
-| P9a | MAPPO trained on stops: masked read-out beats its standard read-out by ≥ 0.5 | Partial 8/12 | d ≤ 25: 0.32–0.69 vs 1.99–2.00 (all supported). d = 50: gaps 0.26–0.89, not all significant |
-| P9b | QMIX trained on stops: masked vs standard (two-sided, descriptive) | – | At d > 0 the masked read-out is better in 7 of 8 conditions (by 0.02–0.49). The pilot's reversal was a d = 0 effect |
-| P9c | Data alone does not fix one-step read-outs (MAPPO gain < 0.1) | Partial 9/12 | d ≤ 25: no gain (2.00 → 2.00). d = 50: the stops help MAPPO's standard read-out a little (gains 0.06–0.20) |
-| P10a | Partial layout: structural read-out within 0.1 of the expected-credit floor | **Not supported** 0/2 | 0.49 / 0.51 vs floor 0.39 / 0.38 |
-| P10b | … and better than κ | **Supported** 2/2 | κ 0.65 / 0.66 |
-| P11a | Size transfer keeps exactly the coalition | **Supported** 2/2 | 100% in every seed, both directions |
-| P11b | … better than the equal split by > 0.3 | **Supported** 2/2 | 5 → 7 agents: 0.60 vs 1.14; 7 → 5 agents: 0.29 vs 0.80 |
-
-**Tally:** 17 supported, 9 partial, 3 not supported, 1 descriptive.
-- Every partial result has point estimates on the hypothesis's side in most failing conditions, except QMIX's top-k at d = 0 and MAPPO at d = 50 (P9a, P9c).
-- The three failures (P7b, P10a, and P8c-b at b = 2 as a partial) are honest limits, discussed below.
-
-### 4.2 What the confirmatory round establishes
-
-1. **Persistent interventions make removal credit learnable by an ordinary critic, and nothing else in the comparison does.** On the 12 main conditions:
-   - the MLP ablation critic is at 0.012–0.063 and keeps exactly the coalition in 100% of episodes;
-   - the same critic without stops is at 0.85–1.50;
-   - every one-step method is at 0.50–2.00 (VDN 0.71–1.72, QMIX 0.50–1.42, COMA 1.45–1.62, MAPPO 0.83–2.00);
-   - the one-step methods are unfaithful even to their own per-step targets (r ≤ 0.19). This is the measured counterpart of Identity 2.
-2. **Better data does not rescue one-step read-outs; a different read-out of the same critic does (control V2).**
-   - MAPPO trained on exactly the same stops still gives 2.00 with its own read-out at d ≤ 25.
-   - Queried at the stopped state, the same critic gives 0.32–0.69.
-   - The plan's open question ("better data or better read-out?") has a clear answer: **the read-out**, given data that contains stops. The data alone is not enough.
-3. **ECE's coalition result belongs to the data.** A presence-only Lasso table, which never sees a trajectory, matches ECE-3_mix on the single coalition and beats it on overlap and partial (errata E1, now confirmatory).
-4. **A critic that respects the relabelling symmetry is what makes credit generalise.**
-   - With roles reassigned every episode, the set critic is near exact: 0.010 / 0.008, step r ≈ 1.0, top-3 100%, dividend error 0.13 / 0.21.
-   - The MLP, with the same 200 stops and the same inputs, is at 0.53 / 0.88, and needs 4× the stops to reach 0.17 / 0.52.
-   - The advantage does not come from role flags: with flags hidden, 0.02 / 0.007 vs 0.60 / 0.93.
-   - The set critic also transfers zero-shot to team sizes it never saw: always the right coalition, half the equal split's error. It leaks 14–30% of the credit to unseen bystanders.
-5. **Luck is real and measurable.** On the partial layout, realised credit flips with exploration noise.
-   - Removing the luck term (the structural read-out) improves the critic from 0.65 to 0.49.
-   - It does not reach the expected-credit floor (0.38–0.39).
-   - About 0.1 of L1 there is ordinary estimation error on top of the luck. are filled from the generated files `confirmatory_results.md` and `phase3_results.md` once all runs finish. Everything else is final.
+> **Status of this document:** final for the Mode P confirmatory round, Phase 3 and Phase 4. Sections still marked with double braces are filled when the remaining post-hoc/descriptive runs finish.
 
 ## 0. Summary
 
@@ -156,9 +101,10 @@ Full per-condition tables, p-values and the one analysis-script correction (P5 a
 | P11a | Size transfer keeps exactly the coalition | **Supported** 2/2 | 100% in every seed, both directions |
 | P11b | … better than the equal split by > 0.3 | **Supported** 2/2 | 5 → 7 agents: 0.60 vs 1.14; 7 → 5 agents: 0.29 vs 0.80 |
 
-**Tally:** 17 supported, 9 partial, 3 not supported, 1 descriptive.
-- Every partial result has point estimates on the hypothesis's side in most failing conditions, except QMIX's top-k at d = 0 and MAPPO at d = 50 (P9a, P9c).
-- The three failures (P7b, P10a, and P8c-b at b = 2 as a partial) are honest limits, discussed below.
+**Tally (28 entries, counting P4b's four methods and P6b's two separately):** 18 supported, 7 partial, 2 not supported, 1 descriptive.
+- In the partial results, the failing conditions have point estimates on the hypothesis's side in P2a-set, P3, P4a and P8c-b. They fail only on significance with 5 seeds under Holm correction.
+- The other partials are real exceptions: QMIX's top-k at d = 0 (P6b) and MAPPO's read-outs at d = 50 (P9a, P9c).
+- The two failures (P7b, P10a) are honest limits, discussed below.
 
 ### 4.2 What the confirmatory round establishes
 
