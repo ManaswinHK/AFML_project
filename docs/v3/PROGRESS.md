@@ -21,7 +21,13 @@ Env: `.venv` (Python 3.12, torch CPU). Run tests: `.venv/bin/python -m pytest -q
 - [x] 1.2 exact truth in pipeline  - [x] 1.3 intervention data (stratified)  - [x] 1.4 atd registered; reproduction check passed (L1 0.006 vs 0.02, r 0.98 vs 0.96)
 - [x] 2.1 shuffled roles  - [x] V2 control implemented (mappo/qmix _int, _int_masked)
 - [x] 3.1 lanes layout  - [x] 3.2 feasibility (IPPO K=1: 98% test success by 120k steps)  - [x] 3.3 difference rewards via shadow copies
-- [ ] Exploratory pilots (seeds 0-4): pilot_fixed, pilot_perm, pilot_h5, pilot_budget, smoke_v2 -> `docs/v3/pilot_findings.md`
+- [x] 4.1/4.2 code: dropout option in adapter; BranchableMacTeam (exact branching of learned policies); phase4 grid
+- [ ] Exploratory pilots (seeds 0-4): pilot_fixed, pilot_perm, pilot_h5, pilot_v2, pilot_budget, pilot_roles, size transfer -> `docs/v3/pilot_findings.md`
+- [ ] Freeze `docs/v3/preregistration_v3.md` (thresholds = scripts/v3/analyse_prereg.py TAU) and push BEFORE any seed 5-9 run
+- [ ] Confirmatory: confirm_main (60), confirm_h5 (20), confirm_perm (10), size transfer (seeds 5-9), gate (Phase 3, 60 runs), phase4 (6 runs)
+- [ ] 0.7 re-run partial cells (rerun_partial_h3, rerun_partial_h5)
+- [ ] Analysis: scripts/v3/analyse_prereg.py -> docs/v3/confirmatory_results.md; Phase 3/4 summaries
+- [ ] Write-up: docs/v3/report.md + figures; PR
 - [ ] 1.1 Pre-registration v3 committed before any confirmatory run
 - [ ] 1.x Phase 1
 - [ ] 2.x Phase 2
@@ -32,4 +38,6 @@ Env: `.venv` (Python 3.12, torch CPU). Run tests: `.venv/bin/python -m pytest -q
 ## Session notes
 - 2026-11-11 (session 1): cloned, venv built, branch created. Phase 0 code + tests, ablation library, critics
   (MLP, ensemble, set), V2 control, shuffled roles, lanes + difference rewards. Pilots running.
-  Early pilot signal (exploratory): set critic on shuffled roles L1 0.005 vs MLP 0.475 (b=2, 200 stops).
+  Early pilot signal (exploratory): set critic on shuffled roles L1 0.004 (b=2) / 0.006 (b=4) vs MLP 0.46 / 0.86.
+  Partial layout: realised credit flips with exploration luck (1/3 episodes one finisher completes alone);
+  structural read-out + expected-credit floor added. Active design: no reliable gain (exploratory negative).
