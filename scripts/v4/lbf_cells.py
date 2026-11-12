@@ -35,7 +35,7 @@ from whoearned.metrics import pearson, top_k_selection  # noqa: E402
 VARIANTS = {"base": dict(n_agents=4, n_food=3, size=8, horizon=50),
             "large": dict(n_agents=6, n_food=4, size=10, horizon=60)}
 N_TRAIN, N_TEST, EPS = 200, 30, 0.2
-CFG = {"n_train": N_TRAIN, "n_int": (0, 200, 800), "steps": 3000}   # overridable from the command line
+CFG = {"n_train": N_TRAIN, "n_int": (0, 200, 800), "steps": 3000, "null": "noop", "eps": EPS, "floor_draws": 16}
 
 
 def episode(variant, seed, split, idx):
@@ -43,7 +43,7 @@ def episode(variant, seed, split, idx):
     vid = sorted(VARIANTS).index(variant)
     cfg = LBFConfig(spawn_seed=(seed, sid, idx, vid), **VARIANTS[variant])
     team_seed = seed * 100_000 + sid * 50_000 + idx
-    return cfg, (lambda: ScriptedLBFTeam(cfg, seed=team_seed, epsilon=EPS))
+    return cfg, (lambda: ScriptedLBFTeam(cfg, seed=team_seed, epsilon=CFG["eps"]))
 
 
 def l1(credit, target):
@@ -61,7 +61,8 @@ def spurious(credit, target):
 
 
 def run(args):
-    variant, seed, out_dir = args
+    variant, seed, out_dir, cfg_over = args
+    CFG.update(cfg_over)          # spawned workers re-import this module, so the config travels with the job
     out = os.path.join(out_dir, f"{variant}_s{seed}.json")
     if os.path.exists(out):
         return out
@@ -76,15 +77,21 @@ def run(args):
     for i in range(N_TEST):
         cfg, mk = episode(variant, seed, "test", i)
         f = ab.factual_rollout(cfg, mk, make_env=LBFEnv)
-        W = ab.oracle_ablation_values(cfg, mk, f, null="noop")
+        W = ab.oracle_ablation_values(cfg, mk, f, null=CFG["null"])
         v0 = np.array([f.total if m == (1 << n) - 1 else
-                       ab.continue_stopped(cfg, mk, f.snaps[0], tuple(j for j in range(n) if not m >> j & 1), "noop")
+                       ab.continue_stopped(cfg, mk, f.snaps[0], tuple(j for j in range(n) if not m >> j & 1), CFG["null"])
                        for m in range(1 << n)])
-        tests.append((cfg, f, W, v0))
+        # luck floor: the expected LOO credit of this layout (mean over extra noise draws) as a prediction
+        draws = []
+        for d in range(CFG["floor_draws"]):
+            mk_d = (lambda d=d: ScriptedLBFTeam(cfg, seed=7_000_000 + 1000 * i + d, epsilon=CFG["eps"]))
+            fd = ab.factual_rollout(cfg, mk_d, make_env=LBFEnv)
+            draws.append([fd.total - ab.continue_stopped(cfg, mk_d, fd.snaps[0], (j,), CFG["null"]) for j in range(n)])
+        tests.append((cfg, f, W, v0, np.mean(draws, 0)))
     truth_s = time.time() - t0
     make_for = lambda i: train[i][1]
     cfg0 = train[0][0]
-    data = {k: ab.intervention_dataset(cfg0, make_for, facts, k, seed=seed, null="noop", sampler="stratified")
+    data = {k: ab.intervention_dataset(cfg0, make_for, facts, k, seed=seed, null=CFG["null"], sampler="stratified")
             for k in (lo, mid, hi)}
     critics = {
         "mlp_noint": fit_mlp(data[lo].X, data[lo].y, seed=seed, steps=steps),
@@ -95,15 +102,15 @@ def run(args):
     }
     all_stopped = [tuple(j for j in range(n) if not m >> j & 1) for m in range(1 << n)]
     rec = {"variant": variant, "seed": seed, "truth_seconds": truth_s, "cfg": dict(CFG), "methods": {}, "truth": {
-        "loo": [(f.total - W[:, 0]).tolist() for _, f, W, _ in tests], "v0": [v.tolist() for *_, v in tests],
-        "returns": [f.total for _, f, _, _ in tests]}}
+        "loo": [(f.total - W[:, 0]).tolist() for _, f, W, _, _ in tests], "v0": [v.tolist() for _, _, _, v, _ in tests],
+        "returns": [f.total for _, f, _, _, _ in tests]}}
     readouts = [(name, "kappa") for name in critics] + [("set", "struct"), ("mlp", "struct")]
     for name, ro in readouts:
         pred = critics[name]
         rows = {"l1": [], "shap": [], "div": [], "spur": [], "topk": []}
         kh, kt = [], []
-        for cfg, f, W, v0 in tests:
-            Wh = ab.learned_ablation_values(pred, f, null="noop")
+        for cfg, f, W, v0, _ in tests:
+            Wh = ab.learned_ablation_values(pred, f, null=CFG["null"])
             if ro == "kappa":
                 k = ab.ablation_td_credit(f.rewards, Wh)
             else:
@@ -114,7 +121,7 @@ def run(args):
             rows["spur"].append(spurious(credit, loo))
             matter = [i for i in range(n) if loo[i] > 1e-9]
             rows["topk"].append(top_k_selection(credit, matter) if matter else None)
-            vh = pred(np.stack([ab.stopped_state(f.states[0], n, st, "noop") for st in all_stopped]))
+            vh = pred(np.stack([ab.stopped_state(f.states[0], n, st, CFG["null"]) for st in all_stopped]))
             vh = vh - vh[0]
             rows["shap"].append(l1(gt.shapley_values(vh), gt.shapley_values(v0)))
             dt, de = gt.harsanyi_dividends(v0), gt.harsanyi_dividends(vh)
@@ -128,8 +135,12 @@ def run(args):
         m["step_r"] = pearson(np.stack(kh), np.stack(kt))
         m["final_loss"] = pred.final_loss
         rec["methods"][f"{name}{'' if ro == 'kappa' else '_struct'}"] = m
+    floor = []
+    for cfg, f, W, v0, exp_loo in tests:
+        floor.append(l1(exp_loo, f.total - W[:, 0]))
+    rec["methods"]["floor_expected"] = {"l1": float(np.mean([x for x in floor if x is not None]))}
     uni = {"l1": [], "spur": [], "topk": [], "shap": []}
-    for cfg, f, W, v0 in tests:
+    for cfg, f, W, v0, _ in tests:
         loo = f.total - W[:, 0]
         uni["l1"].append(l1(np.ones(n), loo))
         uni["spur"].append(spurious(np.ones(n), loo))
@@ -152,9 +163,12 @@ def main():
     p.add_argument("--n-train", type=int, default=N_TRAIN)
     p.add_argument("--n-int", default="0,200,800", help="stops for: no-intervention, main, large (MLP) critics")
     p.add_argument("--steps", type=int, default=3000)
+    p.add_argument("--null", default="noop", choices=("noop", "remove"))
+    p.add_argument("--eps", type=float, default=EPS)
     a = p.parse_args()
-    CFG.update(n_train=a.n_train, n_int=tuple(int(x) for x in a.n_int.split(",")), steps=a.steps)
-    jobs = [(v, int(s), a.out) for v, s in itertools.product(a.variants.split(","), a.seeds.split(","))]
+    CFG.update(n_train=a.n_train, n_int=tuple(int(x) for x in a.n_int.split(",")), steps=a.steps, null=a.null,
+               eps=a.eps)
+    jobs = [(v, int(s), a.out, dict(CFG)) for v, s in itertools.product(a.variants.split(","), a.seeds.split(","))]
     with Pool(a.workers) as pool:
         for o in pool.imap_unordered(run, jobs):
             r = json.load(open(o))
