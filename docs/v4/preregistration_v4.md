@@ -25,3 +25,25 @@ Seeds **10–14** (unused by any earlier run). Each part is frozen by its own co
 **Interpretation fixed in advance.**
 - C1 + C2 supported: the learning benefit of credit assignment here is the removal of other agents' luck; expected-value credit (any critic) does not provide it.
 - C1 not supported: expected credit captures a meaningful part of the gain, i.e. better baselines matter; theory §7's practical claim would be wrong for non-shared IPPO.
+
+## Part A: mixed-size training of the set critic (frozen second)
+
+**Question.** v3 found that a set critic trained at one team size picks the right coalition at unseen sizes but leaks 14–30% of the credit to bystanders. Hypothesis: the leak is caused by training at a single size (nothing forces a bystander's token to contribute zero to the pooled value). Training on several sizes should remove it.
+
+**Design.** `scripts/v4/size_mixed.py`. Shuffled roles, d = 25.
+- Per training size: 200 full-team episodes + 200 stops (stratified, no-op null).
+- **mixed**: one set critic on all training sizes.
+- **single**: one set critic on a single size with the *same total* number of stops (data-matched control).
+- Read out on the 30 test episodes of each held-out size against exact closed-loop no-op truth. The in-size critic and the equal split are references.
+- Designs:
+  - **interp**: train b ∈ {1, 3, 5} (4, 6, 8 agents), test b ∈ {2, 4} (5, 7 agents);
+  - **extrap**: train b ∈ {1, 2, 3}, test b ∈ {4, 5} (7, 8 agents).
+- Seeds 10–14. Pilot (seeds 0–2; `results/v4/size_mixed_pilot_*.json`): interp mixed 0.002–0.062 vs single 0.16–0.32; extrap mixed 0.03–0.17 vs single 0.55–0.94.
+
+| ID | Prediction | Test (per held-out size; Holm across sizes within the design) |
+|---|---|---|
+| A1 | Interpolation: mixed-size credit is near exact | L1 < 0.10 |
+| A2 | Interpolation: mixed beats the data-matched single-size critic | paired, single − mixed > 0.10 |
+| A3 | Extrapolation: mixed-size credit is good | L1 < 0.25 |
+| A4 | Extrapolation: mixed beats single by a wide margin | paired, single − mixed > 0.30 |
+| A5 | Mixed keeps exactly the coalition at every held-out size | top-k > 0.90 |

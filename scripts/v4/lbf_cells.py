@@ -35,6 +35,7 @@ from whoearned.metrics import pearson, top_k_selection  # noqa: E402
 VARIANTS = {"base": dict(n_agents=4, n_food=3, size=8, horizon=50),
             "large": dict(n_agents=6, n_food=4, size=10, horizon=60)}
 N_TRAIN, N_TEST, EPS = 200, 30, 0.2
+CFG = {"n_train": N_TRAIN, "n_int": (0, 200, 800), "steps": 3000}   # overridable from the command line
 
 
 def episode(variant, seed, split, idx):
@@ -67,7 +68,9 @@ def run(args):
     t0 = time.time()
     n = VARIANTS[variant]["n_agents"]
     F = VARIANTS[variant]["n_food"]
-    train = [episode(variant, seed, "train", i) for i in range(N_TRAIN)]
+    n_train, steps = CFG["n_train"], CFG["steps"]
+    lo, mid, hi = CFG["n_int"]
+    train = [episode(variant, seed, "train", i) for i in range(n_train)]
     facts = [ab.factual_rollout(cfg, mk, make_env=LBFEnv) for cfg, mk in train]
     tests = []
     for i in range(N_TEST):
@@ -82,16 +85,16 @@ def run(args):
     make_for = lambda i: train[i][1]
     cfg0 = train[0][0]
     data = {k: ab.intervention_dataset(cfg0, make_for, facts, k, seed=seed, null="noop", sampler="stratified")
-            for k in (0, 200, 800)}
+            for k in (lo, mid, hi)}
     critics = {
-        "mlp_noint": fit_mlp(data[0].X, data[0].y, seed=seed),
-        "mlp": fit_mlp(data[200].X, data[200].y, seed=seed),
-        "mlp_n800": fit_mlp(data[800].X, data[800].y, seed=seed),
-        "set_noint": fit_two_set_critic(data[0].X, data[0].y, n, F, seed=seed),
-        "set": fit_two_set_critic(data[200].X, data[200].y, n, F, seed=seed),
+        "mlp_noint": fit_mlp(data[lo].X, data[lo].y, seed=seed, steps=steps),
+        "mlp": fit_mlp(data[mid].X, data[mid].y, seed=seed, steps=steps),
+        "mlp_n800": fit_mlp(data[hi].X, data[hi].y, seed=seed, steps=steps),
+        "set_noint": fit_two_set_critic(data[lo].X, data[lo].y, n, F, seed=seed, steps=steps),
+        "set": fit_two_set_critic(data[mid].X, data[mid].y, n, F, seed=seed, steps=steps),
     }
     all_stopped = [tuple(j for j in range(n) if not m >> j & 1) for m in range(1 << n)]
-    rec = {"variant": variant, "seed": seed, "truth_seconds": truth_s, "methods": {}, "truth": {
+    rec = {"variant": variant, "seed": seed, "truth_seconds": truth_s, "cfg": dict(CFG), "methods": {}, "truth": {
         "loo": [(f.total - W[:, 0]).tolist() for _, f, W, _ in tests], "v0": [v.tolist() for *_, v in tests],
         "returns": [f.total for _, f, _, _ in tests]}}
     readouts = [(name, "kappa") for name in critics] + [("set", "struct"), ("mlp", "struct")]
@@ -146,7 +149,11 @@ def main():
     p.add_argument("--seeds", default="0,1,2")
     p.add_argument("--out", required=True)
     p.add_argument("--workers", type=int, default=3)
+    p.add_argument("--n-train", type=int, default=N_TRAIN)
+    p.add_argument("--n-int", default="0,200,800", help="stops for: no-intervention, main, large (MLP) critics")
+    p.add_argument("--steps", type=int, default=3000)
     a = p.parse_args()
+    CFG.update(n_train=a.n_train, n_int=tuple(int(x) for x in a.n_int.split(",")), steps=a.steps)
     jobs = [(v, int(s), a.out) for v, s in itertools.product(a.variants.split(","), a.seeds.split(","))]
     with Pool(a.workers) as pool:
         for o in pool.imap_unordered(run, jobs):
