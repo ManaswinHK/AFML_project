@@ -79,7 +79,9 @@ def main(argv):
     for p in params:
         if p.startswith("env_args.map_name="):
             layout = p.split("=", 1)[1]
-    ex.observers.append(FileStorageObserver.create(os.path.join(ROOT, "results", "sacred", config["name"], layout)))
+    # WHOEARNED_SACRED_DIR (v3): one observer directory per run, so parallel runs never share a folder.
+    sacred_dir = os.environ.get("WHOEARNED_SACRED_DIR") or os.path.join(ROOT, "results", "sacred", config["name"], layout)
+    ex.observers.append(FileStorageObserver.create(sacred_dir))
     ex.run_commandline(params)
 
 

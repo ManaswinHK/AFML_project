@@ -1,5 +1,7 @@
 # H5 Grid Results (Mode P, Step 9: low-order episodic coalition estimator)
 
+> **v3 erratum (11 Nov 2026):** some statements here are corrected or qualified in [`docs/v3/errata.md`](v3/errata.md) (E1–E10). The text below is left as it was.
+
 **Data:**
 - `results/mode_p/h5/`: 30 cell JSONs, `summary.md` and `per_seed.csv`.
 - `results/mode_p/h5_ref/`: 10 coalition cells scoring plain NA²Q and STAS.

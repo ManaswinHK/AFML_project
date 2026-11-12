@@ -99,7 +99,12 @@ class PlantedCoalitionGridworld:
         self.n_agents = config.n_agents
         self.n_events = len(config.events)
         self.obs_size = 4 * self.n_agents + 7 * self.n_events + 4
-        self.state_size = 3 * self.n_agents + self.n_events * (4 + self.n_agents) + 1
+        # positions (2n), presence (n), acting (n); per event: gate, done, pending, countdown,
+        # pending amount, pulled-by-enabler (n); per agent per event: is-enabler, is-finisher (the
+        # agents' "unit types", which their own observations already carry); then t / T.
+        # See docs/environment_design.md.
+        self.state_size = (4 * self.n_agents + self.n_events * (5 + self.n_agents)
+                           + 2 * self.n_agents * self.n_events + 1)
         self._present_mask = 0
         self.reset()
 
@@ -111,6 +116,8 @@ class PlantedCoalitionGridworld:
         full = (1 << n) - 1
         self._present_mask = full if present is None else present & full
         self.present = [bool(self._present_mask >> i & 1) for i in range(n)]
+        # ``acting[i]`` is False once agent i has been stopped (``stop``); absent agents never act.
+        self.acting = list(self.present)
         self.positions: list[Cell | None] = [
             cell if self.present[i] else None for i, cell in enumerate(self.config.start_cells)
         ]
@@ -125,6 +132,45 @@ class PlantedCoalitionGridworld:
     def present_mask(self) -> int:
         return self._present_mask
 
+    def stop(self, agents, null: str = "noop") -> None:
+        """Stop ``agents`` for the rest of the episode (a persistent intervention).
+
+        ``null="noop"``: the agent stays on the grid and only takes NOOP; teammates are not
+        told (their observations are unchanged). ``null="remove"``: the agent leaves the grid,
+        as with ``reset(present=...)``, and teammates see it gone. Either way, levers it has
+        already pulled stay pulled and events it has completed stay completed. Only the global
+        state's ``acting`` flags reveal a no-op stop.
+        """
+        if null not in ("noop", "remove"):
+            raise ValueError(f"null must be 'noop' or 'remove', got {null!r}")
+        for i in agents:
+            i = int(i)
+            if not 0 <= i < self.n_agents:
+                raise ValueError(f"unknown agent {i}")
+            self.acting[i] = False
+            if null == "remove":
+                self.present[i] = False
+                self.positions[i] = None
+                self._present_mask &= ~(1 << i)
+
+    @property
+    def acting_mask(self) -> int:
+        return sum(1 << i for i, a in enumerate(self.acting) if a)
+
+    def clone(self) -> "PlantedCoalitionGridworld":
+        """An independent copy of the full environment state (for branching counterfactual continuations)."""
+        e = PlantedCoalitionGridworld.__new__(PlantedCoalitionGridworld)
+        e.__dict__.update(self.__dict__)
+        e.present = list(self.present)
+        e.acting = list(self.acting)
+        e.positions = list(self.positions)
+        e.pulled = [dict(p) for p in self.pulled]
+        e.done_events = list(self.done_events)
+        e.event_log = [EventRecord(dict(r.pull_times), r.gate_open_time, r.completion_time, tuple(r.participants),
+                                   r.payout_time, r.payout, r.clipped) for r in self.event_log]
+        e._pending = dict(self._pending)
+        return e
+
     def gate_open(self, k: int) -> bool:
         return all(self.pulled[k].values())
 
@@ -134,6 +180,7 @@ class PlantedCoalitionGridworld:
         actions = [int(a) for a in actions]
         if len(actions) != self.n_agents:
             raise ValueError(f"expected {self.n_agents} actions, got {len(actions)}")
+        actions = [a if self.acting[i] else NOOP for i, a in enumerate(actions)]
         cfg = self.config
         t = self.t
 
@@ -201,7 +248,7 @@ class PlantedCoalitionGridworld:
     # --- observations ------------------------------------------------------------
 
     def get_avail_actions(self) -> list[list[int]]:
-        return [[1] * N_ACTIONS if p else [1] + [0] * (N_ACTIONS - 1) for p in self.present]
+        return [[1] * N_ACTIONS if a else [1] + [0] * (N_ACTIONS - 1) for a in self.acting]
 
     def _norm(self, cell: Cell) -> tuple[float, float]:
         return cell[0] / max(self.config.height - 1, 1), cell[1] / max(self.config.width - 1, 1)
@@ -250,7 +297,8 @@ class PlantedCoalitionGridworld:
             if p is not None:
                 state[2 * i:2 * i + 2] = self._norm(p)
                 state[2 * n + i] = 1.0
-        o = 3 * n
+            state[3 * n + i] = float(self.acting[i])
+        o = 4 * n
         for k, ev in enumerate(self.config.events):
             # Payout countdown: makes the state Markov under delay (reward is a function
             # of the state). Only the global state carries it; agent observations do not.
@@ -260,9 +308,18 @@ class PlantedCoalitionGridworld:
             state[o + 1] = float(self.done_events[k])
             state[o + 2] = float(pending)
             state[o + 3] = (pay_t - self.t) / self.config.horizon if pending else 0.0
+            # Pending amount / event reward: a partial event pays r * (participants / finishers), so
+            # without it the state is not Markov while a partial payout is pending (v3 Phase 0.1).
+            state[o + 4] = self.event_log[k].payout / ev.reward if pending else 0.0
             for e in ev.enablers:
-                state[o + 4 + e] = float(self.pulled[k][e])
-            o += 4 + n
+                state[o + 5 + e] = float(self.pulled[k][e])
+            o += 5 + n
+        K = self.n_events
+        for i in range(n):
+            for k, ev in enumerate(self.config.events):
+                state[o + 2 * K * i + 2 * k] = float(i in ev.enablers)
+                state[o + 2 * K * i + 2 * k + 1] = float(i in ev.finishers)
+        o += 2 * n * K
         state[o] = self.t / self.config.horizon
         return state
 

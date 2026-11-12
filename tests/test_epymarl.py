@@ -48,14 +48,14 @@ def harnesses(episodes):
 def test_adapter_env_info_and_step_contract():
     env = PlantedEPyMARLEnv(map_name="running_example", seed=0)
     info = env.get_env_info()
-    assert info == {"state_shape": 25, "obs_shape": 31, "n_actions": 6, "n_agents": 5, "episode_limit": 60}
+    assert info == {"state_shape": 4 * 5 + 1 * (5 + 5) + 2 * 5 * 1 + 1, "obs_shape": 31, "n_actions": 6, "n_agents": 5, "episode_limit": 60}
     obs, _ = env.reset()
     assert len(obs) == 5
     for t in range(T):
         obs, r, terminated, truncated, info = env.step([NOOP] * 5)
         assert not truncated
         assert terminated == (t == T - 1)
-    assert info == {"events_completed": 0.0}  # numeric only: EPyMARL sums info values
+    assert info == {"events_completed": 0.0, "success_rate": 0.0}  # numeric only: EPyMARL sums info values
 
 
 def test_adapter_rejects_unknown_layout_and_individual_rewards():
