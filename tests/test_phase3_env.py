@@ -85,3 +85,23 @@ def test_lanes_with_bystanders():
         total += env.step(a + [RIGHT, RIGHT])[1]
     assert total == pytest.approx(20.0)
     assert all(p[0] == 6 for p in env.positions[4:])     # bystanders stay in their own row
+
+
+def test_expected_credit_is_own_lane_reward_plus_other_lanes_td_errors():
+    K = 3
+    env = PlantedEPyMARLEnv(map_name="multi_event_layout", layout_kwargs={"n_events": K}, common_reward=False,
+                            reward_mode="expected")
+    # With empty value tables, expected credit = own lane reward + other lanes' rewards (= team reward).
+    env.reset()
+    tot = np.zeros(2 * K)
+    for a in _solve_lane_actions(K, {0, 2}):
+        tot += env.step(a)[1]
+    np.testing.assert_allclose(tot, [20] * 6)
+    # After many identical episodes the tables learn the (deterministic) lane values, other lanes' TD errors
+    # vanish, and expected credit converges to the exact difference reward (own lane).
+    for _ in range(400):
+        env.reset()
+        tot = np.zeros(2 * K)
+        for a in _solve_lane_actions(K, {0, 2}):
+            tot += env.step(a)[1]
+    np.testing.assert_allclose(tot, [10, 10, 0, 0, 10, 10], atol=0.05)

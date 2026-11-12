@@ -34,7 +34,12 @@ LAYOUTS = {
 # difference rewards, r - r^(-i), where r^(-i) comes from a shadow copy of the environment fed the same
 # joint actions except that agent i takes no-op from the start of the episode (Wolpert & Tumer's
 # clamping, open loop, in lockstep: the repo's open-loop replay run online).
-REWARD_MODES = ("team", "team_vector", "difference")
+# v4: "expected" - expected-value credit for lane layouts: agent i's reward is its own lane's reward plus the other
+# lanes' TD errors under per-lane value tables learned online (TD(0)) in this environment worker:
+#     kappa_i(t) = r_t + W_{-i}(s_{t+1}) - W_{-i}(s_t),  W_{-i}(s) = sum_{j != lane(i)} V_j(s_j)
+# (stopping i forfeits its own lane's future reward; lanes are independent). It differs from "difference"
+# (= own lane's reward exactly) by exactly the other lanes' TD errors: their *luck*. docs/v4/theory note.
+REWARD_MODES = ("team", "team_vector", "difference", "expected")
 
 
 def build_config(layout: str, **layout_kwargs) -> GridConfig:
@@ -72,6 +77,11 @@ class PlantedEPyMARLEnv:
         self._return = 0.0
         self.shadows = ([PlantedCoalitionGridworld(self.config) for _ in range(self.n_agents)]
                         if reward_mode == "difference" else [])
+        self.lane_alpha = 0.1
+        self.lane_tables = [dict() for _ in self.config.events] if reward_mode == "expected" else []
+        self.lane_of = {a: k for k, ev in enumerate(self.config.events) for a in ev.coalition}
+        if reward_mode == "expected" and len(self.lane_of) != self.n_agents:
+            raise ValueError("reward_mode 'expected' needs every agent in exactly one event (lane layouts)")
         # v3 Phase 4.1: with probability dropout_p per episode, a random set of agents (as in the intervention
         # data: half single agents, half random subsets) stops for good at a uniformly random step. The global
         # state's acting flags show it, so the centralised critic of an actor-critic learner is trained on
@@ -100,6 +110,8 @@ class PlantedEPyMARLEnv:
         if self._drop_plan is not None and self.env.t == self._drop_plan[0]:
             self.env.stop(self._drop_plan[1], self.dropout_null)
         actions = [int(a) for a in actions]
+        before = (([self._lane_state(k) for k in range(len(self.lane_tables))], self.env.t)
+                  if self.reward_mode == "expected" else None)
         obs, reward, done, _ = self.env.step(actions)
         self._return += reward
         # EPyMARL sums info values across episodes, so only numeric stats go here.
@@ -109,8 +121,34 @@ class PlantedEPyMARLEnv:
             return obs, float(reward), bool(done), False, info
         if self.reward_mode == "team_vector":
             return obs, [float(reward)] * self.n_agents, bool(done), False, info
+        if self.reward_mode == "expected":
+            return obs, self._expected_credit(before, float(reward), done), bool(done), False, info
         rewards = [float(reward - sh.step(actions)[1]) for sh in self.shadows]   # shadow i overrides i to no-op
         return obs, rewards, bool(done), False, info
+
+    # --- v4 expected-value credit (lane layouts) ---------------------------------------------------
+
+    def _lane_state(self, k: int):
+        ev = self.config.events[k]
+        return (self.env.t, tuple(self.env.positions[a] for a in ev.coalition),
+                tuple(self.env.pulled[k].values()), self.env.done_events[k])
+
+    def _lane_rewards(self, t: int) -> list[float]:
+        return [rec.payout if rec.payout_time == t and rec.completion_time is not None else 0.0
+                for rec in self.env.event_log]
+
+    def _expected_credit(self, before, reward: float, done: bool) -> list[float]:
+        states_before, t = before
+        r_lane = self._lane_rewards(t)
+        td = []
+        for k, table in enumerate(self.lane_tables):
+            v0 = table.get(states_before[k], 0.0)
+            v1 = 0.0 if done else table.get(self._lane_state(k), 0.0)
+            delta = r_lane[k] + v1 - v0
+            td.append(delta)
+            table[states_before[k]] = v0 + self.lane_alpha * delta          # TD(0), after using v0 for credit
+        total_td = sum(td)
+        return [float(r_lane[self.lane_of[i]] + total_td - td[self.lane_of[i]]) for i in range(self.n_agents)]
 
     def get_obs(self):
         return self.env.get_obs()
