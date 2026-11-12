@@ -71,3 +71,21 @@ def test_set_critic_without_roles_ignores_role_flags_and_stays_invariant():
         perm = np.array([3, 1, 4, 0, 2])
         np.testing.assert_allclose(net(th.tensor(S)).numpy(),
                                    net(th.tensor(permute_state(S, 5, 2, perm), dtype=th.float32)).numpy(), atol=1e-5)
+
+
+def test_multi_size_set_critic_fits_two_sizes_and_reads_out_any_size():
+    from whoearned.critics import fit_set_critic_multi
+    rng = np.random.default_rng(2)
+    data = {}
+    for n in (3, 5):
+        d = 4 * n + 1 * (5 + n) + 2 * n * 1 + 1
+        X = rng.random((1500, d)).astype(np.float32)
+        y = 10 * X[:, 3 * n:4 * n].sum(1)
+        data[n] = (X, y)
+    pf = fit_set_critic_multi(data, 1, steps=1500)
+    for n in (3, 4, 5):
+        d = 4 * n + (5 + n) + 2 * n + 1
+        X = rng.random((300, d)).astype(np.float32)
+        assert pf(n)(X).shape == (300,)
+    X, y = data[5]
+    assert np.mean((pf(5)(X) - y) ** 2) < 2.0

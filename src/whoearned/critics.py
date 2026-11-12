@@ -160,3 +160,50 @@ def transfer_set_critic(net: SetCritic, n: int, k: int):
     pred = _predictor(other)
     pred.net = other
     return pred
+
+
+def fit_set_critic_multi(datasets: dict, k: int, seed=0, hidden=128, steps=3000, batch=256, lr=1e-3, roles=True):
+    """One set critic trained on several team sizes at once (v4 Part A).
+
+    ``datasets`` maps n (number of agents) to (X, y) with X in that size's flat state layout. Each Adam step
+    draws one size (probability proportional to its rows) and a batch from it, so the shared per-agent encoder
+    and the pooled value head must fit every size. Returns ``predict_for(n)`` -> predictor for size n (any n,
+    including sizes never trained on).
+    """
+    th.set_num_threads(1)
+    th.manual_seed(seed)
+    sizes = sorted(datasets)
+    tokens = {n: StateTokens(n, k, roles=roles) for n in sizes}
+    net = SetCritic(tokens[sizes[0]], hidden)
+    opt = th.optim.Adam(net.parameters(), lr=lr)
+    data = {n: (th.tensor(X, dtype=th.float32), th.tensor(y / SCALE, dtype=th.float32)) for n, (X, y) in datasets.items()}
+    weights = np.array([len(datasets[n][1]) for n in sizes], dtype=float)
+    weights /= weights.sum()
+    g = th.Generator().manual_seed(seed)
+    rng = np.random.default_rng(seed)
+    loss = th.tensor(0.0)
+    for _ in range(steps):
+        n = sizes[rng.choice(len(sizes), p=weights)]
+        Xt, yt = data[n]
+        net.tokens = tokens[n]
+        idx = th.randint(0, len(Xt), (batch,), generator=g)
+        loss = ((net(Xt[idx]).squeeze(-1) - yt[idx]) ** 2).mean()
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+
+    def predict_for(n):
+        p = transfer_set_critic(net, n, k) if roles else _transfer_noroles(net, n, k)
+        p.final_loss = float(loss.detach())
+        return p
+    predict_for.net = net
+    return predict_for
+
+
+def _transfer_noroles(net, n, k):
+    import copy
+    other = copy.deepcopy(net)
+    other.tokens = StateTokens(n, k, roles=False)
+    pred = _predictor(other)
+    pred.net = other
+    return pred
