@@ -71,8 +71,9 @@ class Factual:
         return np.concatenate([np.cumsum(self.rewards[::-1])[::-1], [0.0]])
 
 
-def factual_rollout(config: GridConfig, make_team: MakeTeam, keep_snaps: bool = True) -> Factual:
-    env = PlantedCoalitionGridworld(config)
+def factual_rollout(config: GridConfig, make_team: MakeTeam, keep_snaps: bool = True, make_env=None) -> Factual:
+    """``make_env(config)`` builds the environment (default: the Planted Coalition Gridworld; v4 also LBF)."""
+    env = (make_env or PlantedCoalitionGridworld)(config)
     env.reset()
     team = make_team()
     team.reset(env)

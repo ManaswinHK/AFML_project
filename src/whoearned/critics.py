@@ -207,3 +207,49 @@ def _transfer_noroles(net, n, k):
     pred = _predictor(other)
     pred.net = other
     return pred
+
+
+# --- two-set critic for Level-Based Foraging (v4 Part B) ---------------------------------------------------
+
+
+class TwoSetCritic(th.nn.Module):
+    """Permutation-invariant over agents AND over food items (LBF state from ``envs.lbf.LBFEnv.get_state``).
+
+    Agent token: position (2), present, acting, level. Food token: position (2), level, present. Context: t / T.
+    Type-specific encoders, one self-attention layer over all tokens (agents and food attend to each other), then
+    sum and mean pooling per type and a value head.
+    """
+
+    def __init__(self, n: int, n_food: int, hidden: int = 128, heads: int = 4):
+        super().__init__()
+        self.n, self.F = n, n_food
+        self.agent_idx = th.tensor([[2 * i, 2 * i + 1, 2 * n + i, 3 * n + i, 4 * n + i] for i in range(n)])
+        self.food_idx = th.tensor([[5 * n + 4 * k + j for j in range(4)] for k in range(n_food)])
+        h = hidden
+        self.enc_a = th.nn.Sequential(th.nn.Linear(5 + 1, h), th.nn.ReLU(), th.nn.Linear(h, h))
+        self.enc_f = th.nn.Sequential(th.nn.Linear(4 + 1, h), th.nn.ReLU(), th.nn.Linear(h, h))
+        self.attn = th.nn.MultiheadAttention(h, heads, batch_first=True)
+        self.post = th.nn.Sequential(th.nn.ReLU(), th.nn.Linear(h, h), th.nn.ReLU())
+        self.head = th.nn.Sequential(th.nn.Linear(4 * h + 1, h), th.nn.ReLU(), th.nn.Linear(h, 1))
+
+    def forward(self, S):
+        t = S[:, -1:]
+        a, f = S[:, self.agent_idx], S[:, self.food_idx]
+        za = self.enc_a(th.cat([a, t[:, None, :].expand(-1, self.n, -1)], -1))
+        zf = self.enc_f(th.cat([f, t[:, None, :].expand(-1, self.F, -1)], -1))
+        z = th.cat([za, zf], 1)
+        z = self.post(z + self.attn(z, z, z, need_weights=False)[0])
+        za, zf = z[:, :self.n], z[:, self.n:]
+        return self.head(th.cat([za.sum(1), za.mean(1), zf.sum(1), zf.mean(1), t], -1))
+
+
+def fit_two_set_critic(X, y, n, n_food, seed=0, hidden=128, steps=3000, batch=256, lr=1e-3):
+    th.set_num_threads(1)
+    th.manual_seed(seed)
+    net = TwoSetCritic(n, n_food, hidden)
+    final = _train(net, X, y, seed, steps, batch, lr)
+    predict = _predictor(net)
+    predict.final_loss = final
+    predict.n_parameters = sum(p.numel() for p in net.parameters())
+    predict.net = net
+    return predict
