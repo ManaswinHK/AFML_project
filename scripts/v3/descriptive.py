@@ -89,7 +89,7 @@ def v1():
     L = grid_table("v1_coverage", ("qmix", "coma"), "step_r",
                    "Control V1 (reduced): per-step fidelity of one-step critics vs data size and noise (d = 25, b = 2; seeds 5-7). Condition = (n_train, epsilon)",
                    cond_key=key)
-    L += grid_table("v1_coverage", ("qmix", "coma", "uniform"), "loo_cn", "Control V1: end-to-end L1 vs exact removal credit", cond_key=key)
+    L += grid_table("v1_coverage", ("qmix", "coma", "uniform"), "loo_c", "Control V1: end-to-end L1 vs closed-loop removal credit", cond_key=key)
     return L
 
 
