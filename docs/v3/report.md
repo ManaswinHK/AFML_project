@@ -177,7 +177,22 @@ Metric: episodes to 90% greedy test success.
 - **K = 2 is an exploration pathology, not a credit effect.** Stuck runs plateau at exactly 0.5 success: one lane solved, the other never. It hits both arms (2/5 team, 1/5 difference), so it does not favour either.
 - **Caveat on resolution.** With shared parameters, K = 8 learns *faster* per environment step than K = 1 (one policy gets 2K agents' experience), so episodes-to-90% falls on 2–4 test points of the pre-registered 10k-step test interval. Ratios are therefore coarse (multiples of about 1/3). Addendum A (post-hoc) re-runs at 5× resolution, and without parameter sharing, below.
 
-{{PHASE3_ADDENDUM}}
+**Addendum A (post-hoc, written down with its prediction before the runs; `preregistration_v3_phase3.md`).**
+
+| K | A1: shared, test every 2k steps (diff/team) | A2: **no parameter sharing** (diff/team) | A2 episodes to 90%, team vs difference |
+|---|---|---|---|
+| 1 | 1.00 | 1.00 | 1,034 vs 1,034 |
+| 2 | 0.24 | 0.68 | 2,314 vs 1,578 |
+| 4 | 0.49 | 0.22 | 7,114 vs 1,530 |
+| 8 | 0.39 (p = 0.005) | **0.026** (p = 0.0003) | 48,280 (1 run never reached 90%) vs 1,274 |
+
+- **A1** confirms the pre-registered result at 5× finer resolution. The K = 2 stuck runs did not recur, which confirms they were a heavy-tailed exploration failure, not a credit effect.
+- **A2 is the sharpest learning result of v3.** Without parameter sharing, each agent learns only from its own signal. The team reward then carries the other lanes' outcomes as pure noise, and exact difference rewards need **38× fewer episodes at K = 8**, perfectly monotone in K (ρ = −1.0).
+- This is the prediction written down before the runs (`theory.md` §7: shared parameters average the other lanes' noise over 2K agents' samples of one policy).
+- `team_vector` equals `team` throughout, so none of it is plumbing.
+- With shared parameters most of the effect is hidden, which is itself worth knowing: parameter sharing is a partial substitute for credit assignment in symmetric tasks.
+
+![Phase 3 learning curves](figures/gate_curves.png)
 
 ## 6. Credit for free from robustness training? (Phase 4)
 

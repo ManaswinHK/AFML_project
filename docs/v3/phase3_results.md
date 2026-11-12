@@ -63,3 +63,34 @@ Episodes to 90% greedy test success (mean over seeds; censored runs at budget, c
 - **H3.2** (K = 8, paired one-sided t-test of log ratio < log 0.67): mean ratio 0.392, p = 0.0051 -> **SUPPORTED**
 - **H3.3** (team_vector / team in [0.8, 1.25] at every K): [(1, 1.0), (2, 1.0), (4, 1.0), (8, 1.0)] -> **SUPPORTED** (descriptive)
 - **H3.4** (mean log ratio decreases with K): Spearman rho = -0.40 (descriptive)
+
+## Addendum A2 (POST-HOC): no parameter sharing, test every 2k steps (`gate_ns`)
+
+Episodes to 90% greedy test success (mean over seeds; censored runs at budget, count shown).
+
+| K | arm | n | episodes to 90% (mean) | censored | final success (mean) |
+|---|---|---|---|---|---|
+| 1 | team | 5 | 1034 | 0 | 1.000 |
+| 1 | team_vector | 5 | 1034 | 0 | 0.993 |
+| 1 | difference | 5 | 1034 | 0 | 0.987 |
+| 2 | team | 5 | 2314 | 0 | 0.980 |
+| 2 | team_vector | 5 | 2314 | 0 | 0.990 |
+| 2 | difference | 5 | 1578 | 0 | 0.997 |
+| 4 | team | 5 | 7114 | 0 | 0.975 |
+| 4 | team_vector | 5 | 7114 | 0 | 0.970 |
+| 4 | difference | 5 | 1530 | 0 | 0.983 |
+| 8 | team | 5 | 48280 | 1 | 0.936 |
+| 8 | team_vector | 5 | 48280 | 1 | 0.949 |
+| 8 | difference | 5 | 1274 | 0 | 0.958 |
+
+| K | difference / team (ratio of means) | per seed | team_vector / team |
+|---|---|---|---|
+| 1 | 1.000 | {5: 1.0, 6: 1.0, 7: 1.0, 8: 1.0, 9: 1.0} | 1.000 |
+| 2 | 0.682 | {5: 0.9, 6: 0.668, 7: 0.71, 8: 0.595, 9: 0.55} | 1.000 |
+| 4 | 0.215 | {5: 0.49, 6: 0.514, 7: 0.064, 8: 0.443, 9: 0.488} | 1.000 |
+| 8 | 0.026 | {5: 0.016, 6: 0.024, 7: 0.034, 8: 0.092, 9: 0.022} | 1.000 |
+
+- **H3.1** (K = 1, ratio in [0.8, 1.25]): ratio 1.000 -> **SUPPORTED**
+- **H3.2** (K = 8, paired one-sided t-test of log ratio < log 0.67): mean ratio 0.030, p = 0.0003 -> **SUPPORTED**
+- **H3.3** (team_vector / team in [0.8, 1.25] at every K): [(1, 1.0), (2, 1.0), (4, 1.0), (8, 1.0)] -> **SUPPORTED** (descriptive)
+- **H3.4** (mean log ratio decreases with K): Spearman rho = -1.00 (descriptive)

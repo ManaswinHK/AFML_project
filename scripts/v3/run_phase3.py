@@ -104,7 +104,10 @@ def curve(run_dir):
     hits = glob.glob(os.path.join(run_dir, "*", "metrics.json"))
     if not hits:
         return None
-    m = json.load(open(sorted(hits)[-1]))
+    try:
+        m = json.load(open(sorted(hits)[-1]))
+    except json.JSONDecodeError:      # sacred may be mid-write; treat as "no new data yet"
+        return None
     key = "test_success_rate_mean"
     if key not in m:
         return None

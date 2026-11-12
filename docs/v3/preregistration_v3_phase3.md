@@ -55,3 +55,4 @@ The plan's arm (c), ablation-TD credit from a critic trained alongside, is not r
   - this is the setting of the round-1 toy and of Wolpert & Tumer.
 
   **Prediction:** the difference/team ratio at K = 8 is smaller (more headroom) without sharing than with it.
+- 12 Nov ~02:50: the runner process for Addendum A2 crashed when its early-stop check read a `metrics.json` that sacred was writing (truncated JSON). The 4 in-flight runs continued as orphans and completed their full 2M-step curves; only their `run_info.json` bookkeeping is missing (they were not stopped early). The reader now tolerates partial files. All 60 A2 runs have complete curves.
