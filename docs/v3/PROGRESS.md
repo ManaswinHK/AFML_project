@@ -1,5 +1,7 @@
 # v3 progress log (intervention credit, Phases 0–5)
 
+**ALL PHASES DONE (12 Nov 2026, 07:45).** Start with `docs/v3/README.md` and `docs/v3/report.md`. PR: ManaswinHK/AFML_project#2.
+
 Branch: `intervention-credit-v3` on `ManaswinHK/AFML_project` (never push master). One PR at the end of each phase.
 Plan source: `docs/assessment_and_plan.md` (§8, §9). Deadline: about one week from 11 Nov 2026. Compute: this Mac only (M5, 10 cores, 16 GB).
 Env: `.venv` (Python 3.12, torch CPU). Run tests: `.venv/bin/python -m pytest -q`.
@@ -53,3 +55,7 @@ Env: `.venv` (Python 3.12, torch CPU). Run tests: `.venv/bin/python -m pytest -q
   and is swamped by critic calibration offsets (MAPPO standardised units); post-hoc structural read-out added
   (Phase 4 addendum; V2 post-hoc methods *_kdisc, *_struct; grid v2_posthoc queued last).
   Queue after confirm chain: double_k4 -> v1_coverage -> v2_posthoc (waiters use bracket regex patterns).
+- 2026-11-12 07:45: ALL DONE. Confirmatory Mode P (60 + 20 + 10 cells + size transfer), Phase 3 gate + Addendum A1/A2,
+  Phase 4, Phase 0.7 re-runs, order-4 check, V1, V2 post-hoc. 253 tests pass. Report final. PR #2 updated.
+  Possible next steps (not started): mixed-size training for the set critic; Level-Based Foraging replication;
+  learned critic + structural read-out as an online credit signal in non-shared IPPO (where Phase 3 shows headroom).
