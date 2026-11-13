@@ -46,9 +46,10 @@ def main():
              "Pre-registration: `docs/v4/preregistration_v4.md`. Seeds 10-14.", ""]
     lines = part_a(lines)
     try:
-        from analyse_v4_bc import part_b, part_c
+        from analyse_v4_bc import part_b, part_c, part_d
         lines = part_b(lines)
         lines = part_c(lines)
+        lines = part_d(lines)
     except ImportError:
         pass
     out = os.path.join(ROOT, "docs", "v4", "results.md")

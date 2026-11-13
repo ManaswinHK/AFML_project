@@ -88,3 +88,43 @@ Episodes to 90% greedy test success (first crossing; censored at budget).
 - **C2** (K = 8, difference/expected < 0.2; paired one-sided t-test on log ratios): geometric mean ratio 0.159, p = 0.0169 -> **SUPPORTED**
 - **C3** (K = 8, difference/team < 0.2; paired one-sided t-test on log ratios): geometric mean ratio 0.038, p = 0.0001 -> **SUPPORTED**
 - **C4** (K = 4): descriptive, table above.
+
+## Part D: random start cells (set critic vs MLP)
+
+### D1: atd_set L1 (loo_cn) < 0.05
+
+**PARTIAL** (1/2 conditions)
+
+| condition | n | estimate | test | p (Holm) | Wilcoxon p | supported |
+|---|---|---|---|---|---|---|
+| b 2 | 5 | 0.018 (sd 0.011) | mean vs 0.05 | 0.0033 | 0.031 | yes |
+| b 4 | 5 | 0.030 (sd 0.031) | mean vs 0.05 | 0.1087 | 0.156 | no |
+
+### D2: atd_set step r > 0.95
+
+**SUPPORTED** (2/2 conditions)
+
+| condition | n | estimate | test | p (Holm) | Wilcoxon p | supported |
+|---|---|---|---|---|---|---|
+| b 2 | 5 | 0.999 (sd 0.000) | mean vs 0.95 | 0.0000 | 0.031 | yes |
+| b 4 | 5 | 0.999 (sd 0.002) | mean vs 0.95 | 0.0000 | 0.031 | yes |
+
+### D3: atd - atd_set > 0.30
+
+**SUPPORTED** (2/2 conditions)
+
+| condition | n | estimate | test | p (Holm) | Wilcoxon p | supported |
+|---|---|---|---|---|---|---|
+| b 2 | 5 | 0.018 vs 0.524 (diff 0.506) | diff > 0.3 | 0.0030 | 0.031 | yes |
+| b 4 | 5 | 0.030 vs 0.957 (diff 0.927) | diff > 0.3 | 0.0002 | 0.031 | yes |
+
+Descriptive (mean over seeds): | method | b2 L1 | b4 L1 | b2 step r | b4 step r |
+|---|---|---|---|---|
+| uniform | 0.800 | 1.143 | - | - |
+| atd_noint | 1.035 | 1.205 | 0.063 | 0.057 |
+| atd | 0.524 | 0.957 | 0.738 | 0.469 |
+| atd_n800 | 0.214 | 0.580 | 0.937 | 0.761 |
+| atd_set | 0.018 | 0.030 | 0.999 | 0.999 |
+| atd_set_struct | 0.019 | 0.020 | 0.999 | 0.999 |
+| atd_n800_set | 0.007 | 0.016 | 1.000 | 1.000 |
+| table3_mix | 0.801 | 1.150 | - | - |

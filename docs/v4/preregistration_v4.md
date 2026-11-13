@@ -61,3 +61,28 @@ Pilot (seeds 0–2, `results/v4/pilot_rs`): `atd_set` L1 0.014 (b = 2), 0.022 (b
 | D1 | Set-critic credit stays near exact | `atd_set` L1 (loo_cn) < 0.05 |
 | D2 | Its per-step credit stays faithful | `atd_set` step r > 0.95 |
 | D3 | The MLP critic does not generalise over geometry as the set critic does | paired, `atd` − `atd_set` > 0.30 |
+
+## Part B: Level-Based Foraging (frozen fourth)
+
+**Question.** Does credit by persistent intervention, with exact truth, carry over to a standard MARL benchmark where every episode has a new random layout? How the design was chosen (and which designs failed, and why) is in `docs/v4/lbf_design.md`, all on pilot seeds 0–4.
+
+**Design.** `scripts/v4/lbf_cells.py`, deterministic LBF (`envs/lbf.py`, tested step for step against `lbforaging` 2.0.0). Scripted greedy coalition team, ε = 0.2. **Removal null**, **heavy food** (`food_cap="all"`: food levels up to the sum of all agent levels), so that which agents are pivotal for which food is the credit question. Truth: exact closed-loop removal LOO and the exact t = 0 game v(S) for every subset, on 30 test layouts per cell; luck floor = the layout's expected LOO over 16 extra noise draws, used as a prediction.
+- Variants: **heavy** (4 agents, 3 food, 8×8, H = 50; primary) and **heavy_large** (6 agents, 4 food, 10×10, H = 60; descriptive).
+- Budgets: **std** = 200 training layouts, 200 stops, 3,000 critic steps (v3's budget); **large** = 800 layouts, 800 stops, 6,000 steps.
+- Methods: `set` (two-set critic, primary, as in v3), `set_noint`, `mlp`, `mlp_hi` (4× stops), `food` / `food_noint` (per-food reward-decomposed critic, secondary), structural read-outs, `uniform`, `floor_expected`.
+- Seeds 10–14. Output: `results/v4/lbf_confirm/{std,large}/`.
+
+Pilot (seeds 0–4), heavy: set L1 0.30 (std) / 0.14 (large); equal split 0.45; luck floor 0.05; MLP 0.67 / 0.58; no stops 0.96 / 1.18; Shapley L1 set 0.13 / 0.07 vs equal split 0.27.
+
+| ID | Prediction (heavy) | Test (per budget; Holm across the two budgets) |
+|---|---|---|
+| B1 | The set critic beats the equal split | paired, uniform − set > 0 (LOO L1) |
+| B2 | Stops are necessary | paired, set_noint − set > 0.30 |
+| B3 | The symmetric critic beats the MLP | paired, mlp − set > 0.15 |
+| B4 | It also recovers the t = 0 Shapley values better than the equal split | paired, uniform − set > 0.05 (Shapley L1) |
+| B5 | With the large budget it is close to exact | large only: set L1 < 0.25 |
+| B6 | More data helps | paired by seed, set(std) − set(large) > 0 |
+
+**heavy_large (descriptive, expectation written now).** From the pilot: the set critic beats the equal split on LOO L1 (0.96–0.99 vs 1.66) but not on Shapley L1 (0.80–1.05 vs 0.89), picks the right agents in only 35–53% of layouts, and does not improve with 4× data. Expectation: the same pattern. Interpretation fixed in advance: with 6 agents and 4 foods the critic is far from exact at these budgets; the LBF result is claimed for 4 agents only.
+
+**Interpretation fixed in advance.** B1–B5 supported: credit by intervention carries over to random-layout LBF with 4 agents, and its error approaches the luck floor with data. B1 not supported at std: at v3's budget a random-layout benchmark needs more data than a fixed layout, which B5/B6 then quantify.

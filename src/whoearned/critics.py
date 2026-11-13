@@ -254,3 +254,68 @@ def fit_two_set_critic(X, y, n, n_food, seed=0, hidden=128, steps=3000, batch=25
     predict.n_parameters = sum(p.numel() for p in net.parameters())
     predict.net = net
     return predict
+
+
+class FoodHeadCritic(TwoSetCritic):
+    """Reward-decomposed LBF critic (v4 Part B; Hybrid Reward Architecture, van Seijen et al. 2017).
+
+    LBF's return is a sum over food items, so V(s) = sum_k value_k(s) * P(food k is collected | s) exactly, with
+    value_k = 10 x reward share x present read from the state. The two-set encoder is shared; each food token
+    (after attending to the agents) predicts its own collection probability. Training is per food, on whether the
+    food, present at this step, was gone by the end of the trajectory: F binary targets per row instead of one sum,
+    and a food that is gone contributes exactly zero.
+    """
+
+    def __init__(self, n: int, n_food: int, hidden: int = 128, heads: int = 4, food_feats: int = 5):
+        super().__init__(n, n_food, hidden, heads, food_feats)
+        h = hidden
+        self.food_head = th.nn.Sequential(th.nn.Linear(2 * h + 1, h), th.nn.ReLU(), th.nn.Linear(h, 1))
+
+    def logits(self, S):
+        t = S[:, -1:]
+        a, f = S[:, self.agent_idx], S[:, self.food_idx]
+        za = self.enc_a(th.cat([a, t[:, None, :].expand(-1, self.n, -1)], -1))
+        zf = self.enc_f(th.cat([f, t[:, None, :].expand(-1, self.F, -1)], -1))
+        z = th.cat([za, zf], 1)
+        z = self.post(z + self.attn(z, z, z, need_weights=False)[0])
+        za, zf = z[:, :self.n], z[:, self.n:]
+        ctx = za.sum(1, keepdim=True).expand(-1, self.F, -1)          # the whole team, seen by every food
+        return self.food_head(th.cat([zf, ctx, t[:, None, :].expand(-1, self.F, -1)], -1)).squeeze(-1)
+
+    def food_values(self, S):
+        f = S[:, self.food_idx]
+        return 10.0 * f[..., 3] * f[..., 4] / SCALE                     # share x present, in critic units
+
+    def forward(self, S):
+        return (self.food_values(S) * th.sigmoid(self.logits(S))).sum(-1, keepdim=True)
+
+
+def food_targets(X, final, n: int, n_food: int, food_feats: int = 5) -> np.ndarray:
+    """(M, F) 1 if food k is present in the row's state and gone at the end of its trajectory, else 0."""
+    pres = lambda S: np.stack([S[:, 5 * n + food_feats * k + food_feats - 1] for k in range(n_food)], 1)
+    return ((pres(X) > 0.5) & (pres(final) < 0.5)).astype(np.float32)
+
+
+def fit_food_critic(X, final, n, n_food, seed=0, hidden=128, steps=3000, batch=256, lr=1e-3):
+    """Fit :class:`FoodHeadCritic` with a per-food binary cross-entropy, masked to foods present in the state."""
+    th.set_num_threads(1)
+    th.manual_seed(seed)
+    net = FoodHeadCritic(n, n_food, hidden)
+    Y = th.tensor(food_targets(X, final, n, n_food))
+    Xt = th.tensor(X, dtype=th.float32)
+    mask = (Xt[:, net.food_idx][..., 4] > 0.5).float()
+    opt = th.optim.Adam(net.parameters(), lr=lr)
+    g = th.Generator().manual_seed(seed)
+    loss = th.tensor(0.0)
+    for _ in range(steps):
+        idx = th.randint(0, len(Xt), (batch,), generator=g)
+        bce = th.nn.functional.binary_cross_entropy_with_logits(net.logits(Xt[idx]), Y[idx], reduction="none")
+        loss = (bce * mask[idx]).sum() / mask[idx].sum().clamp(min=1.0)
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+    predict = _predictor(net)
+    predict.final_loss = float(loss.detach())
+    predict.n_parameters = sum(p.numel() for p in net.parameters())
+    predict.net = net
+    return predict

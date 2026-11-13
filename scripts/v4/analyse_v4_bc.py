@@ -66,3 +66,66 @@ def part_c(lines):
 def part_b(lines):
     """Filled in by the Part B pre-registration (see docs/v4/preregistration_v4.md, Part B)."""
     return lines
+
+
+def _cells(grid_dir, alg, name):
+    from analyse_prereg import metric
+    out = defaultdict(list)
+    for p in sorted(glob.glob(os.path.join(ROOT, "results", "v4", grid_dir, "*.json"))):
+        r = json.load(open(p))
+        if alg in r["algs"]:
+            v = metric(r["algs"][alg], name)
+            if v is not None:
+                out[f"b{r['cell']['n_bystanders']}"].append(v)
+    return dict(out)
+
+
+def part_d(lines):
+    lines += ["## Part D: random start cells (set critic vs MLP)", ""]
+    if not glob.glob(os.path.join(ROOT, "results", "v4", "confirm_rs", "*.json")):
+        return lines + ["_no data_", ""]
+    lines += ["### D1: atd_set L1 (loo_cn) < 0.05", "", fmt_family(S.threshold_family(_cells("confirm_rs", "atd_set", "loo_cn"), 0.05)), ""]
+    lines += ["### D2: atd_set step r > 0.95", "", fmt_family(S.threshold_family(_cells("confirm_rs", "atd_set", "step_r"), 0.95, "above")), ""]
+    lines += ["### D3: atd - atd_set > 0.30", "", fmt_family(S.paired_family(_cells("confirm_rs", "atd_set", "loo_cn"),
+                                                                            _cells("confirm_rs", "atd", "loo_cn"), 0.30)), ""]
+    lines += ["Descriptive (mean over seeds): | method | b2 L1 | b4 L1 | b2 step r | b4 step r |", "|---|---|---|---|---|"]
+    for alg in ("uniform", "atd_noint", "atd", "atd_n800", "atd_set", "atd_set_struct", "atd_n800_set", "table3_mix"):
+        l1, r = _cells("confirm_rs", alg, "loo_cn"), _cells("confirm_rs", alg, "step_r")
+        f = lambda d, k: f"{np.mean(d[k]):.3f}" if d.get(k) else "-"
+        lines.append(f"| {alg} | {f(l1, 'b2')} | {f(l1, 'b4')} | {f(r, 'b2')} | {f(r, 'b4')} |")
+    return lines + [""]
+
+
+def _lbf(variant, method, key):
+    out = defaultdict(list)
+    for budget in ("std", "large"):
+        for p in sorted(glob.glob(os.path.join(ROOT, "results", "v4", "lbf_confirm", budget, f"{variant}_s*.json"))):
+            v = json.load(open(p))["methods"].get(method, {}).get(key)
+            if v is not None:
+                out[f"{variant} {budget}"].append(v)
+    return dict(out)
+
+
+def part_b(lines):
+    lines += ["## Part B: Level-Based Foraging (heavy food, removal null)", ""]
+    if not glob.glob(os.path.join(ROOT, "results", "v4", "lbf_confirm", "*", "*.json")):
+        return lines + ["_no data_", ""]
+    h = "heavy"
+    lines += ["### B1: uniform - set > 0 (LOO L1)", "", fmt_family(S.paired_family(_lbf(h, "set", "l1"), _lbf(h, "uniform", "l1"), 0.0)), ""]
+    lines += ["### B2: set_noint - set > 0.30", "", fmt_family(S.paired_family(_lbf(h, "set", "l1"), _lbf(h, "set_noint", "l1"), 0.30)), ""]
+    lines += ["### B3: mlp - set > 0.15", "", fmt_family(S.paired_family(_lbf(h, "set", "l1"), _lbf(h, "mlp", "l1"), 0.15)), ""]
+    lines += ["### B4: uniform - set > 0.05 (Shapley L1)", "", fmt_family(S.paired_family(_lbf(h, "set", "shap"), _lbf(h, "uniform", "shap"), 0.05)), ""]
+    large = {k: v for k, v in _lbf(h, "set", "l1").items() if k.endswith("large")}
+    lines += ["### B5: set L1 < 0.25 (large budget)", "", fmt_family(S.threshold_family(large, 0.25)), ""]
+    s = _lbf(h, "set", "l1")
+    if f"{h} std" in s and f"{h} large" in s:
+        lines += ["### B6: set(std) - set(large) > 0", "", fmt_family(S.paired_family({"heavy": s[f"{h} large"]}, {"heavy": s[f"{h} std"]}, 0.0)), ""]
+    lines += ["### Descriptive (mean over seeds 10-14)", "",
+              "| variant budget | method | LOO L1 | Shapley L1 | top-k | spurious | step r |", "|---|---|---|---|---|---|---|"]
+    for v in ("heavy", "heavy_large"):
+        for m in ("floor_expected", "uniform", "set_noint", "mlp", "mlp_hi", "set", "set_struct", "food_noint", "food", "food_struct"):
+            cols = [_lbf(v, m, k) for k in ("l1", "shap", "topk", "spur", "step_r")]
+            for cond in sorted(cols[0]):
+                f = lambda d: f"{np.mean(d[cond]):.3f}" if d.get(cond) else "-"
+                lines.append(f"| {cond} | {m} | " + " | ".join(f(c) for c in cols) + " |")
+    return lines + [""]

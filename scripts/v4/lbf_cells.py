@@ -1,16 +1,17 @@
 """v4 Part B: credit by intervention on Level-Based Foraging (deterministic LBF, exact truth).
 
-One cell = (variant, seed). 200 training episodes and 30 test episodes, each with its own random layout (positions,
-levels, food). Scripted coalition-forming team, epsilon = 0.2. Truth per test episode: exact persistent-ablation
-values under the no-op null (closed loop, common random numbers) for every agent at every step, and the closed-loop
-no-op game v(S) at t = 0 for every subset S.
+One cell = (variant, seed). ``--n-train`` training episodes and 30 test episodes, each with its own random layout
+(positions, levels, food). Scripted coalition-forming team with epsilon noise. Truth per test episode: exact
+persistent-ablation values under ``--null`` (closed loop, common random numbers) for every agent at every step, the
+closed-loop game v(S) at t = 0 for every subset S, and a luck floor (the layout's expected LOO over 16 extra noise
+draws, used as a prediction).
 
-Methods: uniform; MLP critic without stops / with 200 / 800 stops; two-set critic without stops / with 200 stops
-(kappa and structural read-outs). Metrics per method: L1 vs exact LOO, per-step r vs exact kappa, Shapley L1,
-dividend error, spurious credit (share given to agents with zero true LOO), top-k (keeping exactly the agents that
-matter, ties at random).
+Methods: uniform; MLP critic without stops / with the main / 4x stops; two-set critic without / with stops; per-food
+(reward-decomposed) two-set critic without / with stops; kappa and structural read-outs. Metrics per method: L1 vs
+exact LOO, per-step r vs exact kappa, Shapley L1, dividend error, spurious credit (share given to agents with zero
+true LOO), top-k (keeping exactly the agents that matter, ties at random). Design choices: docs/v4/lbf_design.md.
 
-    .venv/bin/python scripts/v4/lbf_cells.py --variants base --seeds 0,1,2 --out results/v4/lbf_pilot --workers 3
+    .venv/bin/python scripts/v4/lbf_cells.py --variants heavy --seeds 10,11 --null remove --out results/v4/x
 """
 from __future__ import annotations
 
@@ -28,7 +29,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(ROOT, "src"))
 from whoearned import ablation as ab  # noqa: E402
 from whoearned import ground_truth as gt  # noqa: E402
-from whoearned.critics import fit_mlp, fit_two_set_critic  # noqa: E402
+from whoearned.critics import fit_food_critic, fit_mlp, fit_two_set_critic  # noqa: E402
 from whoearned.envs.lbf import LBFConfig, LBFEnv, ScriptedLBFTeam  # noqa: E402
 from whoearned.metrics import pearson, top_k_selection  # noqa: E402
 
@@ -97,20 +98,24 @@ def run(args):
     truth_s = time.time() - t0
     make_for = lambda i: train[i][1]
     cfg0 = train[0][0]
-    data = {k: ab.intervention_dataset(cfg0, make_for, facts, k, seed=seed, null=CFG["null"], sampler="stratified")
+    data = {k: ab.intervention_dataset(cfg0, make_for, facts, k, seed=seed, null=CFG["null"], sampler="stratified",
+                                       final_states=True)
             for k in (lo, mid, hi)}
     critics = {
         "mlp_noint": fit_mlp(data[lo].X, data[lo].y, seed=seed, steps=steps),
         "mlp": fit_mlp(data[mid].X, data[mid].y, seed=seed, steps=steps),
-        "mlp_n800": fit_mlp(data[hi].X, data[hi].y, seed=seed, steps=steps),
+        "mlp_hi": fit_mlp(data[hi].X, data[hi].y, seed=seed, steps=steps),   # 4x the main stops
         "set_noint": fit_two_set_critic(data[lo].X, data[lo].y, n, F, seed=seed, steps=steps),
         "set": fit_two_set_critic(data[mid].X, data[mid].y, n, F, seed=seed, steps=steps),
+        # reward-decomposed (per-food) two-set critic, same data (decision E9)
+        "food": fit_food_critic(data[mid].X, data[mid].final, n, F, seed=seed, steps=steps),
+        "food_noint": fit_food_critic(data[lo].X, data[lo].final, n, F, seed=seed, steps=steps),
     }
     all_stopped = [tuple(j for j in range(n) if not m >> j & 1) for m in range(1 << n)]
     rec = {"variant": variant, "seed": seed, "truth_seconds": truth_s, "cfg": dict(CFG), "methods": {}, "truth": {
         "loo": [(f.total - W[:, 0]).tolist() for _, f, W, _, _ in tests], "v0": [v.tolist() for _, _, _, v, _ in tests],
         "returns": [f.total for _, f, _, _, _ in tests]}}
-    readouts = [(name, "kappa") for name in critics] + [("set", "struct"), ("mlp", "struct")]
+    readouts = [(name, "kappa") for name in critics] + [("set", "struct"), ("mlp", "struct"), ("food", "struct")]
     for name, ro in readouts:
         pred = critics[name]
         rows = {"l1": [], "shap": [], "div": [], "spur": [], "topk": []}

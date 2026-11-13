@@ -119,3 +119,24 @@ def test_food_cap_all_allows_food_that_needs_every_agent():
         assert max(env.food_level) <= env.levels.sum()
         caps.append(max(env.food_level) > np.sort(env.levels)[:3].sum())
     assert any(caps)
+
+
+def test_food_head_critic_targets_and_value_decomposition():
+    """Per-food targets sum (weighted by value) to the return-to-go; the critic is invariant and zero without food."""
+    import torch as th
+    from whoearned.critics import FoodHeadCritic, food_targets, SCALE
+    cfg = LBFConfig(n_agents=4, n_food=3, food_cap="all", spawn_seed=(3, 1))
+    mk = lambda: ScriptedLBFTeam(cfg, seed=5, epsilon=0.2)
+    f = ab.factual_rollout(cfg, mk, make_env=LBFEnv)
+    data = ab.intervention_dataset(cfg, lambda i: mk, [f], 5, seed=0, null="remove", final_states=True)
+    Y = food_targets(data.X, data.final, 4, 3)
+    food = data.X[:, 20:35].reshape(-1, 3, 5)
+    np.testing.assert_allclose((10 * food[..., 3] * Y).sum(1), data.y, atol=1e-4)
+    th.manual_seed(0)
+    net = FoodHeadCritic(4, 3)
+    S = th.tensor(data.X[:3])
+    empty = S.clone()
+    empty[:, 20:35] = 0.0
+    with th.no_grad():
+        assert th.allclose(net(empty), th.zeros(3, 1))
+        assert (net(S) * SCALE <= 10.0 + 1e-4).all()
