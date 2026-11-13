@@ -76,7 +76,7 @@ def _cells(grid_dir, alg, name):
         if alg in r["algs"]:
             v = metric(r["algs"][alg], name)
             if v is not None:
-                out[f"b{r['cell']['n_bystanders']}"].append(v)
+                out[("b", r["cell"]["n_bystanders"])].append(v)
     return dict(out)
 
 
@@ -91,8 +91,8 @@ def part_d(lines):
     lines += ["Descriptive (mean over seeds): | method | b2 L1 | b4 L1 | b2 step r | b4 step r |", "|---|---|---|---|---|"]
     for alg in ("uniform", "atd_noint", "atd", "atd_n800", "atd_set", "atd_set_struct", "atd_n800_set", "table3_mix"):
         l1, r = _cells("confirm_rs", alg, "loo_cn"), _cells("confirm_rs", alg, "step_r")
-        f = lambda d, k: f"{np.mean(d[k]):.3f}" if d.get(k) else "-"
-        lines.append(f"| {alg} | {f(l1, 'b2')} | {f(l1, 'b4')} | {f(r, 'b2')} | {f(r, 'b4')} |")
+        f = lambda d, k: f"{np.mean(d[('b', k)]):.3f}" if d.get(('b', k)) else "-"
+        lines.append(f"| {alg} | {f(l1, 2)} | {f(l1, 4)} | {f(r, 2)} | {f(r, 4)} |")
     return lines + [""]
 
 
@@ -102,7 +102,7 @@ def _lbf(variant, method, key):
         for p in sorted(glob.glob(os.path.join(ROOT, "results", "v4", "lbf_confirm", budget, f"{variant}_s*.json"))):
             v = json.load(open(p))["methods"].get(method, {}).get(key)
             if v is not None:
-                out[f"{variant} {budget}"].append(v)
+                out[(variant, budget)].append(v)
     return dict(out)
 
 
@@ -115,11 +115,11 @@ def part_b(lines):
     lines += ["### B2: set_noint - set > 0.30", "", fmt_family(S.paired_family(_lbf(h, "set", "l1"), _lbf(h, "set_noint", "l1"), 0.30)), ""]
     lines += ["### B3: mlp - set > 0.15", "", fmt_family(S.paired_family(_lbf(h, "set", "l1"), _lbf(h, "mlp", "l1"), 0.15)), ""]
     lines += ["### B4: uniform - set > 0.05 (Shapley L1)", "", fmt_family(S.paired_family(_lbf(h, "set", "shap"), _lbf(h, "uniform", "shap"), 0.05)), ""]
-    large = {k: v for k, v in _lbf(h, "set", "l1").items() if k.endswith("large")}
+    large = {k: v for k, v in _lbf(h, "set", "l1").items() if k[1] == "large"}
     lines += ["### B5: set L1 < 0.25 (large budget)", "", fmt_family(S.threshold_family(large, 0.25)), ""]
     s = _lbf(h, "set", "l1")
-    if f"{h} std" in s and f"{h} large" in s:
-        lines += ["### B6: set(std) - set(large) > 0", "", fmt_family(S.paired_family({"heavy": s[f"{h} large"]}, {"heavy": s[f"{h} std"]}, 0.0)), ""]
+    if (h, "std") in s and (h, "large") in s:
+        lines += ["### B6: set(std) - set(large) > 0", "", fmt_family(S.paired_family({(h, "large vs std"): s[(h, "large")]}, {(h, "large vs std"): s[(h, "std")]}, 0.0)), ""]
     lines += ["### Descriptive (mean over seeds 10-14)", "",
               "| variant budget | method | LOO L1 | Shapley L1 | top-k | spurious | step r |", "|---|---|---|---|---|---|---|"]
     for v in ("heavy", "heavy_large"):
@@ -127,5 +127,5 @@ def part_b(lines):
             cols = [_lbf(v, m, k) for k in ("l1", "shap", "topk", "spur", "step_r")]
             for cond in sorted(cols[0]):
                 f = lambda d: f"{np.mean(d[cond]):.3f}" if d.get(cond) else "-"
-                lines.append(f"| {cond} | {m} | " + " | ".join(f(c) for c in cols) + " |")
+                lines.append(f"| {' '.join(cond)} | {m} | " + " | ".join(f(c) for c in cols) + " |")
     return lines + [""]

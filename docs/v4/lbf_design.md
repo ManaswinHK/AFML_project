@@ -26,3 +26,25 @@ The first design reused the v3 defaults: no-op null, package food rule, ε = 0.2
 - **More data** (800 layouts, 800 stops, 6,000 steps): on seeds 0–1 the set critic went from 0.18 to 0.11 (floor 0.05). See the table.
 
 ## Pilot table
+| dir | levels in state | variant | null | eps | train eps / stops / steps | seeds | true LOO = 0 | set L1 | MLP L1 | equal split L1 | luck floor | set step r | set Shapley L1 | equal-split Shapley L1 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| lbf_enc2_eps005 | absolute | base | noop | 0.05 | 200 / 200 / 3000 | 0,1 | 0.41 | 0.769 | 0.904 | 0.835 | 0.252 | 0.584 | 0.459 | 0.470 |
+| lbf_enc2_eps02 | absolute | base | noop | 0.2 | 200 / 200 / 3000 | 0,1 | 0.48 | 0.885 | 0.996 | 0.906 | 0.482 | 0.493 | 0.447 | 0.445 |
+| lbf_food_remove_eps0.2 | absolute | heavy | remove | 0.2 | 200 / 200 / 3000 | 0,1,2,3,4 | 0.43 | 0.296 | 0.672 | 0.447 | 0.053 | 0.724 | 0.130 | 0.273 |
+| lbf_food_remove_eps0.2 | absolute | heavy_large | remove | 0.2 | 200 / 200 / 3000 | 0,1,2,3,4 | 0.50 | 0.989 | 1.104 | 1.656 | 0.427 | 0.112 | 1.048 | 0.885 |
+| lbf_food_remove_eps0.2_big | absolute | heavy | remove | 0.2 | 800 / 800 / 6000 | 0,1,2,3,4 | 0.43 | 0.136 | 0.582 | 0.447 | 0.053 | 0.792 | 0.069 | 0.273 |
+| lbf_food_remove_eps0.2_big | absolute | heavy_large | remove | 0.2 | 800 / 800 / 6000 | 0,1,2,3,4 | 0.50 | 0.957 | 1.141 | 1.656 | 0.427 | 0.134 | 0.795 | 0.885 |
+| lbf_heavy_large_remove_eps0.2 | absolute | heavy_large | remove | 0.2 | 200 / 200 / 3000 | 0,1 | 0.43 | 0.887 | 0.992 | 1.661 | 0.376 | 0.124 | 1.116 | 0.949 |
+| lbf_heavy_noop_eps0.05 | absolute | heavy | noop | 0.05 | 200 / 200 / 3000 | 0,1 | 0.20 | 0.503 | 0.539 | 0.408 | 0.109 | 0.726 | 0.371 | 0.251 |
+| lbf_heavy_remove_eps0.05 | absolute | heavy | remove | 0.05 | 200 / 200 / 3000 | 0,1 | 0.41 | 0.575 | 0.812 | 0.603 | 0.262 | 0.625 | 0.193 | 0.313 |
+| lbf_heavy_remove_eps0.2 | absolute | heavy | remove | 0.2 | 200 / 200 / 3000 | 0,1,2,3,4 | 0.43 | 0.296 | 0.672 | 0.447 | 0.053 | 0.724 | 0.130 | 0.273 |
+| lbf_heavy_remove_eps0.2_big | absolute | heavy | remove | 0.2 | 800 / 800 / 6000 | 0,1 | 0.46 | 0.113 | 0.565 | 0.461 | 0.052 | 0.820 | 0.065 | 0.263 |
+| lbf_pilot | relative | base | noop | 0.2 | 200 / 200 / 3000 | 0,1,2 | 0.49 | 0.862 | 1.049 | 0.906 | - | 0.473 | 0.460 | 0.447 |
+| lbf_pilot | relative | large | noop | 0.2 | 200 / 200 / 3000 | 0,1,2 | 0.64 | 1.167 | 1.302 | 1.222 | - | 0.416 | 0.433 | 0.453 |
+| lbf_pilot_big | relative | base | noop | 0.2 | 2000 / 2000 / 15000 | 0 | 0.47 | 0.841 | 0.930 | 0.863 | - | 0.516 | 0.366 | 0.438 |
+| lbf_pilot_eps0 | relative | base | noop | 0.0 | 200 / 200 / 3000 | 0,1 | 0.32 | 0.806 | 0.878 | 0.865 | 0.000 | 0.452 | 0.581 | 0.546 |
+| lbf_pilot_eps005 | relative | base | noop | 0.05 | 200 / 200 / 3000 | 0,1 | 0.41 | 0.809 | 0.928 | 0.835 | 0.252 | 0.510 | 0.485 | 0.470 |
+| lbf_pilot_h20rm | relative | h20 | remove | 0.05 | 200 / 200 / 3000 | 0,1 | 0.72 | 1.063 | 1.321 | 1.242 | 0.767 | 0.102 | 0.378 | 0.441 |
+| lbf_pilot_h20rm_eps0 | relative | h20 | remove | 0.0 | 200 / 200 / 3000 | 0,1 | 0.63 | 1.125 | 1.139 | 1.229 | 0.000 | 0.072 | 0.589 | 0.505 |
+
+Columns: "true LOO = 0" is the share of (layout, agent) pairs whose exact leave-one-out credit is zero; "luck floor" is the L1 of each layout's expected LOO (16 extra noise draws) used as a prediction, the best any expected-credit estimator can do; "-" = not computed in that run. `lbf_food_*` rows are the per-food critic pilot (they also contain the set critic and MLP, retrained). `_big` = 800 layouts, 800 stops, 6,000 steps.

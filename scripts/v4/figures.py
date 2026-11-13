@@ -71,28 +71,35 @@ def part_a():
 
 
 def part_b():
-    files = sorted(glob.glob(os.path.join(ROOT, "results", "v4", "lbf_confirm", "*.json")))
-    if not files:
+    base = os.path.join(ROOT, "results", "v4", "lbf_confirm")
+    groups = [(v, b) for v in ("heavy", "heavy_large") for b in ("std", "large")]
+    recs = {g: [json.load(open(f)) for f in sorted(glob.glob(os.path.join(base, g[1], f"{g[0]}_s*.json")))] for g in groups}
+    if not any(recs.values()):
         return
-    recs = [json.load(open(f)) for f in files]
-    variants = sorted({r["variant"] for r in recs})
-    methods = ("set", "food", "mlp", "mlp_hi", "set_noint", "uniform", "floor_expected")
-    fig, axes = plt.subplots(1, 2, figsize=(9, 3), squeeze=False)
+    methods = (("floor_expected", "luck floor", "black"), ("uniform", "equal split", "lightgray"),
+               ("set_noint", "set, no stops", "tab:purple"), ("mlp", "MLP", "tab:blue"),
+               ("set", "set critic", "tab:red"), ("food", "per-food critic", "tab:orange"))
+    fig, axes = plt.subplots(1, 2, figsize=(10, 3.2), squeeze=False)
     for c, key in enumerate(("l1", "shap")):
         ax = axes[0][c]
         w = 0.8 / len(methods)
-        for j, m in enumerate(methods):
-            vals = [[r["methods"][m].get(key) for r in recs if r["variant"] == v] for v in variants]
-            if any(x is None for vs in vals for x in vs):
+        for j, (m, label, col) in enumerate(methods):
+            means, sds = [], []
+            for g in groups:
+                vals = [r["methods"][m].get(key) for r in recs[g]]
+                vals = [v for v in vals if v is not None]
+                means.append(np.mean(vals) if vals else np.nan)
+                sds.append(np.std(vals, ddof=1) if len(vals) > 1 else 0)
+            if all(np.isnan(means)):
                 continue
-            vals = np.array(vals, float)
-            ax.bar(np.arange(len(variants)) + (j - len(methods) / 2 + 0.5) * w, vals.mean(1), w,
-                   yerr=vals.std(1, ddof=1), label=m, capsize=2)
-        ax.set_xticks(range(len(variants)))
-        ax.set_xticklabels(variants, fontsize=8)
-        ax.set_title("leave-one-out L1" if key == "l1" else "Shapley L1 (t = 0 game)", fontsize=9)
+            ax.bar(np.arange(len(groups)) + (j - len(methods) / 2 + 0.5) * w, means, w, yerr=sds, color=col,
+                   label=label, capsize=2)
+        ax.set_xticks(range(len(groups)))
+        ax.set_xticklabels([f"{'4' if v == 'heavy' else '6'} agents, {b}" for v, b in groups], fontsize=8)
+        ax.set_title("leave-one-out credit, L1 vs exact" if key == "l1" else "Shapley values at t = 0, L1 vs exact",
+                     fontsize=9)
         if c == 0:
-            ax.legend(fontsize=6, ncol=2)
+            ax.legend(fontsize=7, ncol=2)
     fig.tight_layout()
     fig.savefig(os.path.join(FIG, "lbf_credit.png"), dpi=130)
 

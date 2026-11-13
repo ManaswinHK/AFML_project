@@ -62,6 +62,105 @@ References (interp): in-size L1 b2: 0.006, b4: 0.008; equal split b2: 0.800, b4:
 
 References (extrap): in-size L1 b4: 0.008, b5: 0.010; equal split b4: 1.143, b5: 1.250
 
+## Part B: Level-Based Foraging (heavy food, removal null)
+
+### B1: uniform - set > 0 (LOO L1)
+
+**SUPPORTED** (2/2 conditions)
+
+| condition | n | estimate | test | p (Holm) | Wilcoxon p | supported |
+|---|---|---|---|---|---|---|
+| heavy large | 5 | 0.155 vs 0.420 (diff 0.265) | diff > 0.0 | 0.0064 | 0.031 | yes |
+| heavy std | 5 | 0.255 vs 0.420 (diff 0.165) | diff > 0.0 | 0.0092 | 0.031 | yes |
+
+### B2: set_noint - set > 0.30
+
+**SUPPORTED** (2/2 conditions)
+
+| condition | n | estimate | test | p (Holm) | Wilcoxon p | supported |
+|---|---|---|---|---|---|---|
+| heavy large | 5 | 0.155 vs 1.337 (diff 1.182) | diff > 0.3 | 0.0065 | 0.031 | yes |
+| heavy std | 5 | 0.255 vs 1.020 (diff 0.764) | diff > 0.3 | 0.0065 | 0.031 | yes |
+
+### B3: mlp - set > 0.15
+
+**SUPPORTED** (2/2 conditions)
+
+| condition | n | estimate | test | p (Holm) | Wilcoxon p | supported |
+|---|---|---|---|---|---|---|
+| heavy large | 5 | 0.155 vs 0.504 (diff 0.349) | diff > 0.15 | 0.0179 | 0.062 | yes |
+| heavy std | 5 | 0.255 vs 0.641 (diff 0.386) | diff > 0.15 | 0.0138 | 0.031 | yes |
+
+### B4: uniform - set > 0.05 (Shapley L1)
+
+**SUPPORTED** (2/2 conditions)
+
+| condition | n | estimate | test | p (Holm) | Wilcoxon p | supported |
+|---|---|---|---|---|---|---|
+| heavy large | 5 | 0.074 vs 0.261 (diff 0.188) | diff > 0.05 | 0.0010 | 0.031 | yes |
+| heavy std | 5 | 0.126 vs 0.261 (diff 0.135) | diff > 0.05 | 0.0029 | 0.031 | yes |
+
+### B5: set L1 < 0.25 (large budget)
+
+**NOT SUPPORTED** (0/1 conditions)
+
+| condition | n | estimate | test | p (Holm) | Wilcoxon p | supported |
+|---|---|---|---|---|---|---|
+| heavy large | 5 | 0.155 (sd 0.141) | mean vs 0.25 | 0.1038 | 0.156 | no |
+
+### B6: set(std) - set(large) > 0
+
+**NOT SUPPORTED** (0/1 conditions)
+
+| condition | n | estimate | test | p (Holm) | Wilcoxon p | supported |
+|---|---|---|---|---|---|---|
+| heavy large vs std | 5 | 0.155 vs 0.255 (diff 0.100) | diff > 0.0 | 0.1184 | 0.156 | no |
+
+### Descriptive (mean over seeds 10-14)
+
+| variant budget | method | LOO L1 | Shapley L1 | top-k | spurious | step r |
+|---|---|---|---|---|---|---|
+| heavy large | floor_expected | 0.050 | - | - | - | - |
+| heavy std | floor_expected | 0.050 | - | - | - | - |
+| heavy large | uniform | 0.420 | 0.261 | 0.728 | 0.180 | - |
+| heavy std | uniform | 0.420 | 0.261 | 0.728 | 0.180 | - |
+| heavy large | set_noint | 1.337 | 0.911 | 0.777 | 0.172 | 0.239 |
+| heavy std | set_noint | 1.020 | 0.668 | 0.808 | 0.168 | 0.230 |
+| heavy large | mlp | 0.504 | 0.327 | 0.837 | 0.142 | 0.614 |
+| heavy std | mlp | 0.641 | 0.437 | 0.770 | 0.169 | 0.498 |
+| heavy large | mlp_hi | 0.399 | 0.209 | 0.933 | 0.125 | 0.691 |
+| heavy std | mlp_hi | 0.511 | 0.323 | 0.798 | 0.153 | 0.590 |
+| heavy large | set | 0.155 | 0.074 | 0.988 | 0.049 | 0.754 |
+| heavy std | set | 0.255 | 0.126 | 0.988 | 0.091 | 0.696 |
+| heavy large | set_struct | 0.161 | 0.074 | 0.988 | 0.047 | 0.718 |
+| heavy std | set_struct | 0.244 | 0.126 | 0.988 | 0.081 | 0.672 |
+| heavy large | food_noint | 1.135 | 1.047 | 0.735 | 0.170 | 0.203 |
+| heavy std | food_noint | 1.141 | 0.697 | 0.728 | 0.101 | 0.151 |
+| heavy large | food | 0.099 | 0.067 | 0.988 | 0.032 | 0.727 |
+| heavy std | food | 0.263 | 0.158 | 0.971 | 0.050 | 0.611 |
+| heavy large | food_struct | 0.128 | 0.067 | 0.988 | 0.032 | 0.628 |
+| heavy std | food_struct | 0.274 | 0.158 | 0.971 | 0.052 | 0.565 |
+| heavy_large large | floor_expected | 0.406 | - | - | - | - |
+| heavy_large std | floor_expected | 0.406 | - | - | - | - |
+| heavy_large large | uniform | 1.650 | 0.948 | 0.326 | 0.265 | - |
+| heavy_large std | uniform | 1.650 | 0.948 | 0.326 | 0.265 | - |
+| heavy_large large | set_noint | 1.190 | 1.175 | 0.484 | 0.261 | 0.114 |
+| heavy_large std | set_noint | 1.242 | 1.255 | 0.419 | 0.263 | 0.099 |
+| heavy_large large | mlp | 1.114 | 1.251 | 0.307 | 0.260 | 0.066 |
+| heavy_large std | mlp | 1.111 | 1.219 | 0.294 | 0.284 | 0.053 |
+| heavy_large large | mlp_hi | 1.075 | 1.170 | 0.307 | 0.272 | 0.066 |
+| heavy_large std | mlp_hi | 1.038 | 1.198 | 0.294 | 0.263 | 0.058 |
+| heavy_large large | set | 0.812 | 0.666 | 0.568 | 0.225 | 0.120 |
+| heavy_large std | set | 0.873 | 0.871 | 0.390 | 0.245 | 0.108 |
+| heavy_large large | set_struct | 0.877 | 0.666 | 0.568 | 0.235 | 0.082 |
+| heavy_large std | set_struct | 0.919 | 0.871 | 0.390 | 0.235 | 0.000 |
+| heavy_large large | food_noint | 1.160 | 1.191 | 0.490 | 0.233 | 0.084 |
+| heavy_large std | food_noint | 0.996 | 1.328 | 0.406 | 0.238 | 0.096 |
+| heavy_large large | food | 0.833 | 0.664 | 0.509 | 0.218 | 0.091 |
+| heavy_large std | food | 0.875 | 0.931 | 0.515 | 0.215 | 0.077 |
+| heavy_large large | food_struct | 0.940 | 0.664 | 0.509 | 0.245 | 0.028 |
+| heavy_large std | food_struct | 0.949 | 0.931 | 0.515 | 0.220 | -0.002 |
+
 ## Part C: expected-value credit vs realised difference rewards (non-shared IPPO)
 
 Episodes to 90% greedy test success (first crossing; censored at budget).
