@@ -27,7 +27,8 @@ OUT = os.path.join(ROOT, "results", "v3", "phase3")
 HORIZON = 25
 
 # reward arm -> (EPyMARL common_reward, env reward_mode)
-ARMS = {"team": (True, "team"), "team_vector": (False, "team_vector"), "difference": (False, "difference")}
+ARMS = {"team": (True, "team"), "team_vector": (False, "team_vector"), "difference": (False, "difference"),
+        "expected": (False, "expected")}
 
 GRIDS = {
     # 3.2 feasibility: can IPPO learn one lane at all, and how fast?
@@ -41,6 +42,11 @@ GRIDS = {
                       t_max={1: 400_000, 2: 800_000, 4: 1_200_000, 8: 2_000_000}, test_interval=2000),
     "gate_ns": dict(algs=("ippo_ns",), Ks=(1, 2, 4, 8), arms=("team", "team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
                     t_max={1: 400_000, 2: 800_000, 4: 1_200_000, 8: 2_000_000}, test_interval=2000),
+    # v4 Part C (docs/v4/preregistration_v4.md): expected-value credit vs realised difference rewards
+    "online_credit": dict(algs=("ippo_ns",), Ks=(4, 8), arms=("team", "difference", "expected"),
+                          seeds=(10, 11, 12, 13, 14), t_max={4: 1_200_000, 8: 2_000_000}, test_interval=2000),
+    "online_credit_smoke": dict(algs=("ippo_ns",), Ks=(2,), arms=("expected",), seeds=(0,), t_max=20_000,
+                                test_interval=2000),
     # Phase 4.1: MAPPO with random persistent stops during training (dropout p), checkpoints for 4.2
     "phase4": dict(algs=("mappo",), Ks=(2,), arms=("team",), seeds=(5, 6, 7), t_max=300_000,
                    dropout=(0.0, 0.25), save_models=True, n_bystanders=2, save_interval=30_000),

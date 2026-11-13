@@ -71,8 +71,9 @@ class Factual:
         return np.concatenate([np.cumsum(self.rewards[::-1])[::-1], [0.0]])
 
 
-def factual_rollout(config: GridConfig, make_team: MakeTeam, keep_snaps: bool = True) -> Factual:
-    env = PlantedCoalitionGridworld(config)
+def factual_rollout(config: GridConfig, make_team: MakeTeam, keep_snaps: bool = True, make_env=None) -> Factual:
+    """``make_env(config)`` builds the environment (default: the Planted Coalition Gridworld; v4 also LBF)."""
+    env = (make_env or PlantedCoalitionGridworld)(config)
     env.reset()
     team = make_team()
     team.reset(env)
@@ -94,11 +95,12 @@ def factual_rollout(config: GridConfig, make_team: MakeTeam, keep_snaps: bool = 
 
 
 def continue_stopped(config: GridConfig, make_team: MakeTeam, snap, stopped, null: str = "noop",
-                     record: bool = False):
+                     record: bool = False, final_state: bool = False):
     """Closed-loop continuation from ``snap`` with ``stopped`` agents stopped for good (common random numbers).
 
     Returns the undiscounted return-to-go, or with ``record`` a tuple (return, states, rewards) where
-    states[k] is the global state before continuation step k (it shows the stop).
+    states[k] is the global state before continuation step k (it shows the stop). With ``record`` and
+    ``final_state`` the tuple gains a fourth entry, the terminal state.
     """
     if null not in NULLS:
         raise ValueError(f"null must be one of {NULLS}")
@@ -118,6 +120,8 @@ def continue_stopped(config: GridConfig, make_team: MakeTeam, snap, stopped, nul
         g += r
         rewards.append(r)
     if record:
+        if final_state:
+            return g, np.array(states), np.array(rewards), env.get_state()
         return g, np.array(states), np.array(rewards)
     return g
 
@@ -247,6 +251,7 @@ class InterventionData:
     is_intervention: np.ndarray   # (M,) bool
     interventions: list           # (episode index, t0, stopped tuple, return-to-go at t0)
     info: dict
+    final: np.ndarray | None = None   # (M, ds) terminal state of each row's trajectory (with ``final_states``)
 
 
 def sample_stopped(rng: np.random.Generator, n: int, single_prob: float = 0.5) -> tuple[int, ...]:
@@ -293,27 +298,33 @@ def random_plan(facts: list[Factual], n: int, n_int: int, seed: int, sampler: st
 
 def intervention_dataset(config: GridConfig, make_team_for: Callable[[int], MakeTeam], facts: list[Factual],
                          n_int: int, seed: int, null: str = "noop", sampler: str = "stratified",
-                         include_full: bool = True, single_prob: float = 0.5, plan=None) -> InterventionData:
+                         include_full: bool = True, single_prob: float = 0.5, plan=None,
+                         final_states: bool = False) -> InterventionData:
     """Monte-Carlo regression data: the full-team episodes plus ``n_int`` stopped continuations.
 
     ``make_team_for(idx)`` returns the factory for training episode idx (its random streams).
     ``plan``: optional explicit list of (idx, t0, stopped) instead of random sampling (used by
     active designs and by the table baseline's 'all stops at t = 0' variant).
+    ``final_states``: also return each row's trajectory terminal state (v4 per-food LBF targets).
     """
     n = config.n_agents
-    X, y, ep, isint, record = [], [], [], [], []
+    X, y, ep, isint, record, fin = [], [], [], [], [], []
     if include_full:
         for idx, f in enumerate(facts):
             X.append(f.states[:-1])
             y.append(f.to_go()[:-1])
             ep.append(np.full(f.horizon, idx))
             isint.append(np.zeros(f.horizon, dtype=bool))
+            fin.append(np.repeat(f.states[-1:], f.horizon, 0))
     if plan is None:
         plan = random_plan(facts, n, n_int, seed, sampler, single_prob)
     n_zero = 0
     for idx, t0, stopped in plan:
-        g, states, rewards = continue_stopped(config, make_team_for(idx), facts[idx].snaps[t0], stopped, null,
-                                              record=True)
+        out = continue_stopped(config, make_team_for(idx), facts[idx].snaps[t0], stopped, null, record=True,
+                               final_state=final_states)
+        g, states, rewards = out[:3]
+        if final_states:
+            fin.append(np.repeat(out[3][None], len(rewards), 0))
         togo = np.cumsum(rewards[::-1])[::-1]
         X.append(states)
         y.append(togo)
@@ -324,7 +335,8 @@ def intervention_dataset(config: GridConfig, make_team_for: Callable[[int], Make
     return InterventionData(np.concatenate(X).astype(np.float32), np.concatenate(y).astype(np.float32),
                             np.concatenate(ep), np.concatenate(isint), record,
                             {"n_int": len(plan), "int_return_zero": n_zero / max(len(plan), 1),
-                             "null": null, "sampler": sampler})
+                             "null": null, "sampler": sampler},
+                            np.concatenate(fin).astype(np.float32) if final_states else None)
 
 
 # --- read-outs from a learned critic --------------------------------------------------------------------

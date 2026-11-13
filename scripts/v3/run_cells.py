@@ -33,9 +33,13 @@ def _h5(seeds, layouts=("overlap", "partial", "coalition")):
                      layout=lay) for lay, d, s in itertools.product(layouts, (0, 50), seeds)]
 
 
-def _perm(seeds, bs=(2, 4), delay=25):
-    return [DataCell(delay=delay, n_bystanders=b, seed=s, horizon=60, shuffle_roles=True)
+def _perm(seeds, bs=(2, 4), delay=25, random_starts=False):
+    return [DataCell(delay=delay, n_bystanders=b, seed=s, horizon=60, shuffle_roles=True, random_starts=random_starts)
             for b, s in itertools.product(bs, seeds)]
+
+
+# v4 Part D: shuffled roles AND random start cells (docs/v4/preregistration_v4.md)
+RS_ALGS = ("uniform", "atd", "atd_n800", "atd_noint", "atd_set", "atd_set_struct", "atd_n800_set", "table3_mix")
 
 
 PILOT_FIXED_ALGS = ("atd", "atd_bd", "atd_tp", "atd_noint", "atd_remove", "atd_set", "atd_active", "table3_mix")
@@ -90,6 +94,8 @@ GRIDS = {
     "pilot_budget": (_perm((0, 1, 2)), ("uniform", "atd_set_n25", "atd_set_active_n25", "atd_set_n50",
                                         "atd_set_active_n50", "atd_set_n100", "atd_set_active_n100",
                                         "atd_n100", "atd_active_n100", "atd_n400", "atd_active_n400")),
+    "pilot_rs": (_perm((0, 1, 2), random_starts=True), RS_ALGS),
+    "confirm_rs": (_perm((10, 11, 12, 13, 14), random_starts=True), RS_ALGS),
     "smoke": ([DataCell(delay=0, n_bystanders=2, seed=0)], ("atd_bd", "atd", "atd_noint", "table3_mix")),
     "smoke_epymarl": ([DataCell(delay=0, n_bystanders=2, seed=0)], ("qmix", "ece3_mix", "atd")),
     "smoke_v2": ([DataCell(delay=25, n_bystanders=2, seed=0)], ("uniform", "atd", "mappo", "mappo_int", "mappo_int_masked",

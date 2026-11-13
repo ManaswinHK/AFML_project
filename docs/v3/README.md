@@ -39,3 +39,5 @@ WORKERS=6 scripts/v3/run_confirm_all.sh
 .venv/bin/python scripts/v3/analyse_prereg.py
 .venv/bin/python scripts/v3/analyse_phase3.py
 ```
+
+> **Follow-up:** the next steps named here (mixed-size training, Level-Based Foraging, online credit) and deferred item 2.5 were done in v4: see `docs/v4/README.md`.
