@@ -36,7 +36,10 @@ VARIANTS = {"base": dict(n_agents=4, n_food=3, size=8, horizon=50),
             "large": dict(n_agents=6, n_food=4, size=10, horizon=60),
             # time pressure: an absent agent costs food within the horizon (removal null is then informative)
             "h20": dict(n_agents=4, n_food=3, size=8, horizon=20),
-            "large_h25": dict(n_agents=6, n_food=4, size=10, horizon=25)}
+            "large_h25": dict(n_agents=6, n_food=4, size=10, horizon=25),
+            # heavy food (cap = sum of all levels): which agents are pivotal for which food is the credit question
+            "heavy": dict(n_agents=4, n_food=3, size=8, horizon=50, food_cap="all"),
+            "heavy_large": dict(n_agents=6, n_food=4, size=10, horizon=60, food_cap="all")}
 N_TRAIN, N_TEST, EPS = 200, 30, 0.2
 CFG = {"n_train": N_TRAIN, "n_int": (0, 200, 800), "steps": 3000, "null": "noop", "eps": EPS, "floor_draws": 16}
 

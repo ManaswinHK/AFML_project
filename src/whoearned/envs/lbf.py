@@ -29,6 +29,7 @@ import numpy as np
 
 NONE, NORTH, SOUTH, WEST, EAST, LOAD = range(6)
 N_ACTIONS = 6
+FOOD_FEATS = 5      # per food item in the global state: row, col, level, reward share, present
 _MOVES = {NORTH: (-1, 0), SOUTH: (1, 0), WEST: (0, -1), EAST: (0, 1)}
 
 
@@ -43,6 +44,9 @@ class LBFConfig:
     max_agent_level: int = 2
     min_food_level: int = 1
     max_food_level: int | None = None     # None: sum of the 3 lowest agent levels (package default)
+    # v4 Part B: "lowest3" (package default cap, used when max_food_level is None) or "all" (cap = sum of ALL agent
+    # levels, so heavy food can need every agent; any 3 of 4 agents can lift any food under the default cap)
+    food_cap: str = "lowest3"
     horizon: int = 50
     spawn_seed: tuple = (0,)
 
@@ -60,7 +64,7 @@ class LBFEnv:
         self.config = config
         self.n_agents = config.n_agents
         self.n_events = config.n_food
-        self.state_size = 4 * self.n_agents + self.n_agents + 4 * config.n_food + 1
+        self.state_size = 4 * self.n_agents + self.n_agents + FOOD_FEATS * config.n_food + 1
         self.reset()
 
     # --- episode control ------------------------------------------------------------------------
@@ -72,7 +76,14 @@ class LBFEnv:
         full = (1 << n) - 1
         self._present_mask = full if present is None else present & full
         self.levels = rng.integers(cfg.min_agent_level, cfg.max_agent_level + 1, size=n)
-        cap = cfg.max_food_level if cfg.max_food_level is not None else int(np.sort(self.levels)[:3].sum())
+        if cfg.max_food_level is not None:
+            cap = cfg.max_food_level
+        elif cfg.food_cap == "all":
+            cap = int(self.levels.sum())
+        elif cfg.food_cap == "lowest3":
+            cap = int(np.sort(self.levels)[:3].sum())
+        else:
+            raise ValueError(cfg.food_cap)
         self.field = np.zeros((S, S), dtype=np.int64)
         self.food_pos, self.food_level = [], []
         attempts = 0
@@ -211,24 +222,27 @@ class LBFEnv:
     # --- global state (critic input) ---------------------------------------------------------------------
 
     def get_state(self) -> np.ndarray:
-        """[positions 2n | present n | acting n | levels n | per food (row, col, level, present) | t / T].
+        """[positions 2n | present n | acting n | levels n | per food (row, col, level, share, present) | t / T].
 
-        The first 4n entries use the gridworld's layout, so ``ablation.stopped_state`` applies unchanged.
+        The first 4n entries use the gridworld's layout, so ``ablation.stopped_state`` applies unchanged. Agent and
+        food levels share one absolute scale (n x max agent level, the largest possible food level), so whether a set
+        of agents can load a food is readable from the state. ``share`` is the food's fraction of the episode's total
+        reward (10 x level / total spawned), which the remaining return depends on once some food is gone.
         """
         n, S, cfg = self.n_agents, self.config.size, self.config
+        scale = float(n * cfg.max_agent_level)
         s = np.zeros(self.state_size, dtype=np.float32)
         for i, p in enumerate(self.positions):
             if p is not None:
                 s[2 * i:2 * i + 2] = (p[0] / (S - 1), p[1] / (S - 1))
                 s[2 * n + i] = 1.0
             s[3 * n + i] = float(self.acting[i])
-            s[4 * n + i] = self.levels[i] / max(cfg.max_agent_level, 1)
+            s[4 * n + i] = self.levels[i] / scale
         o = 5 * n
-        cap = max(self.food_level) if self.food_level else 1
         for k, (pos, lvl) in enumerate(zip(self.food_pos, self.food_level)):
             if self.food_present[k]:
-                s[o:o + 4] = (pos[0] / (S - 1), pos[1] / (S - 1), lvl / max(cap, 1), 1.0)
-            o += 4
+                s[o:o + FOOD_FEATS] = (pos[0] / (S - 1), pos[1] / (S - 1), lvl / scale, lvl / self.total_food, 1.0)
+            o += FOOD_FEATS
         s[-1] = self.t / cfg.horizon
         return s
 

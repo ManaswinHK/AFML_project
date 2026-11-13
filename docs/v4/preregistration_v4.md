@@ -47,3 +47,17 @@ Seeds **10–14** (unused by any earlier run). Each part is frozen by its own co
 | A3 | Extrapolation: mixed-size credit is good | L1 < 0.25 |
 | A4 | Extrapolation: mixed beats single by a wide margin | paired, single − mixed > 0.30 |
 | A5 | Mixed keeps exactly the coalition at every held-out size | top-k > 0.90 |
+
+## Part D: randomised start cells (frozen third)
+
+**Question.** Deferred v3 item 2.5. Shuffled roles (v3 P8) move start cells only among three fixed role slots, so travel times and the moment the lever is pulled are identical in every episode. With **random start cells for every role** they vary per episode, and the per-step credit (when a stop stops mattering) depends on them. Does the set critic's near-exact credit survive a continuous geometry axis?
+
+**Design.** `scripts/v3/run_cells.py --grid confirm_rs`. Coalition layout, d = 25, horizon 60, b ∈ {2, 4} bystanders; roles shuffled and start cells drawn per episode (`envs.layouts.random_role_starts`: coalition members anywhere except stations; bystanders anywhere off the coalition's planned routes, so their true credit stays zero, as with the fixed slots). 200 training / 30 test episodes, 200 stratified no-op stops; methods as v3 P8 (`atd` = MLP, `atd_set`, `atd_set_struct`, `atd_n800`, `atd_n800_set`, `atd_noint`, `table3_mix`, `uniform`). Truth: exact closed-loop no-op LOO (`loo_cn`) and exact per-step κ (`step_r`). Seeds 10–14.
+
+Pilot (seeds 0–2, `results/v4/pilot_rs`): `atd_set` L1 0.014 (b = 2), 0.022 (b = 4), step r 1.00 / 0.99; `atd` 0.48 / 0.92; equal split 0.80 / 1.14.
+
+| ID | Prediction | Test (per b; Holm across b) |
+|---|---|---|
+| D1 | Set-critic credit stays near exact | `atd_set` L1 (loo_cn) < 0.05 |
+| D2 | Its per-step credit stays faithful | `atd_set` step r > 0.95 |
+| D3 | The MLP critic does not generalise over geometry as the set critic does | paired, `atd` − `atd_set` > 0.30 |

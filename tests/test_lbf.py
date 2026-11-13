@@ -91,8 +91,31 @@ def test_two_set_critic_is_invariant_to_agent_and_food_relabelling():
         for blk in (2, 3, 4):
             P[:, blk * n + new] = S[:, blk * n + old]
     for new, old in enumerate(pf):
-        P[:, 5 * n + 4 * new:5 * n + 4 * new + 4] = S[:, 5 * n + 4 * old:5 * n + 4 * old + 4]
+        P[:, 5 * n + 5 * new:5 * n + 5 * new + 5] = S[:, 5 * n + 5 * old:5 * n + 5 * old + 5]
     th.manual_seed(0)
     net = TwoSetCritic(n, F)
     with th.no_grad():
         np.testing.assert_allclose(net(th.tensor(S)).numpy(), net(th.tensor(P)).numpy(), atol=1e-5)
+
+
+def test_state_levels_share_one_absolute_scale():
+    """Feasibility (agent level sum >= food level) must be readable from the state, and the reward shares sum to 1."""
+    from whoearned.envs.lbf import FOOD_FEATS
+    for seed in range(20):
+        cfg = LBFConfig(n_agents=4, n_food=3, spawn_seed=(seed, 3))
+        env = LBFEnv(cfg)
+        s, n = env.get_state(), cfg.n_agents
+        scale = float(cfg.n_agents * cfg.max_agent_level)
+        np.testing.assert_allclose(s[4 * n:5 * n] * scale, env.levels)
+        food = s[5 * n:5 * n + FOOD_FEATS * len(env.food_level)].reshape(-1, FOOD_FEATS)
+        np.testing.assert_allclose(food[:, 2] * scale, env.food_level, rtol=1e-6)
+        np.testing.assert_allclose(food[:, 3].sum(), 1.0, rtol=1e-6)
+
+
+def test_food_cap_all_allows_food_that_needs_every_agent():
+    caps = []
+    for seed in range(40):
+        env = LBFEnv(LBFConfig(n_agents=4, n_food=3, food_cap="all", spawn_seed=(seed, 5)))
+        assert max(env.food_level) <= env.levels.sum()
+        caps.append(max(env.food_level) > np.sort(env.levels)[:3].sum())
+    assert any(caps)

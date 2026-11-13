@@ -215,19 +215,20 @@ def _transfer_noroles(net, n, k):
 class TwoSetCritic(th.nn.Module):
     """Permutation-invariant over agents AND over food items (LBF state from ``envs.lbf.LBFEnv.get_state``).
 
-    Agent token: position (2), present, acting, level. Food token: position (2), level, present. Context: t / T.
+    Agent token: position (2), present, acting, level. Food token: position (2), level, reward share, present
+    (``food_feats`` entries). Context: t / T.
     Type-specific encoders, one self-attention layer over all tokens (agents and food attend to each other), then
     sum and mean pooling per type and a value head.
     """
 
-    def __init__(self, n: int, n_food: int, hidden: int = 128, heads: int = 4):
+    def __init__(self, n: int, n_food: int, hidden: int = 128, heads: int = 4, food_feats: int = 5):
         super().__init__()
         self.n, self.F = n, n_food
         self.agent_idx = th.tensor([[2 * i, 2 * i + 1, 2 * n + i, 3 * n + i, 4 * n + i] for i in range(n)])
-        self.food_idx = th.tensor([[5 * n + 4 * k + j for j in range(4)] for k in range(n_food)])
+        self.food_idx = th.tensor([[5 * n + food_feats * k + j for j in range(food_feats)] for k in range(n_food)])
         h = hidden
         self.enc_a = th.nn.Sequential(th.nn.Linear(5 + 1, h), th.nn.ReLU(), th.nn.Linear(h, h))
-        self.enc_f = th.nn.Sequential(th.nn.Linear(4 + 1, h), th.nn.ReLU(), th.nn.Linear(h, h))
+        self.enc_f = th.nn.Sequential(th.nn.Linear(food_feats + 1, h), th.nn.ReLU(), th.nn.Linear(h, h))
         self.attn = th.nn.MultiheadAttention(h, heads, batch_first=True)
         self.post = th.nn.Sequential(th.nn.ReLU(), th.nn.Linear(h, h), th.nn.ReLU())
         self.head = th.nn.Sequential(th.nn.Linear(4 * h + 1, h), th.nn.ReLU(), th.nn.Linear(h, 1))

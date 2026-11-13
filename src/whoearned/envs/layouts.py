@@ -27,7 +27,8 @@ BYSTANDER_SLOTS = ((4, 4), (4, 6), (4, 2), (4, 8), (4, 0))
 
 
 def coalition_layout(
-    n_bystanders: int = 2, delay: int = 15, horizon: int = 60, partial: bool = False, role_perm=None
+    n_bystanders: int = 2, delay: int = 15, horizon: int = 60, partial: bool = False, role_perm=None,
+    role_starts=None,
 ) -> GridConfig:
     """The running-example coalition (A enables, B and C finish) plus 0-5 bystanders.
 
@@ -37,6 +38,9 @@ def coalition_layout(
     ``role_perm`` (v3 Phase 2.1, shuffled roles): a permutation with ``role_perm[role] = agent index``,
     where roles are 0 = enabler, 1-2 = finishers, 3.. = bystanders. Start cells move with the role; the
     lever and goal cells stay where they are. ``None`` is the identity (the fixed layout).
+
+    ``role_starts`` (v4 Part D, random start cells): start cell per role (enabler, finisher, finisher, bystanders...);
+    ``None`` uses the fixed cells. See :func:`random_role_starts`.
     """
     if not 0 <= n_bystanders <= len(BYSTANDER_SLOTS):
         raise ValueError(f"n_bystanders must be in 0..{len(BYSTANDER_SLOTS)}")
@@ -44,7 +48,10 @@ def coalition_layout(
     perm = list(range(n)) if role_perm is None else [int(x) for x in role_perm]
     if sorted(perm) != list(range(n)):
         raise ValueError(f"role_perm must be a permutation of 0..{n - 1}")
-    role_starts = ((0, 0), (2, 0), (3, 0), *BYSTANDER_SLOTS[:n_bystanders])
+    if role_starts is None:
+        role_starts = ((0, 0), (2, 0), (3, 0), *BYSTANDER_SLOTS[:n_bystanders])
+    elif len(role_starts) != n:
+        raise ValueError(f"role_starts needs {n} cells")
     starts = [None] * n
     for role, agent in enumerate(perm):
         starts[agent] = role_starts[role]
@@ -66,6 +73,29 @@ def coalition_layout(
         start_cells=tuple(starts),
         events=(event,),
     )
+
+
+def random_role_starts(n_bystanders: int, rng) -> tuple:
+    """Random distinct start cells per role for the 5 x 10 coalition grid (v4 Part D).
+
+    Coalition members start anywhere except the lever and goal cells. Bystanders start anywhere off every
+    coalition member's planned route (as with the fixed slots, so a bystander never blocks the event and its true
+    credit stays zero); rejection-sampled.
+    """
+    from whoearned.scripted import ScriptedTeam
+    stations = {(0, 4), (2, 8), (3, 8)}
+    cells = [(r, c) for r in range(5) for c in range(10) if (r, c) not in stations]
+    for _ in range(1000):
+        idx = rng.choice(len(cells), size=3, replace=False)
+        coal = tuple(cells[int(i)] for i in idx)
+        probe = coalition_layout(0, role_starts=coal)
+        route = ScriptedTeam(probe).reserved
+        free = [c for c in cells if c not in route and c not in coal]
+        if len(free) < n_bystanders:
+            continue
+        bidx = rng.choice(len(free), size=n_bystanders, replace=False)
+        return coal + tuple(free[int(i)] for i in bidx)
+    raise RuntimeError("could not place bystanders off the coalition routes")
 
 
 def running_example(delay: int = 15, horizon: int = 60, partial: bool = False) -> GridConfig:

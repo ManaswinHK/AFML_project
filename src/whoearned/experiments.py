@@ -151,12 +151,14 @@ class DataCell:
     layout: str = "coalition"
     # v3 Phase 2.1: a fresh random role assignment per episode (coalition layout only).
     shuffle_roles: bool = False
+    # v4 Part D: random start cells per episode as well (implies shuffled roles; coalition layout only).
+    random_starts: bool = False
 
     @property
     def key(self) -> str:
         crit = f"_es{self.enabler_start}" if self.enabler_start else ""
         prefix = "" if self.layout == "coalition" else f"{self.layout}_"
-        perm = "perm_" if self.shuffle_roles else ""
+        perm = ("rs_" if self.random_starts else "") + ("perm_" if self.shuffle_roles else "")
         data = (f"_n{self.n_train}" if self.n_train != 200 else "") + (f"_eps{self.epsilon}" if self.epsilon != 0.2 else "")
         return f"{perm}{prefix}d{self.delay}_b{self.n_bystanders}{crit}{data}_s{self.seed}"
 
@@ -184,8 +186,13 @@ class DataCell:
             return self.config()
         if self.layout != "coalition":
             raise ValueError("shuffle_roles is defined for the coalition layout only")
+        starts = None
+        if self.random_starts:
+            from whoearned.envs.layouts import random_role_starts
+            starts = random_role_starts(self.n_bystanders,
+                                        np.random.default_rng([self.seed, 0 if split == "train" else 1, index, 5151]))
         return coalition_layout(self.n_bystanders, delay=self.delay, horizon=self.horizon,
-                                role_perm=self.role_perm(split, index))
+                                role_perm=self.role_perm(split, index), role_starts=starts)
 
     def config(self):
         if self.layout == "overlap":
