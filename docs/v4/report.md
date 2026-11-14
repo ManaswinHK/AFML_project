@@ -12,7 +12,7 @@ v3 ended with three named next steps (`docs/v3/PROGRESS.md`) and one deferred pl
 |---|---|---|
 | **A.** Does training the set critic on several team sizes stop credit leaking to bystanders at unseen sizes? | **Yes.** Interpolating to unseen sizes: L1 0.008 / 0.014 (in-size critic 0.006 / 0.008). Extrapolating to larger teams: 0.06 / 0.14, against 0.62 / 0.91 for a data-matched single-size critic. Leakage falls from 9–46% to 0.4–7%. | A1–A5 all supported |
 | **B.** Does credit by intervention carry over to Level-Based Foraging, a standard benchmark with a new random layout every episode? | **Yes for 4 agents; partly for 6.** 4 agents: set-critic L1 0.26 at v3's data budget and 0.16 at 4× data, against 0.42 for the equal split (luck floor 0.05). Shapley error 0.13 / 0.07 vs 0.26; the right agents in 99% of layouts. Without stops it fails (1.02–1.34). Not confirmed: that 4× data brings it close to exact (B5) and reliably helps (B6); one seed in five got worse. 6 agents: better than the equal split (0.81–0.87 vs 1.65) but far from exact (floor 0.41). | B1–B6 |
-| **C.** Is the learning gain from difference rewards really the removal of *other agents' luck*? | **Partly.** Realised difference rewards are 26× faster than team reward at K = 8, and 6.3× faster than expected-value credit, so most of the gain is luck (C2, C3). But expected credit is itself 4.2× faster than team reward (C1 not supported). Post-hoc, the curves show where that comes from: not faster learning (same steps to 50% success), but **no late collapse** (max drawdown 0.10–0.25 vs 0.28–0.49). | C1 ✗, C2 ✓, C3 ✓; post-hoc drawdown |
+| **C.** Is the learning gain from difference rewards really the removal of *other agents' luck*? | **Partly.** Realised difference rewards are 26× faster than team reward at K = 8 in episodes, and 6.3× faster than expected-value credit, so most of the gain is luck (C2, C3); counting their 17 simulators per step, only 1.6× cheaper. But expected credit is itself 4.2× faster than team reward (C1 not supported). Post-hoc, the curves show where that comes from: not faster learning (same steps to 50% success), but **no late collapse** (max drawdown 0.10–0.25 vs 0.28–0.49). | C1 ✗, C2 ✓, C3 ✓; post-hoc drawdown |
 | **D.** Does the set critic's near-exact credit survive random start cells (timing varies per episode)? | **Yes**, with one borderline cell: L1 0.018 (b = 2), 0.030 (b = 4; two of five seeds just above 0.05); per-step r 0.999. MLP 0.52 / 0.96. | D2, D3 ✓; D1 partial |
 
 **Pre-registered tally (seeds 10–14):** 13 supported, 1 partial (D1), 3 not supported (C1, B5, B6), plus descriptive items (C4, 6-agent LBF). Every failure and the one partial result are reported where they occur.
@@ -117,13 +117,14 @@ Episodes to 90% greedy test success (mean of 5 seeds); ratios are geometric mean
   | difference | 0.02, 0.12, 0.03, 0.03, 0.11 |
 
   So the three-way decomposition is: the drift of other agents' *expected* outcomes destabilises learning late, and a centralised expected credit removes it; other agents' *luck* slows learning throughout, and only realised credit removes it. Measured after seeing the curves, so labelled post-hoc.
+- **Simulator cost (added after the external review; `docs/v5/cost_accounting.md`).** Difference rewards step 2K + 1 = 17 simulators at K = 8, expected credit only one. Counted in simulator episodes to 90% success: difference 0.64× team, expected **0.24× team**. Per unit of simulation, the expected-credit arm is the most efficient of the three, and it needs no resettable simulator. It does use the lane decomposition (one value table per lane), which a learned ablation critic would have to replace.
 - **Consequence for the project's learning claim.** "Who earned the reward" matters for learning in two separable ways. Expected credit is a form of centralised-critic information passed to decentralised learners, the CTDE idea. Realised credit additionally needs counterfactual access (a simulator or shadow copies), which is what difference rewards assume.
 
 ![Online credit learning curves](figures/online_credit_curves.png)
 
 ## 4. Part D: random start cells
 
-**Why.** Deferred v3 plan item 2.5. v3 had judged it a weaker variant of shuffled roles, but shuffled roles move start cells only among three fixed slots, so the moment the lever is pulled, and therefore *when* a stop stops mattering, was the same in every episode. Random start cells vary that timing per episode (E8). Bystanders stay off the coalition's routes, as with the fixed slots, so their true credit stays zero.
+**Why.** Deferred v3 plan item 2.5. v3 had judged it a weaker variant of shuffled roles. That was wrong, more so than this section first said. Shuffled roles move start cells *with* the roles, so a shuffled episode is a relabelling of a fixed one, and a permutation-invariant critic sees literally the same input (v3 errata E12, found by an external review and verified in `tests/test_review_v5.py`). So the moment the lever is pulled, and *when* a stop stops mattering, was the same in every episode. **Part D is the first genuine test of the set critic on configurations it has not seen.** Random start cells vary that timing per episode (E8). Bystanders stay off the coalition's routes, as with the fixed slots, so their true credit stays zero.
 
 | Method | L1 (b = 2) | L1 (b = 4) | step r (b = 2) | step r (b = 4) |
 |---|---|---|---|---|
@@ -137,7 +138,7 @@ Episodes to 90% greedy test success (mean of 5 seeds); ratios are geometric mean
 | presence table (order 3) | 0.801 | 1.150 | – | – |
 
 - **D2, D3 supported; D1 partial.** At b = 4 the mean (0.030) is below the 0.05 threshold but two of five seeds are just above it (0.074, 0.051), so the one-sided test is not significant (p = 0.11). The structural read-out of the same critic gives 0.020, and 800 stops give 0.016.
-- The **numbers match v3's shuffled-roles result** (P8: 0.010 / 0.008), so random timing costs the set critic almost nothing. The per-step credit, the quantity that depends on timing, stays at r = 0.999.
+- The numbers are close to v3's shuffled-roles result (P8: 0.010 / 0.008), which was a fixed-layout result in disguise (E12). So new geometry and timing cost the set critic almost nothing. The per-step credit, the quantity that depends on timing, stays at r = 0.999.
 - The MLP, as before, does not generalise across configurations; its gap to the set critic grows with team size.
 
 ## 5. Limits
