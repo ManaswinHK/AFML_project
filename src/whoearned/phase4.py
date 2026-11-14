@@ -112,6 +112,23 @@ def evaluate_checkpoint(path: str, K: int, n_test: int = 30, seed: int = 0, epsi
         kh.append(masked[b].T)
         kt.append(k_true)
 
+    # v5 (review point: "whether agents become robust to absences wasn't measured"). Collateral damage of an
+    # absence: agent j stopped for good from t = 0 (no-op null, exact closed-loop continuation W[j, 0]) should cost
+    # at most the payouts of the events j belongs to. Anything beyond that is reward the OTHER events lose because
+    # the team reacts badly to j's absence (observations show every agent's position).
+    coll, coll_frac, coll_by = [], [], []
+    for f, W in zip(facts, truths):
+        for j in range(n):
+            own = sum(rec.payout for k, (ev, rec) in enumerate(zip(cfg.events, f.event_log))
+                      if j in ev.enablers or j in ev.finishers)
+            others = f.total - own
+            c = others - float(W[j, 0])
+            coll.append(c)
+            coll_by.append(c)
+            if others > 1e-9:
+                coll_frac.append(c / others)
+    coll_by = np.array(coll_by).reshape(len(facts), n)
+
     def mean(rows, key):
         v = [r[key] for r in rows if r["valid"] and r[key] is not None]
         return float(np.mean(v)) if v else None
@@ -121,4 +138,8 @@ def evaluate_checkpoint(path: str, K: int, n_test: int = 30, seed: int = 0, epsi
             "posthoc_masked_disc_l1": mean(rows_disc, "l1"), "posthoc_struct_l1": mean(rows_struct, "l1"),
             "posthoc_struct_leakage": mean(rows_struct, "leakage"),
             "masked_step_r": pearson(np.stack(kh), np.stack(kt)),
-            "n_valid": sum(r["valid"] for r in rows_masked)}
+            "n_valid": sum(r["valid"] for r in rows_masked),
+            "collateral_t0": float(np.mean(coll)), "collateral_frac_t0": float(np.mean(coll_frac)) if coll_frac else None,
+            "collateral_bystander_t0": float(coll_by[:, bystanders].mean()) if bystanders else None,
+            "collateral_member_t0": float(coll_by[:, [j for j in range(n) if j not in bystanders]].mean()),
+            "collateral_max_t0": float(np.max(coll))}

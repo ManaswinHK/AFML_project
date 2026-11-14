@@ -50,6 +50,18 @@ GRIDS = {
     # Phase 4.1: MAPPO with random persistent stops during training (dropout p), checkpoints for 4.2
     "phase4": dict(algs=("mappo",), Ks=(2,), arms=("team",), seeds=(5, 6, 7), t_max=300_000,
                    dropout=(0.0, 0.25), save_models=True, n_bystanders=2, save_interval=30_000),
+    # v5 (review): the same three arms with MAPPO. mappo_ns differs from ippo_ns (v4 Part C) ONLY in the critic,
+    # which sees the global state: the direct test of theory Section 7 (docs/v5/preregistration_v5.md, Part E).
+    "credit_mappo_ns": dict(algs=("mappo_ns",), Ks=(4, 8), arms=("team", "difference", "expected"),
+                            seeds=(10, 11, 12, 13, 14), t_max={4: 1_200_000, 8: 2_000_000}, test_interval=2000),
+    "credit_mappo": dict(algs=("mappo",), Ks=(8,), arms=("team", "difference", "expected"),
+                         seeds=(10, 11, 12, 13, 14), t_max={8: 2_000_000}, test_interval=2000),
+    "credit_mappo_smoke": dict(algs=("mappo_ns", "mappo"), Ks=(2,), arms=("expected", "difference"), seeds=(0,),
+                               t_max=20_000, test_interval=2000),
+    # v5 Part F (review): Phase 4 extended - 4 dropout levels, 2 layouts, 5 fresh seeds; final checkpoints scored
+    # by scripts/v5/eval_final.py (credit read-outs + collateral damage of absences).
+    "phase4_v5": dict(algs=("mappo",), Ks=(2, 4), arms=("team",), seeds=(10, 11, 12, 13, 14), t_max=300_000,
+                      dropout=(0.0, 0.1, 0.25, 0.5), save_models=True, n_bystanders=2, save_interval=100_000),
     "gate_mappo": dict(algs=("mappo",), Ks=(1, 8), arms=("team_vector", "difference"), seeds=(5, 6, 7, 8, 9),
                        t_max={1: 400_000, 8: 2_000_000}),
 }
