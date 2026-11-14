@@ -48,7 +48,9 @@ def main():
     p.add_argument("--n-test", type=int, default=30)
     p.add_argument("--workers", type=int, default=4)
     a = p.parse_args()
-    runs = sorted(d for d in glob.glob(a.runs) if os.path.isdir(d))
+    # only finished runs (run_info.json is written when training ends), so an intermediate checkpoint of a run that
+    # is still training is never scored as its final one
+    runs = sorted(d for d in glob.glob(a.runs) if os.path.isdir(d) and os.path.exists(os.path.join(d, "run_info.json")))
     with ProcessPoolExecutor(a.workers) as ex:
         for line in ex.map(eval_run, [(d, a.out, a.n_bystanders, a.n_test) for d in runs]):
             print(line, flush=True)

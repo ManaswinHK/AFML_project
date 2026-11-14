@@ -117,6 +117,7 @@ Episodes to 90% greedy test success (mean of 5 seeds); ratios are geometric mean
   | difference | 0.02, 0.12, 0.03, 0.03, 0.11 |
 
   So the three-way decomposition is: the drift of other agents' *expected* outcomes destabilises learning late, and a centralised expected credit removes it; other agents' *luck* slows learning throughout, and only realised credit removes it. Measured after seeing the curves, so labelled post-hoc.
+- **Confirmed in v5 Part E** (`docs/v5/review_response.md`): with only the critic changed to a state critic (`mappo_ns`), expected credit gives 1.05× team reward's episodes, i.e. nothing, while difference rewards stay 12× faster. The C1 reading above is right.
 - **Simulator cost (added after the external review; `docs/v5/cost_accounting.md`).** Difference rewards step 2K + 1 = 17 simulators at K = 8, expected credit only one. Counted in simulator episodes to 90% success: difference 0.64× team, expected **0.24× team**. Per unit of simulation, the expected-credit arm is the most efficient of the three, and it needs no resettable simulator. It does use the lane decomposition (one value table per lane), which a learned ablation critic would have to replace.
 - **Consequence for the project's learning claim.** "Who earned the reward" matters for learning in two separable ways. Expected credit is a form of centralised-critic information passed to decentralised learners, the CTDE idea. Realised credit additionally needs counterfactual access (a simulator or shadow copies), which is what difference rewards assume.
 
