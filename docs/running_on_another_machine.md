@@ -20,13 +20,13 @@
 
 ## 2–3. Get the code and EPyMARL
 
-The project lives in a private GitHub repository. EPyMARL is a git submodule pinned to commit `cbc38c0`, so one recursive clone fetches both. Sign in to GitHub when the browser window opens:
+EPyMARL is a git submodule pinned to commit `cbc38c0`, so one recursive clone fetches both:
 
 ```bash
-git clone --recursive https://github.com/ManaswinHK/AFML_project.git course_project
+git clone --recursive https://github.com/ManaswinHK/AFML_project.git
 ```
 
-Then work from inside `course_project`. If you cloned without `--recursive`, fetch EPyMARL afterwards:
+Then work from inside `AFML_project`. If you cloned without `--recursive`, fetch EPyMARL afterwards:
 
 ```bash
 git submodule update --init

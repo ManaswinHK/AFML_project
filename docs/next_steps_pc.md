@@ -63,7 +63,7 @@ Read `results/mode_p/sensitivity/loop_h0_h1b.md`. For each of H0 and H1b, note t
   - §6, the open- vs closed-loop bullet;
   - §8, remove or rewrite the limitation "H0 and H1b were not re-tested under the closed-loop truth".
 - **`docs/results_overview.md`:** the sensitivity row(s) and any H0/H1b row.
-- **Problem statement status table** (`who_earned_the_reward_problem_statement_v2.md`): add a closed-loop note to H0 and H1b if a verdict changes.
+- **Problem statement status table** (`docs/planning/who_earned_the_reward_problem_statement_v2.md`): add a closed-loop note to H0 and H1b if a verdict changes.
 
 How to word it:
 - The pre-registered verdicts are the open-loop ones and stay as they are; closed-loop results are a **sensitivity** result, as for H1a.
@@ -97,6 +97,25 @@ Remaining "H5" mentions must refer to the coalition estimator. The old fidelity 
 ## Optional (only with time to spare; not recommended before submission)
 
 **Mode T for COMA and MAPPO: done (7 November 2026).** Behavioural cloning plus critic warm-up was implemented (`scripts/run_epymarl_bc.py`) and run on 20 runs. Both start at return about 10 and collapse online, so H4 could not be assessed for them (`docs/mode_t_results.md` §3b).
+
+## Credit visualisation: exact export (about 15 minutes on 8 workers)
+
+`docs/credit_viz.html` was built on the laptop in tolerant mode (`--l1-tol 0.15`). PyTorch's CPU arithmetic is not bit-identical across machines, so the laptop's re-training drifts away from the stored main-grid run. VDN and QMIX per-episode shares moved by 0.1–0.4 L1, and the d = 25 critical cell is missing because its QMIX mean L1 moved by 0.21. The PC trained the main grid, so the default (exact) mode should reproduce every cell bit for bit there:
+
+```bash
+git pull
+```
+
+```bash
+rm -rf results/viz
+```
+
+```bash
+.venv/Scripts/python scripts/export_credit_viz.py --workers 8
+```
+
+- If a cell prints `FAILED`, the stored run is not reproducible even on the PC; push the log and keep the laptop page.
+- If all 8 pass, the page banner disappears and every per-episode value is the stored one. Commit `docs/credit_viz.html`.
 
 ## Later: submission (not part of this list)
 

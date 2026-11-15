@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credit Explorer</title>
+<!-- Template for scripts/export_credit_viz.py. The data placeholder below is replaced at build time;
+     the built page is docs/credit_viz.html. Self-contained: no network access needed. -->
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --enabler: #2a78d6;
+  --finisher: #eb6834;
+  --bystander: #898781;
+  --method: #2a78d6;
+  --critic: #eb6834;
+  --truth: #52514e;
+  --div-neg: #c03535;
+  --div-mid: #f0efec;
+  --div-pos: #1c5cab;
+  --cell-empty: #f3f2ee;
+  --lever: #2a78d6;
+  --goal: #eb6834;
+  --accent-wash: rgba(42,120,214,0.10);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --enabler: #3987e5; --finisher: #d95926; --bystander: #898781;
+    --method: #3987e5; --critic: #d95926; --truth: #c3c2b7;
+    --div-neg: #e66767; --div-mid: #383835; --div-pos: #6da7ec; --cell-empty: #222221;
+    --lever: #3987e5; --goal: #d95926; --accent-wash: rgba(57,135,229,0.16);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --enabler: #3987e5; --finisher: #d95926; --bystander: #898781;
+  --method: #3987e5; --critic: #d95926; --truth: #c3c2b7;
+  --div-neg: #e66767; --div-mid: #383835; --div-pos: #6da7ec; --cell-empty: #222221;
+  --lever: #3987e5; --goal: #d95926; --accent-wash: rgba(57,135,229,0.16);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1240px; margin: 0 auto; padding: 20px 16px 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; font-weight: 650; letter-spacing: -0.01em; }
+h2 { font-size: 15px; margin: 0; font-weight: 600; }
+.sub { color: var(--ink-2); margin: 0 0 16px; max-width: 80ch; }
+.muted { color: var(--muted); }
+.controls {
+  display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end;
+  padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  position: sticky; top: 0; z-index: 5; margin-bottom: 14px;
+}
+.ctl { display: flex; flex-direction: column; gap: 4px; }
+.ctl > span { font-size: 12px; color: var(--ink-2); }
+.seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 7px; overflow: hidden; }
+.seg button {
+  font: inherit; border: 0; background: transparent; color: var(--ink); padding: 5px 10px; cursor: pointer;
+  border-right: 1px solid var(--axis);
+}
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.seg button:focus-visible, select:focus-visible, .btn:focus-visible, input:focus-visible { outline: 2px solid var(--method); outline-offset: 1px; }
+select, .btn {
+  font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--axis);
+  border-radius: 7px; padding: 5px 8px;
+}
+select { max-width: 100%; }
+.btn { cursor: pointer; }
+.layout { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 14px; }
+.row2 { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 14px; margin-top: 14px; }
+@media (max-width: 900px) { .layout, .row2 { grid-template-columns: minmax(0, 1fr); } }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; min-width: 0;
+}
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.note { font-size: 12.5px; color: var(--ink-2); margin: 8px 0 0; }
+svg { display: block; width: 100%; height: auto; }
+#grid { max-width: 520px; margin: 0 auto; }
+#shares { max-width: 680px; }
+svg text { fill: var(--ink-2); font-size: 11px; font-family: inherit; }
+.player { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.player input[type=range] { flex: 1; min-width: 0; accent-color: var(--ink); }
+.tval { font-variant-numeric: tabular-nums; min-width: 6.5ch; text-align: right; color: var(--ink-2); }
+.status { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin-top: 10px; font-size: 13px; }
+.status dt { color: var(--muted); }
+.status dd { margin: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); align-items: center; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.sw.dot { border-radius: 50%; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 10px 0 4px; }
+.stat { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.stat .k { font-size: 12px; color: var(--ink-2); }
+.stat .v { font-size: 20px; font-weight: 600; }
+.stat .s { font-size: 12px; color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--ink-2); font-weight: 600; }
+tr.sel td { background: var(--accent-wash); }
+details { margin-top: 8px; }
+summary { cursor: pointer; color: var(--ink-2); font-size: 12.5px; }
+.tip {
+  position: fixed; pointer-events: none; z-index: 20; background: var(--ink); color: var(--surface);
+  font-size: 12px; padding: 6px 8px; border-radius: 6px; max-width: 260px; display: none; line-height: 1.35;
+}
+.guide { margin-top: 14px; }
+.guide ul { margin: 6px 0 0; padding-left: 18px; color: var(--ink-2); }
+.guide li { margin: 4px 0; }
+.guide b { color: var(--ink); }
+.pill { display: inline-block; font-size: 11.5px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--axis); color: var(--ink-2); }
+.scroll-x { overflow-x: auto; }
+.agent-label { font-weight: 600; }
+.cursor { stroke: var(--ink); stroke-width: 1.5; }
+.hm-cell:hover { stroke: var(--ink); stroke-width: 1; }
+.agent { transition: transform 140ms linear; }
+@media (prefers-reduced-motion: reduce) { .agent { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Who earned the reward? Credit explorer</h1>
+  <p class="sub">Step through a Mode P test episode from the main grid. You can see where each agent went, which credit each method gave each agent at each step (four standard methods and our two), and how that compares with the exact credit, which comes from replaying the episode with agents removed. Agents: <b>A</b> enabler (pulls the lever), <b>B</b> and <b>C</b> finishers (push together once the gate is open), <b>D</b> and <b>E</b> bystanders.</p>
+
+  <div class="controls" role="group" aria-label="Choose what to show">
+    <div class="ctl"><span>Payout delay d</span><div class="seg" id="ctl-delay"></div></div>
+    <div class="ctl"><span>Enabler</span><div class="seg" id="ctl-crit"></div></div>
+    <div class="ctl" style="min-width: 220px; flex: 1 1 240px;"><span>Test episode</span><select id="ctl-ep" aria-label="Test episode"></select></div>
+    <div class="ctl"><span>Method</span><div class="seg" id="ctl-alg"></div></div>
+    <div class="ctl"><span>Removal target</span><div class="seg" id="ctl-target"></div></div>
+  </div>
+
+  <p class="note" id="banner" style="margin:-4px 0 12px"></p>
+  <div class="layout">
+    <section class="card" aria-labelledby="h-replay">
+      <div class="card-head"><h2 id="h-replay">Episode replay</h2><span class="legend">
+        <span><span class="sw dot" style="background:var(--enabler)"></span>enabler</span>
+        <span><span class="sw dot" style="background:var(--finisher)"></span>finisher</span>
+        <span><span class="sw dot" style="background:var(--bystander)"></span>bystander</span>
+      </span></div>
+      <svg id="grid" role="img" aria-label="Gridworld at the current step"></svg>
+      <div class="player">
+        <button class="btn" id="play" aria-label="Play">▶ Play</button>
+        <input type="range" id="tslider" min="0" value="0" aria-label="Time step">
+        <span class="tval" id="tval">t = 0</span>
+      </div>
+      <dl class="status" id="status"></dl>
+    </section>
+
+    <section class="card" aria-labelledby="h-steps">
+      <div class="card-head"><h2 id="h-steps">Per-step credit</h2>
+        <label class="legend"><input type="checkbox" id="sqrt"> boost small values (√ scale)</label></div>
+      <svg id="timeline" role="img" aria-label="Event timeline"></svg>
+      <div id="hm-method-title" class="note" style="margin-top:6px"></div>
+      <svg id="hm-method" role="img" aria-label="Method per-step credit heatmap"></svg>
+      <div id="hm-truth-title" class="note" style="margin-top:6px"></div>
+      <svg id="hm-truth" role="img" aria-label="True per-step credit heatmap"></svg>
+      <div class="legend" style="margin-top:8px" id="hm-legend"></div>
+      <p class="note">Each heatmap uses its own color scale (its largest |value| = full color), because the read-outs come in different units. Click a cell to jump to that step.</p>
+    </section>
+  </div>
+
+  <div class="row2">
+    <section class="card" aria-labelledby="h-shares">
+      <div class="card-head"><h2 id="h-shares">Who got the credit: episode totals</h2><span class="legend" id="shares-legend"></span></div>
+      <div class="stats" id="stats"></div>
+      <svg id="shares" role="img" aria-label="Credit shares per agent"></svg>
+      <details><summary>Table view</summary><div class="scroll-x" id="shares-table"></div></details>
+    </section>
+
+    <section class="card" aria-labelledby="h-coal">
+      <div class="card-head"><h2 id="h-coal">Which coalition created the value</h2></div>
+      <div id="coal"></div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:14px" aria-labelledby="h-cell">
+    <div class="card-head"><h2 id="h-cell">This cell, averaged over all 30 test episodes</h2><span class="muted" id="cell-key"></span></div>
+    <div class="scroll-x" id="cell-table"></div>
+    <p class="note" id="repro"></p>
+    <p class="note">L1 is the error between credit shares (0 = exact, 2 = disjoint). The score is taken against each read-out's matched removal target: leave-one-out for VDN, QMIX, COMA, MAPPO and our sitting-out critic, Shapley for our coalition estimator. "Team reacts" grades every method against leave-one-out where the remaining agents re-plan without the removed one (the truth our sitting-out critic is built for). "Step r" is the Pearson correlation between the read-out and the per-step counterfactual it estimates (level-1 fidelity). The two reference rows need no training: equal shares for everyone, and a <i>perfect</i> per-step critic (the semantic gap).</p>
+  </section>
+
+  <section class="card guide" aria-labelledby="h-guide">
+    <h2 id="h-guide">What to look for</h2>
+    <ul>
+      <li><b>The semantic gap.</b> Choose a <i>slack</i> enabler. A pulls the lever long before B and C reach their goals, so if A did nothing for one step it would just pull a step later. VDN, QMIX and COMA ask exactly that one-step question, so their A row stays close to zero. Removing A, however, loses the whole reward: the true-credit heatmap gives A a full third, landing at the lever pull. Even a perfect one-step critic misses the enabler.</li>
+      <li><b>Delay.</b> Move from d = 0 to d = 50. The payout marker moves right, away from the actions that caused it, while the removal truth stays the same.</li>
+      <li><b>Bystanders.</b> D and E's rows show leakage: credit given to agents who could be removed without losing anything.</li>
+      <li><b>Our methods.</b> Pick <i>Ours: trained with sitting out</i>: its credit bars sit close to the truth, A gets its share, and D and E get almost nothing, at every delay. Switch the target to <i>team reacts</i> to grade it on the truth it is built for. <i>Ours: coalition estimator</i> finds the group {A, B, C} in the coalition panel.</li>
+      <li><b>MAPPO.</b> Its read-out is a <i>shared</i> advantage, so every agent's row is identical. Its leakage and missed credit are fixed by construction and are not evidence about MAPPO.</li>
+      <li><b>Coalitions.</b> The true value comes from one three-agent coalition {A, B, C}. VDN and QMIX's mixer games put almost all of their mass on single agents, because a per-step game cannot express a coalition whose members act at different times.</li>
+    </ul>
+    <p class="note">The data comes from <code>scripts/export_credit_viz.py</code>. It re-runs each main-grid cell (coalition layout, 2 bystanders, seed 0) and checks the regenerated credit against the stored results before exporting (see the reproduction note above). Full write-up: <code>docs/main_results.md</code>, <code>docs/h3_results.md</code>.</p>
+  </section>
+</main>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__VIZ_DATA__*/null;
+const ALG_NAMES = { vdn: "VDN", qmix: "QMIX", coma: "COMA", mappo: "MAPPO",
+  ece3_mix: "Ours: coalition estimator", atd_set_remove: "Ours: trained with sitting out" };
+const READOUT = {
+  vdn: "Q_tot with the agent's action minus Q_tot with that agent at noop",
+  qmix: "Q_tot with the agent's action minus Q_tot with that agent at noop",
+  coma: "counterfactual advantage, Q(s, u) minus the policy-weighted baseline",
+  mappo: "shared advantage, one value for the whole team, so every row is the same",
+  ece3_mix: "predicts the episode's return from which agents took part (terms for groups of up to 3), trained on replays with random agents removed; each group's value is split equally among its members",
+  atd_set_remove: "a value critic trained on episodes where random agents stop for good; credit at each step is the change in the team's expected return without the agent (sums to its removal credit)",
+};
+const STEP_TRUTH = {
+  noop: "Per-step truth: discounted return lost if the agent did noop at this step and the team carried on (what a perfect noop critic would output)",
+  baseline: "Per-step truth: return relative to the behaviour-policy average at this step (what a perfect COMA critic would output)",
+  kappa_remove: "Per-step truth: exact change in the team's expected return without this agent from this step on (what a perfect sitting-out critic would output)",
+};
+const TARGET_NAMES = { loo: "leave-one-out", shapley: "Shapley", loo_closed: "leave-one-out, team reacts" };
+const HAS_CLOSED = !!(DATA && DATA.cells && DATA.cells[0].episodes[0].truth.loo_closed_shares);
+const LETTER = i => String.fromCharCode(65 + i);
+const coalName = a => "{" + a.map(LETTER).join(", ") + "}";
+const fmt = (x, d = 2) => x == null || Number.isNaN(x) ? "–" : (Math.abs(x) < 0.005 && x !== 0 ? x.toExponential(1) : x.toFixed(d));
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+if (!DATA || !DATA.cells || !DATA.cells.length) {
+  document.querySelector("main").innerHTML = "<h1>No data</h1><p>Build this page with scripts/export_credit_viz.py.</p>";
+  throw new Error("no data");
+}
+
+const cells = DATA.cells;
+const delays = [...new Set(cells.map(c => c.cell.delay))].sort((a, b) => a - b);
+const crits = [...new Set(cells.map(c => c.cell.enabler_start > 0))].sort();
+const algs = Object.keys(cells[0].summary);
+const state = { delay: delays[0], crit: crits[0], ep: 0, alg: algs.includes("qmix") ? "qmix" : algs[0], target: "loo", t: 0, sqrt: false, playing: false };
+try { Object.assign(state, JSON.parse(store("credit-viz-state") || "{}"), { t: 0, playing: false }); } catch (e) {}
+if (!delays.includes(state.delay)) state.delay = delays[0];
+if (!crits.includes(state.crit)) state.crit = crits[0];
+if (!algs.includes(state.alg)) state.alg = algs[0];
+if (state.target === "loo_closed" && !HAS_CLOSED) state.target = "loo";
+
+const findCell = (d, cr) => cells.find(c => c.cell.delay === d && (c.cell.enabler_start > 0) === cr);
+// A (delay, enabler) pair may be missing if its export failed validation; never show another cell in its place.
+function fixCombo(changed) {
+  if (findCell(state.delay, state.crit)) return;
+  if (changed === "delay") { const c = crits.find(x => findCell(state.delay, x)); if (c !== undefined) { state.crit = c; return; } }
+  const d = delays.find(x => findCell(x, state.crit));
+  if (d !== undefined) state.delay = d; else { state.delay = cells[0].cell.delay; state.crit = cells[0].cell.enabler_start > 0; }
+}
+const cell = () => findCell(state.delay, state.crit);
+fixCombo("delay");
+const ep = () => cell().episodes[Math.min(state.ep, cell().episodes.length - 1)];
+const T = () => cell().layout.horizon;
+
+function seg(id, options, key, label) {
+  const box = document.getElementById(id);
+  box.innerHTML = "";
+  for (const [val, text] of options) {
+    const b = document.createElement("button");
+    b.textContent = text; b.type = "button";
+    b.setAttribute("aria-pressed", String(state[key] === val));
+    if (key === "crit" && !findCell(state.delay, val)) {
+      b.disabled = true; b.style.opacity = "0.4"; b.style.cursor = "not-allowed";
+      b.title = "Not exported for this delay: its re-run failed the reproduction check (see scripts/export_credit_viz.py)";
+    }
+    b.addEventListener("click", () => { state[key] = val; if (key === "delay" || key === "crit") fixCombo(key); renderAll(); });
+    box.appendChild(b);
+  }
+  box.setAttribute("aria-label", label);
+}
+
+function renderControls() {
+  seg("ctl-delay", delays.map(d => [d, String(d)]), "delay", "Payout delay");
+  if (crits.length > 1) seg("ctl-crit", crits.map(c => [c, c ? "critical" : "slack"]), "crit", "Enabler slack");
+  else document.getElementById("ctl-crit").closest(".ctl").style.display = "none";
+  seg("ctl-alg", algs.map(a => [a, ALG_NAMES[a] || a]), "alg", "Method");
+  seg("ctl-target", [["loo", "Leave-one-out"], ["shapley", "Shapley"], ...(HAS_CLOSED ? [["loo_closed", "Leave-one-out (team reacts)"]] : [])], "target", "Removal target");
+  const sel = document.getElementById("ctl-ep");
+  sel.innerHTML = "";
+  cell().episodes.forEach((e, k) => {
+    const o = document.createElement("option");
+    const tags = [];
+    tags.push(e.enabler_critical ? "A critical" : "A had slack");
+    if (!e.matches_plan) tags.push("realised ≠ planted");
+    o.value = k; o.textContent = `#${e.index + 1} · return ${fmt(e.return, 0)} · ${tags.join(" · ")}`;
+    sel.appendChild(o);
+  });
+  state.ep = Math.min(state.ep, cell().episodes.length - 1);
+  sel.value = state.ep;
+}
+document.getElementById("ctl-ep").addEventListener("change", e => { state.ep = +e.target.value; state.t = 0; renderAll(); });
+document.getElementById("sqrt").addEventListener("change", e => { state.sqrt = e.target.checked; renderHeatmaps(); });
+
+// ---------- tooltip ----------
+const tip = document.getElementById("tip");
+function showTip(evt, html) {
+  tip.innerHTML = html; tip.style.display = "block";
+  const pad = 12, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if (x + w > innerWidth - 8) x = evt.clientX - w - pad;
+  if (y + h > innerHeight - 8) y = evt.clientY - h - pad;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+
+// ---------- gridworld ----------
+const CS = 44;
+function roleColor(role) { return role === "enabler" ? "var(--enabler)" : role === "finisher" ? "var(--finisher)" : "var(--bystander)"; }
+function renderGrid() {
+  const c = cell(), L = c.layout, e = ep(), t = state.t;
+  const svg = document.getElementById("grid");
+  svg.innerHTML = "";
+  svg.setAttribute("viewBox", `0 0 ${L.width * CS} ${L.height * CS}`);
+  for (let r = 0; r < L.height; r++) for (let q = 0; q < L.width; q++)
+    el("rect", { x: q * CS + 1, y: r * CS + 1, width: CS - 2, height: CS - 2, rx: 5, fill: "var(--cell-empty)" }, svg);
+  L.events.forEach((ev, k) => {
+    const pulled = e.pulled[t][k];
+    for (const [a, [r, q]] of Object.entries(ev.levers)) {
+      const on = pulled.includes(+a);
+      el("rect", { x: q * CS + 3, y: r * CS + 3, width: CS - 6, height: CS - 6, rx: 5, fill: on ? "var(--lever)" : "none",
+        "fill-opacity": on ? 0.18 : 0, stroke: "var(--lever)", "stroke-width": 2, "stroke-dasharray": on ? "" : "4 3" }, svg);
+      const tx = el("text", { x: q * CS + CS / 2, y: r * CS + CS - 6, "text-anchor": "middle", style: "font-size:9px" }, svg);
+      tx.textContent = on ? "pulled" : "lever " + LETTER(+a);
+    }
+    for (const [a, [r, q]] of Object.entries(ev.goals)) {
+      el("rect", { x: q * CS + 3, y: r * CS + 3, width: CS - 6, height: CS - 6, rx: 5, fill: "none",
+        stroke: "var(--goal)", "stroke-width": 2, "stroke-dasharray": e.done[t][k] ? "" : "4 3" }, svg);
+      const tx = el("text", { x: q * CS + CS / 2, y: r * CS + CS - 6, "text-anchor": "middle", style: "font-size:9px" }, svg);
+      tx.textContent = e.done[t][k] ? "done" : "goal " + LETTER(+a);
+    }
+  });
+  // trails up to t
+  for (let i = 0; i < L.n_agents; i++) {
+    const pts = e.positions.slice(0, t + 1).map(p => `${p[i][1] * CS + CS / 2},${p[i][0] * CS + CS / 2}`).join(" ");
+    el("polyline", { points: pts, fill: "none", stroke: roleColor(L.roles[i]), "stroke-opacity": 0.35, "stroke-width": 2,
+      "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+  }
+  for (let i = 0; i < L.n_agents; i++) {
+    const [r, q] = e.positions[t][i];
+    const g = el("g", { class: "agent", transform: `translate(${q * CS + CS / 2},${r * CS + CS / 2})` }, svg);
+    el("circle", { r: 14, fill: roleColor(L.roles[i]), stroke: "var(--surface)", "stroke-width": 2 }, g);
+    const tx = el("text", { "text-anchor": "middle", dy: "0.35em", style: "font-size:13px;font-weight:650;fill:#fff" }, g);
+    tx.textContent = LETTER(i);
+  }
+  renderStatus();
+}
+
+function renderStatus() {
+  const c = cell(), e = ep(), t = state.t, d = c.layout.delay;
+  const ev = e.events[0];
+  const items = [];
+  const pt = ev.pull_times["0"];
+  items.push(["Lever", pt == null ? "never pulled" : (t > pt ? `pulled by A at t = ${pt}` : `A pulls at t = ${pt}`)]);
+  items.push(["Event", ev.completion_time == null ? "never completed" :
+    (t > ev.completion_time ? `completed by ${ev.participants.map(LETTER).join(" + ")} at t = ${ev.completion_time}` : `completes at t = ${ev.completion_time}`)]);
+  if (ev.payout_time != null) {
+    const left = ev.payout_time - t;
+    items.push(["Payout", left > 0 && t > ev.completion_time ? `+${fmt(ev.payout, 0)} in ${left} step${left === 1 ? "" : "s"} (delay d = ${d})`
+      : left >= 0 && t <= ev.completion_time ? `+${fmt(ev.payout, 0)} at t = ${ev.payout_time} (delay d = ${d})`
+      : `+${fmt(ev.payout, 0)} paid at t = ${ev.payout_time}`]);
+  }
+  const reward = e.rewards.slice(0, t).reduce((a, b) => a + b, 0);
+  items.push(["Return so far", fmt(reward, 0) + " of " + fmt(e.return, 0)]);
+  items.push(["Episode", e.enabler_critical ? "A was on the critical path (B and C waited for the lever)" : "A had slack (pulled before B and C were ready)"]);
+  document.getElementById("status").innerHTML = items.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+  document.getElementById("tval").textContent = `t = ${t}`;
+  const s = document.getElementById("tslider");
+  s.max = T(); s.value = t;
+}
+
+// ---------- timeline + heatmaps (shared x scale) ----------
+const W = 640, LBL = 34, RPAD = 8;
+const xOf = t => LBL + (t / T()) * (W - LBL - RPAD);
+const colW = () => (W - LBL - RPAD) / T();
+
+function renderTimeline() {
+  const svg = document.getElementById("timeline"), e = ep(), H = 54, ev = e.events[0];
+  svg.innerHTML = ""; svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  el("line", { x1: LBL, x2: W - RPAD, y1: 40, y2: 40, stroke: "var(--axis)" }, svg);
+  for (let t = 0; t <= T(); t += 10) {
+    el("line", { x1: xOf(t), x2: xOf(t), y1: 40, y2: 44, stroke: "var(--axis)" }, svg);
+    const tx = el("text", { x: xOf(t), y: 54, "text-anchor": "middle", style: "font-size:10px" }, svg); tx.textContent = t;
+  }
+  const lab = el("text", { x: 0, y: 30, style: "font-size:10px" }, svg); lab.textContent = "events";
+  const mark = (t, color, label, y, shape) => {
+    const x = xOf(t + 0.5);
+    if (shape === "tri") el("path", { d: `M${x - 5},${y + 8} L${x + 5},${y + 8} L${x},${y} Z`, fill: color }, svg);
+    else el("rect", { x: x - 4.5, y, width: 9, height: 9, rx: 2, fill: color, transform: `rotate(45 ${x} ${y + 4.5})` }, svg);
+    const tx = el("text", { x, y: y - 3, "text-anchor": "middle", style: "font-size:10px" }, svg); tx.textContent = label;
+  };
+  const pt = ev.pull_times["0"];
+  if (ev.completion_time != null && ev.payout_time != null && ev.payout_time > ev.completion_time) {
+    const x1 = xOf(ev.completion_time + 0.5), x2 = xOf(ev.payout_time + 0.5);
+    el("line", { x1, x2, y1: 34, y2: 34, stroke: "var(--muted)", "stroke-dasharray": "3 3" }, svg);
+    const tx = el("text", { x: (x1 + x2) / 2, y: 31, "text-anchor": "middle", style: "font-size:10px" }, svg);
+    tx.textContent = `delay ${cell().layout.delay}`;
+  }
+  if (pt != null) mark(pt, "var(--enabler)", "A pulls", 14, "tri");
+  if (ev.completion_time != null) mark(ev.completion_time, "var(--finisher)", "B+C push", 14, "dia");
+  if (ev.payout_time != null) {
+    const x = xOf(ev.payout_time + 0.5);
+    el("rect", { x: x - 3, y: 22, width: 6, height: 18, rx: 2, fill: "var(--ink)" }, svg);
+    const tx = el("text", { x, y: 18, "text-anchor": "middle", style: "font-size:10px;font-weight:600;fill:var(--ink)" }, svg);
+    tx.textContent = `+${fmt(ev.payout, 0)}`;
+  }
+  el("line", { class: "cursor", x1: xOf(state.t), x2: xOf(state.t), y1: 4, y2: 44 }, svg);
+}
+
+function mix(a, b, f) {
+  const p = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16));
+  const A = p(a), B = p(b);
+  return "rgb(" + A.map((v, i) => Math.round(v + (B[i] - v) * f)).join(",") + ")";
+}
+function divColor(v, max) {
+  if (!max) return css("--div-mid");
+  let f = Math.min(1, Math.abs(v) / max);
+  if (state.sqrt) f = Math.sqrt(f);
+  return mix(css("--div-mid"), css(v >= 0 ? "--div-pos" : "--div-neg"), f);
+}
+
+function heatmap(id, matrix, kind) {
+  const svg = document.getElementById(id), L = cell().layout, n = L.n_agents, rh = 18, H = n * rh + 4;
+  svg.innerHTML = ""; svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  let max = 0;
+  for (const row of matrix) for (const v of row) max = Math.max(max, Math.abs(v));
+  const cw = colW();
+  for (let i = 0; i < n; i++) {
+    const lab = el("text", { x: 0, y: i * rh + rh / 2 + 2, dy: "0.35em", class: "agent-label", style: `fill:${roleColor(L.roles[i])}` }, svg);
+    lab.textContent = LETTER(i);
+    for (let t = 0; t < matrix.length; t++) {
+      const v = matrix[t][i];
+      const r = el("rect", { class: "hm-cell", x: xOf(t) + 0.5, y: i * rh + 2, width: Math.max(cw - 1, 0.6), height: rh - 2,
+        fill: divColor(v, max) }, svg);
+      r.addEventListener("mousemove", evt => showTip(evt,
+        `<b>${LETTER(i)}</b> (${L.roles[i]}) · t = ${t}<br>${kind}: <b>${fmt(v, 3)}</b>`));
+      r.addEventListener("mouseleave", hideTip);
+      r.addEventListener("click", () => { state.t = t; stop(); renderTime(); });
+    }
+  }
+  el("line", { class: "cursor", x1: xOf(state.t), x2: xOf(state.t), y1: 0, y2: H }, svg);
+  return max;
+}
+
+function renderHeatmaps() {
+  const e = ep(), m = e.methods[state.alg], st = m.step_target || "noop";
+  const name = ALG_NAMES[state.alg];
+  const perEpisode = !m.step_target && m.ours;
+  document.getElementById("hm-method-title").innerHTML = `<b>Selected method, ${name}:</b> ${READOUT[state.alg] || ""}` +
+    (perEpisode ? ". <b>It gives one credit per game, not a timeline, so its total is drawn at the last step.</b>" : "");
+  const truthStep = e.truth.step_kappa_remove || e.truth["step_" + st] || e.truth.step_noop;
+  document.getElementById("hm-truth-title").innerHTML = e.truth.step_kappa_remove
+    ? `<b>True credit (what each agent should get):</b> points the team loses without this agent, step by step. ` +
+      `A row adds up to that agent's true credit for the game, and credit lands when an outcome becomes certain, not when the reward is paid.`
+    : `<b>${STEP_TRUTH[e.truth["step_" + st] ? st : "noop"]}</b>`;
+  const mMax = heatmap("hm-method", m.per_step, `${name} credit`);
+  const tMax = heatmap("hm-truth", truthStep, "true credit");
+  document.getElementById("hm-legend").innerHTML =
+    `<span><span class="sw" style="background:var(--div-neg)"></span>negative</span>` +
+    `<span><span class="sw" style="background:var(--div-mid);outline:1px solid var(--axis)"></span>zero</span>` +
+    `<span><span class="sw" style="background:var(--div-pos)"></span>positive</span>` +
+    `<span class="muted">full color: |${name}| = ${fmt(mMax, 3)}, |true credit| = ${fmt(tMax, 3)}</span>`;
+}
+
+// ---------- shares ----------
+function renderShares() {
+  const c = cell(), e = ep(), L = c.layout, n = L.n_agents, m = e.methods[state.alg], tgt = state.target;
+  const st = m.step_target || "noop";
+  const truthShares = e.truth[tgt + "_shares"];
+  const series = [
+    { key: "truth", name: `Removal truth (${TARGET_NAMES[tgt]})`, color: "var(--truth)", vals: truthShares },
+    { key: "method", name: ALG_NAMES[state.alg], color: "var(--method)", vals: m.shares },
+    { key: "critic", name: `Perfect per-step critic (${st})`, color: "var(--critic)", vals: (e.perfect[st] || {}).shares },
+  ];
+  document.getElementById("shares-legend").innerHTML = series.map(s =>
+    `<span><span class="sw" style="background:${s.color}"></span>${s.name}</span>`).join("") +
+    `<span><svg width="14" height="10" style="display:inline;width:14px;vertical-align:-1px"><line x1="7" x2="7" y1="0" y2="10" stroke="var(--muted)" stroke-dasharray="2 2"/></svg> equal split 1/${n}</span>`;
+
+  const met = m[tgt] || {}, uni = e.uniform[tgt] || {}, crit = (e.perfect[st] || {})[tgt] || {};
+  const stat = (k, v, s) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+  document.getElementById("stats").innerHTML =
+    stat(`${ALG_NAMES[state.alg]} L1`, met.valid ? fmt(met.l1) : "–", `equal split ${fmt(uni.l1)} · perfect critic ${crit.valid ? fmt(crit.l1) : "–"}`) +
+    stat("Leakage", met.valid ? fmt(met.leakage) : "–", "share given to bystanders") +
+    stat("Missed enabler credit", met.valid ? fmt(met.missed) : "–", `perfect critic ${crit.valid ? fmt(crit.missed) : "–"}`) +
+    stat("Step fidelity r", m.fidelity && m.fidelity.step_pearson != null ? fmt(m.fidelity.step_pearson) : "–", "read-out vs the per-step target its question asks for");
+
+  const svg = document.getElementById("shares");
+  const bh = 9, gap = 2, groupH = series.length * (bh + gap) + 10, H = n * groupH + 24, SW = 560, left = 46, right = 16;
+  svg.innerHTML = ""; svg.setAttribute("viewBox", `0 0 ${SW} ${H}`);
+  let lo = 0, hi = 0;
+  for (const s of series) if (s.vals) for (const v of s.vals) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  lo = Math.min(lo, 0); hi = Math.max(hi, 1 / n, 0.5);
+  lo = Math.floor(lo * 4) / 4; hi = Math.ceil(hi * 4) / 4;
+  const x = v => left + (v - lo) / (hi - lo) * (SW - left - right);
+  for (let g = lo; g <= hi + 1e-9; g += 0.25) {
+    el("line", { x1: x(g), x2: x(g), y1: 0, y2: H - 18, stroke: Math.abs(g) < 1e-9 ? "var(--axis)" : "var(--grid)" }, svg);
+    const tx = el("text", { x: x(g), y: H - 4, "text-anchor": "middle", style: "font-size:10px" }, svg); tx.textContent = fmt(g);
+  }
+  el("line", { x1: x(1 / n), x2: x(1 / n), y1: 0, y2: H - 18, stroke: "var(--muted)", "stroke-dasharray": "3 3" }, svg);
+  for (let i = 0; i < n; i++) {
+    const y0 = i * groupH + 4;
+    const lab = el("text", { x: 0, y: y0 + groupH / 2 - 5, dy: "0.35em", class: "agent-label", style: `fill:${roleColor(L.roles[i])}` }, svg);
+    lab.textContent = LETTER(i);
+    const lab2 = el("text", { x: 12, y: y0 + groupH / 2 - 5, dy: "0.35em", style: "font-size:9.5px" }, svg);
+    lab2.textContent = L.roles[i].slice(0, 3);
+    series.forEach((s, k) => {
+      if (!s.vals) return;
+      const v = s.vals[i], y = y0 + k * (bh + gap);
+      const x0 = x(Math.min(0, v)), w = Math.max(Math.abs(x(v) - x(0)), 1);
+      const r = el("rect", { x: x0, y, width: w, height: bh, rx: 2, fill: s.color }, svg);
+      const hit = el("rect", { x: left, y: y - 1, width: SW - left - right, height: bh + 2, fill: "transparent" }, svg);
+      hit.addEventListener("mousemove", evt => showTip(evt, `<b>${LETTER(i)}</b> (${L.roles[i]})<br>${s.name}: <b>${fmt(v, 3)}</b>`));
+      hit.addEventListener("mouseleave", hideTip);
+    });
+  }
+  const rows = series.map(s => `<tr><td>${s.name}</td>${s.vals ? s.vals.map(v => `<td>${fmt(v, 3)}</td>`).join("") : `<td colspan="${n}">no credit (sums to 0)</td>`}</tr>`);
+  rows.push(`<tr><td>Equal split</td>${Array.from({ length: n }, () => `<td>${fmt(1 / n, 3)}</td>`).join("")}</tr>`);
+  document.getElementById("shares-table").innerHTML =
+    `<table><thead><tr><th>Credit share</th>${L.roles.map((r, i) => `<th>${LETTER(i)} (${r})</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`;
+}
+
+// ---------- coalitions ----------
+function coalBars(list, max, color) {
+  if (!list.length) return `<p class="note">No non-zero dividends.</p>`;
+  return `<table><tbody>${list.slice(0, 6).map(([a, v]) =>
+    `<tr><td style="width:7.5em">${coalName(a)}</td><td style="text-align:left"><span style="display:inline-block;height:9px;border-radius:2px;vertical-align:middle;background:${v >= 0 ? color : "var(--div-neg)"};width:${Math.max(2, Math.abs(v) / max * 100).toFixed(1)}%;max-width:100%"></span></td><td style="width:4.5em">${fmt(v, 2)}</td></tr>`).join("")}</tbody></table>`;
+}
+function mass(list) {
+  const tot = list.reduce((s, [, v]) => s + Math.abs(v), 0);
+  return tot ? list.filter(([a]) => a.length >= 2).reduce((s, [, v]) => s + Math.abs(v), 0) / tot : null;
+}
+function renderCoalitions() {
+  const e = ep(), m = e.methods[state.alg];
+  const tru = e.truth.dividends;
+  const tmax = Math.max(...tru.map(([, v]) => Math.abs(v)), 1e-9);
+  let html = `<p class="note" style="margin-top:0">Harsanyi dividends: the value a coalition creates beyond what its subsets create on their own. They come from replaying the episode with every subset of agents removed.</p>`;
+  html += `<h3 style="font-size:13px;margin:10px 0 4px">True (realised in this episode) <span class="pill">interaction mass ${fmt(mass(tru))}</span></h3>` + coalBars(tru, tmax, "var(--truth)");
+  if (m.dividends) {
+    const mmax = Math.max(...m.dividends.map(([, v]) => Math.abs(v)), 1e-9);
+    const what = m.ours ? (state.alg === "ece3_mix" ? "coalition terms" : "coalition values at the start") : "mixer game, summed over steps";
+    const how = m.ours
+      ? (state.alg === "ece3_mix"
+          ? "The estimator's coalition terms, learned from replays with random agents removed."
+          : "From the critic's predicted value with every subset of agents stopped at the start of the episode.")
+      : "The mixer game is Q_tot with the agents outside S switched to noop, taken one step at a time.";
+    html += `<h3 style="font-size:13px;margin:12px 0 4px">${ALG_NAMES[state.alg]}: ${what} <span class="pill">interaction mass ${fmt(mass(m.dividends))}</span></h3>` +
+      coalBars(m.dividends, mmax, "var(--method)") +
+      `<p class="note">${how} Each bar is scaled to its own largest value. Interaction mass is the share of |dividends| held by coalitions of two or more agents; the true value is 1.0 here.</p>`;
+  } else {
+    html += `<p class="note">${ALG_NAMES[state.alg]} has no coalition-level read-out: its critic conditions on the joint action, but it has no per-coalition decomposition to read off. The coalition read-outs here are VDN, QMIX and our two methods.</p>`;
+  }
+  document.getElementById("coal").innerHTML = html;
+}
+
+// ---------- cell table ----------
+function renderCellTable() {
+  const c = cell();
+  document.getElementById("cell-key").textContent = `cell ${c.key} · realised = planted in ${fmt(c.data.test_matches_plan * 100, 0)}% of episodes`;
+  const eps = c.episodes;
+  const avg = f => { const v = eps.map(f).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const rep = c.reproduction || { mode: "exact", algs: {} };
+  const rows = algs.map(a => {
+    const s = c.summary[a].summary, f = c.summary[a].summary_fidelity, r = rep.algs[a] || {};
+    const lc = c.summary[a].summary_loo_closed;
+    return `<tr class="${a === state.alg ? "sel" : ""}"><td>${c.summary[a].ours ? "<b>" + ALG_NAMES[a] + "</b>" : ALG_NAMES[a]}</td><td>${fmt(s.l1)}</td>${HAS_CLOSED ? `<td>${lc ? fmt(lc.l1) : "–"}</td>` : ""}<td>${fmt(r.stored_mean_l1)}</td><td>${fmt(s.leakage)}</td><td>${fmt(s.missed)}</td><td>${f ? fmt(f.step_pearson) : "–"}</td><td>${s.n_valid}/${s.n_total}</td></tr>`;
+  });
+  rows.push(`<tr><td><i>Equal split</i></td><td>${fmt(avg(e => e.uniform.loo.valid ? e.uniform.loo.l1 : null))}</td>${HAS_CLOSED ? `<td>${fmt(avg(e => e.uniform.loo_closed && e.uniform.loo_closed.valid ? e.uniform.loo_closed.l1 : null))}</td>` : ""}<td></td><td>${fmt(avg(e => e.uniform.loo.valid ? e.uniform.loo.leakage : null))}</td><td>${fmt(avg(e => e.uniform.loo.valid ? e.uniform.loo.missed : null))}</td><td>–</td><td></td></tr>`);
+  for (const k of ["noop", "baseline"]) {
+    const g = c.semantic_gap[k];
+    rows.push(`<tr><td><i>Perfect per-step critic (${k})</i></td><td>${fmt(g.l1)}</td>${HAS_CLOSED ? "<td></td>" : ""}<td>${fmt(g.l1)}</td><td>${fmt(g.leakage)}</td><td>${fmt(g.missed)}</td><td>1.00</td><td></td></tr>`);
+  }
+  document.getElementById("cell-table").innerHTML =
+    `<table><thead><tr><th>Read-out</th><th>L1 ↓</th>${HAS_CLOSED ? "<th>L1, team reacts ↓</th>" : ""}<th>Stored L1</th><th>Leakage ↓</th><th>Missed ↓</th><th>Step r</th><th>Valid</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+  const devs = Object.entries(rep.algs).filter(([, r]) => r.episode_share_l1_mean != null);
+  const oursNote = c.estimators ? " Our two methods (bold) were trained for this page on the same training data and graded on the same 30 test episodes; they have no stored run to compare against." : "";
+  document.getElementById("repro").innerHTML = (rep.mode === "exact"
+    ? "Reproduction: exact. Every method's episode shares match the stored main-grid results."
+    : `Reproduction: re-trained on a different machine from the stored main grid. The removal truth and the loss at the first update match exactly, but floating-point drift during training moves each episode's shares away from the stored run, by an L1 of: ${devs.map(([a, r]) => `${ALG_NAMES[a]} ${fmt(r.episode_share_l1_mean)} on average (max ${fmt(r.episode_share_l1_max)})`).join(", ")}. Treat per-episode values as illustrative; the confirmatory numbers are in <code>docs/main_results.md</code>.`) + oursNote;
+}
+
+// ---------- playback ----------
+let timer = null;
+const playBtn = document.getElementById("play");
+function stop() { state.playing = false; clearInterval(timer); timer = null; playBtn.textContent = "▶ Play"; playBtn.setAttribute("aria-label", "Play"); }
+function play() {
+  if (state.t >= T()) state.t = 0;
+  state.playing = true; playBtn.textContent = "❚❚ Pause"; playBtn.setAttribute("aria-label", "Pause");
+  timer = setInterval(() => { if (state.t >= T()) { stop(); return; } state.t++; renderTime(); }, 160);
+}
+playBtn.addEventListener("click", () => state.playing ? stop() : play());
+document.getElementById("tslider").addEventListener("input", e => { stop(); state.t = +e.target.value; renderTime(); });
+document.addEventListener("keydown", e => {
+  if (e.target.closest("select, input, button")) return;
+  if (e.key === "ArrowRight") { stop(); state.t = Math.min(T(), state.t + 1); renderTime(); }
+  else if (e.key === "ArrowLeft") { stop(); state.t = Math.max(0, state.t - 1); renderTime(); }
+  else if (e.key === " ") { e.preventDefault(); state.playing ? stop() : play(); }
+});
+
+function renderTime() {
+  renderGrid(); renderTimeline();
+  for (const id of ["hm-method", "hm-truth"]) {
+    const cur = document.querySelector(`#${id} .cursor`);
+    if (cur) { cur.setAttribute("x1", xOf(state.t)); cur.setAttribute("x2", xOf(state.t)); }
+  }
+}
+function renderAll() {
+  stop();
+  state.t = Math.min(state.t, T());
+  renderControls(); renderGrid(); renderTimeline(); renderHeatmaps(); renderShares(); renderCoalitions(); renderCellTable();
+  store("credit-viz-state", JSON.stringify({ delay: state.delay, crit: state.crit, ep: state.ep, alg: state.alg, target: state.target }));
+}
+{
+  const tolerant = cells.filter(c => c.reproduction && c.reproduction.mode !== "exact").length;
+  const missing = delays.flatMap(d => crits.filter(cr => !findCell(d, cr)).map(cr => `d = ${d}, ${cr ? "critical" : "slack"}`));
+  const parts = [];
+  if (tolerant) parts.push(`${tolerant} of ${cells.length} cells were re-trained on a different machine from the stored main grid. VDN and QMIX per-episode credit therefore differs from the stored run (details under each cell's table), so treat it as illustrative.`);
+  if (missing.length) parts.push(`Not included: ${missing.join("; ")} (its re-run failed the reproduction check).`);
+  document.getElementById("banner").textContent = parts.join(" ");
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderHeatmaps(); });
+renderAll();
+</script>
+</body>
+</html>

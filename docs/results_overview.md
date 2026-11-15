@@ -8,7 +8,7 @@ A summary of every result to date (Steps 1–9), as of 7 November 2026. Details 
 
 | Source | Covers |
 |---|---|
-| `who_earned_the_reward_problem_statement_v2.md` | question, hypotheses H0–H5, metrics |
+| `docs/planning/who_earned_the_reward_problem_statement_v2.md` | question, hypotheses H0–H5, metrics |
 | `docs/environment_design.md` | Planted Coalition Gridworld |
 | `docs/pilot_findings.md` | pilots 1–2, method fixes, thresholds |
 | `docs/preregistration_amendment.md`, `docs/mode_p_protocol.md` | statistics and protocol |

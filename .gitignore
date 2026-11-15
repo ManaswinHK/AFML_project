@@ -7,3 +7,6 @@ results/
 # external/epymarl is a git submodule (pinned commit); nothing else in external/ is tracked
 external/*
 !external/epymarl
+
+# local tooling
+.claude/

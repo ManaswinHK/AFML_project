@@ -27,7 +27,7 @@ Env: `.venv` (Python 3.12, torch CPU). Run tests: `.venv/bin/python -m pytest -q
 - [x] Exploratory pilots (seeds 0-4) -> `docs/v3/pilot_findings.md` (pilot_fixed and pilot_budget stopped early on purpose)
 - [x] Phase 3 pre-registration frozen (5a73c9c) + Addendum A (post-hoc, labelled); gate running
 - [x] Mode P pre-registration frozen: commit a08b267 "Freeze pre-registration v3"
-- [ ] RUNNING: `scripts/v3/run_confirm_all.sh` (log /private/tmp/claude-501/confirm.log); re-run it to resume (skips done cells)
+- [ ] RUNNING: `scripts/v3/run_confirm_all.sh` (log written to a local file); re-run it to resume (skips done cells)
 - [ ] Confirmatory: confirm_main (60), confirm_h5 (20), confirm_perm (10), size transfer (seeds 5-9), gate (Phase 3, 60 runs), phase4 (6 runs)
 - [ ] 0.7 re-run partial cells (rerun_partial_h3, rerun_partial_h5)
 - [ ] Analysis: scripts/v3/analyse_prereg.py -> docs/v3/confirmatory_results.md; Phase 3/4 summaries

@@ -76,4 +76,4 @@ Plain online training never earned reward: QMIX and MAPPO for 400k steps and QMI
 
 ## 9. Reproducing
 
-`docs/running_on_another_machine.md` covers environment setup and each grid. Figures: `scripts/make_figures.py` (needs `matplotlib`). Mode T needs a Python 3.12 environment, because `sacred` does not import under 3.14.
+`docs/running_on_another_machine.md` covers environment setup and each grid. Figures: `scripts/make_figures.py` (needs `matplotlib`). Interactive per-episode credit explorer: `docs/credit_viz.html` (open in a browser), built by `scripts/export_credit_viz.py`. Mode T needs a Python 3.12 environment, because `sacred` does not import under 3.14.

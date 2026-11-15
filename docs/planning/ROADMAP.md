@@ -1,6 +1,6 @@
 # Roadmap
 
-Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step ends with something tested before the next one starts.
+Plan for implementing `docs/planning/who_earned_the_reward_problem_statement_v2.md`. Each step ends with something tested before the next one starts.
 
 ## Tier 1: must-have
 
@@ -49,7 +49,7 @@ Plan for implementing `who_earned_the_reward_problem_statement_v2.md`. Each step
 ## Tier 3: stretch (pick one)
 
 - [x] H5 low-order coalition estimator, tested on coalitions larger than its order k (`docs/h5_results.md`).
-- [ ] Interactive credit visualisation.
+- [x] Interactive credit visualisation: `docs/credit_viz.html`, a self-contained page that opens from disk. Choose a main-grid cell (coalition layout, b = 2, seed 0, every delay, slack or critical enabler), a test episode and a method (VDN, QMIX, COMA, MAPPO). It shows the episode replay, an event timeline, the method's per-step credit next to the per-step counterfactual truth, episode credit shares against the removal truth, the equal split and a perfect per-step critic, and true vs mixer-game Harsanyi dividends. Built by `scripts/export_credit_viz.py` (template `scripts/credit_viz_template.html`, cache `results/viz/`). The script re-runs each cell and stops unless the regenerated episode shares and leave-one-out truth match `results/mode_p/main/` (to 1e-6). That exact match only holds on the machine that trained the main grid (the PC): PyTorch's CPU arithmetic differs across machines. On the laptop, VDN's losses match the stored trace up to update 100 and then drift. The current page was therefore built on the laptop with `--l1-tol 0.15`, which checks that the truth and the update-0 loss match exactly and that each method's mean L1 is within 0.15. 7 of 8 cells passed; d = 25 critical failed (QMIX 0.85 vs 0.64 stored). On the laptop, per-episode VDN/QMIX shares moved by 0.1–0.4 L1 under floating-point noise alone, while COMA and MAPPO moved by less than 0.03 in every cell except d = 50 (about 0.2). The page states this. The exact export on the PC is in `docs/next_steps_pc.md`.
 
 ## Findings log
 

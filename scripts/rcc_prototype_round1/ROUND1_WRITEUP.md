@@ -1,8 +1,8 @@
 # Who Earned the Reward? Review, new tests, and the plan from here
 
-**Date:** 10 November 2026 · **Repo reviewed:** `DBS13062006/AFML_project` at commit `5943480` · **Reviewer:** Claude
+**Date:** 10 November 2026 · **Repo reviewed:** `DBS13062006/AFML_project` at commit `5943480`
 
-**What this covers.** I read the one-pager, `who_earned_the_reward_problem_statement_v2.md`, every file in `docs/`, the source in `src/whoearned/`, and the stored results in `results/mode_p/`. I ran the 131 unit tests that do not need PyTorch (all pass). I then ran seven new tests on your environment, with your seeds, layouts and metrics. The scripts and raw outputs are in the attached bundle.
+**What this covers.** I read the one-pager, `docs/planning/who_earned_the_reward_problem_statement_v2.md`, every file in `docs/`, the source in `src/whoearned/`, and the stored results in `results/mode_p/`. I ran the 131 unit tests that do not need PyTorch (all pass). I then ran seven new tests on your environment, with your seeds, layouts and metrics. The scripts and raw outputs are in the attached bundle.
 
 **What it does not cover.** PyTorch would not install in my sandbox, so I did not re-run VDN, QMIX, COMA, MAPPO, NA²Q or STAS. Every number for those methods below is read from your stored JSON files. My own estimator is a scikit-learn prototype, not an EPyMARL module. I did not read problem statement v1. Papers I could only read as abstracts or search snippets are listed in §9.
 

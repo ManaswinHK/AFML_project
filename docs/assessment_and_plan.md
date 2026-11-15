@@ -37,7 +37,7 @@ I do not expect the new credit, used as a reward, to speed up learning. §3.5 gi
 
 ## 1. What I did and did not do
 
-**Read:** the one-pager, `who_earned_the_reward_problem_statement_v2.md`, `ROADMAP.md`, every file in `docs/`, the source in `src/whoearned/` (environment, scripted team, replay, ground truth, metrics, experiments, coalition estimator), and the stored JSONs in `results/mode_p/`.
+**Read:** the one-pager, `docs/planning/who_earned_the_reward_problem_statement_v2.md`, `docs/planning/ROADMAP.md`, every file in `docs/`, the source in `src/whoearned/` (environment, scripted team, replay, ground truth, metrics, experiments, coalition estimator), and the stored JSONs in `results/mode_p/`.
 
 **Ran:** the 131 unit tests that do not need EPyMARL (all pass), and the tests below. My regenerated test episodes reproduce your stored leave-one-out truth in the cell I checked (5 of 5 episodes), and the equal-split L1 computed from them matches your tables (0.73 at b = 2).
 

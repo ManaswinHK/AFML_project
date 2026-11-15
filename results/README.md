@@ -26,4 +26,5 @@ python scripts/v5/cost_accounting.py     # docs/v5/cost_accounting.md (prints to
 | `v3/phase4/` | v3 Phase 4 checkpoint scores |
 | `v4/` | v4 Parts A, B, D (plain JSON) |
 | `v5/phase4_v5/` | v5 Part F final-checkpoint scores (credit and collateral damage) |
-| `mode_p/`, `mode_t/` | earlier rounds |
+| `mode_p/`, `mode_t/` | rounds 1–2: main grid, H3, H5, sensitivity (`mode_p`); learning from scratch (`mode_t`) |
+| `viz/` | per-setting data behind `docs/credit_viz.html` (rebuild with `scripts/export_credit_viz.py --build-only`) |
